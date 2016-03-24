@@ -55,23 +55,23 @@ public class GetQueryReportIT extends ITBase {
                 "}";
 
         // Triples that will be streamed into Fluo after the PCJ has been created.
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
-                makeRyaStatement("http://Alice", "http://worksAt", "http://Taco Shop"),
-                makeRyaStatement("http://Alice", "http://worksAt", "http://Burger Join"),
-                makeRyaStatement("http://Alice", "http://worksAt", "http://Pastery Shop"),
-                makeRyaStatement("http://Alice", "http://worksAt", "http://Burrito Place"),
-                makeRyaStatement("http://Alice", "http://livesIn", "http://Lost County"),
-                makeRyaStatement("http://Alice", "http://livesIn", "http://Big City"),
-                makeRyaStatement("http://Bob", "http://worksAt", "http://Burrito Place"),
-                makeRyaStatement("http://Bob", "http://livesIn", "http://Big City"),
-                makeRyaStatement("http://Charlie", "http://worksAt", "http://Burrito Place"),
-                makeRyaStatement("http://Charlie", "http://livesIn", "http://Big City"),
-                makeRyaStatement("http://David", "http://worksAt", "http://Burrito Place"),
-                makeRyaStatement("http://David", "http://livesIn", "http://Lost County"),
-                makeRyaStatement("http://Eve", "http://worksAt", "http://Burrito Place"),
-                makeRyaStatement("http://Eve", "http://livesIn", "http://Big City"),
-                makeRyaStatement("http://Frank", "http://worksAt", "http://Burrito Place"),
-                makeRyaStatement("http://Frank", "http://livesIn", "http://Lost County"));
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://worksAt", "http://Taco Shop"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://worksAt", "http://Burger Join"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://worksAt", "http://Pastery Shop"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://worksAt", "http://Burrito Place"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://livesIn", "http://Lost County"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://livesIn", "http://Big City"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://worksAt", "http://Burrito Place"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://livesIn", "http://Big City"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://worksAt", "http://Burrito Place"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://livesIn", "http://Big City"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://worksAt", "http://Burrito Place"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://livesIn", "http://Lost County"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://worksAt", "http://Burrito Place"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://livesIn", "http://Big City"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://worksAt", "http://Burrito Place"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://livesIn", "http://Lost County"));
 
         // Create the PCJ in Fluo.
         new CreatePcj().withRyaIntegration(fluoClient, RYA_TABLE_PREFIX, ryaRepo, accumuloConn, new HashSet<VariableOrder>(), sparql);

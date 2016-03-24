@@ -21,7 +21,9 @@ package org.apache.rya.indexing.pcj.fluo.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.rya.indexing.pcj.fluo.ITBase;
@@ -107,17 +109,17 @@ public class InputIT extends ITBase {
               "}";
 
         // Triples that will be streamed into Fluo after the PCJ has been created.
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
-                makeRyaStatement("http://Alice", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://Bob", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://Charlie", "http://talksTo", "http://Eve"),
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://talksTo", "http://Eve"));
 
-                makeRyaStatement("http://Eve", "http://helps", "http://Kevin"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://helps", "http://Kevin"));
 
-                makeRyaStatement("http://Bob", "http://worksAt", "http://Chipotle"),
-                makeRyaStatement("http://Charlie", "http://worksAt", "http://Chipotle"),
-                makeRyaStatement("http://Eve", "http://worksAt", "http://Chipotle"),
-                makeRyaStatement("http://David", "http://worksAt", "http://Chipotle"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://worksAt", "http://Chipotle"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://worksAt", "http://Chipotle"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://worksAt", "http://Chipotle"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://worksAt", "http://Chipotle"));
 
         // The expected results of the SPARQL query once the PCJ has been computed.
         final Set<BindingSet> expected = new HashSet<>();
@@ -165,9 +167,9 @@ public class InputIT extends ITBase {
                 makeStatement("http://Alice", "http://worksAt", "http://Chipotle"));
 
         // Triples that will be streamed into Fluo after the PCJ has been created.
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
-                makeRyaStatement("http://Frank", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://Frank", "http://worksAt", "http://Chipotle"));
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://worksAt", "http://Chipotle"));
 
         // Load the historic data into Rya.
         for(final Statement triple : historicTriples) {
@@ -221,9 +223,9 @@ public class InputIT extends ITBase {
                 makeStatement("http://Alice", "http://worksAt", "http://Chipotle"));
 
         // Triples that will be streamed into Fluo after the PCJ has been created.
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
-                makeRyaStatement("http://Alice", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://Alice", "http://worksAt", "http://Chipotle"));
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://worksAt", "http://Chipotle"));
 
         // The expected final result.
         final Set<BindingSet> expected = new HashSet<>();

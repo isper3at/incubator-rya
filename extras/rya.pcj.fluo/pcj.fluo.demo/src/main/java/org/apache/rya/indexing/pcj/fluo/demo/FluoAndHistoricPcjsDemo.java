@@ -287,7 +287,7 @@ public class FluoAndHistoricPcjsDemo implements Demo {
     private static void loadDataIntoFluo(final FluoClient fluoClient, final Set<RyaStatement> statements) {
         final InsertTriples insertTriples = new InsertTriples();
         for(final RyaStatement statement : statements) {
-            insertTriples.insert(fluoClient, statement);
+            insertTriples.insert(fluoClient, statement, "");
         }
     }
 

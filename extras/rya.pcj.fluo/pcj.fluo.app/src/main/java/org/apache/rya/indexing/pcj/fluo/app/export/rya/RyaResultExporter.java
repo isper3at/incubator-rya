@@ -29,6 +29,7 @@ import org.openrdf.query.BindingSet;
 
 import io.fluo.api.data.Bytes;
 import io.fluo.api.types.TypedTransactionBase;
+import mvm.rya.indexing.accumulo.VisibilityBindingSet;
 import mvm.rya.indexing.external.tupleSet.PcjTables;
 import mvm.rya.indexing.external.tupleSet.PcjTables.PcjException;
 
@@ -65,7 +66,7 @@ public class RyaResultExporter implements IncrementalResultExporter {
 
         // Write the result to the PCJ table.
         try {
-            pcjTables.addResults(accumuloConn, pcjTableName, Collections.singleton(result));
+            pcjTables.addResults(accumuloConn, pcjTableName, Collections.singleton(new VisibilityBindingSet(result)));
         } catch (final PcjException e) {
             throw new ResultExportException("A result could not be exported to the PCJ table in Accumulo.", e);
         }

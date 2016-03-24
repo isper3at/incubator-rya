@@ -22,11 +22,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.commons.collections.keyvalue.DefaultMapEntry;
 import org.apache.log4j.Logger;
 import org.apache.rya.indexing.pcj.fluo.app.StringTypeLayer;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
+
+import com.beust.jcommander.internal.Maps;
 
 import io.fluo.api.client.FluoClient;
 import io.fluo.api.types.TypedTransaction;
@@ -58,9 +63,12 @@ public class InsertTriples {
      *
      * @param fluo - A connection to the Fluo table that will be updated. (not null)
      * @param triple - The triple to insert. (not null)
+     * @param visibility - The visibility of the tripe to insert. (not null)
      */
-    public void insert(final FluoClient fluo, final RyaStatement triple) {
-        insert(fluo, Collections.singleton(triple));
+    public void insert(final FluoClient fluo, final RyaStatement triple, final String visibility) {
+        Map<RyaStatement, String> triples = new HashMap<>();
+        triples.put(triple, visibility);
+        insert(fluo, triples);
     }
 
     /**
@@ -69,12 +77,12 @@ public class InsertTriples {
      * @param fluo - A connection to the Fluo table that will be updated. (not null)
      * @param triples - The triples to insert. (not null)
      */
-    public void insert(final FluoClient fluo, final Collection<RyaStatement> triples) {
+    public void insert(final FluoClient fluo, final Map<RyaStatement, String> triples) {
         checkNotNull(fluo);
         checkNotNull(triples);
 
         try(TypedTransaction tx = STRING_TYPED_LAYER.wrap(fluo.newTransaction())) {
-            for(final RyaStatement triple : triples) {
+            for(final RyaStatement triple : triples.keySet()) {
                 try {
                     tx.mutate().row(spoFormat(triple)).col(FluoQueryColumns.TRIPLES).set();
                 } catch (final TripleRowResolverException e) {

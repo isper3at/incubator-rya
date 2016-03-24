@@ -21,6 +21,8 @@ package org.apache.rya.indexing.pcj.fluo.client.util;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,7 +44,7 @@ public class FluoLoader extends RDFHandlerBase {
     private static final Logger log = LogManager.getLogger(FluoLoader.class);
 
     private static final int FLUSH_SIZE = 1000;
-    private final ArrayList<RyaStatement> buff = new ArrayList<>(1000);
+    private final Map<RyaStatement, String> buff = new HashMap<>(1000);
 
     private final FluoClient fluoClient;
     private final InsertTriples insertTriples;
@@ -74,7 +76,7 @@ public class FluoLoader extends RDFHandlerBase {
 
         // Enqueue the statement for the next job.
         final RyaStatement ryaSt = RdfToRyaConversions.convertStatement(st);
-        buff.add( ryaSt );
+        buff.put( ryaSt, "" );
     }
 
     @Override

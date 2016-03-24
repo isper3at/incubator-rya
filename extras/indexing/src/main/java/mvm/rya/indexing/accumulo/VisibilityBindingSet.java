@@ -8,8 +8,6 @@ import java.util.Set;
 
 import org.openrdf.query.BindingSet;
 
-import mvm.rya.indexing.external.BindingSetDecorator;
-
 /**
  * Decorates a {@link BindingSet} with a collection of visibilities.
  */

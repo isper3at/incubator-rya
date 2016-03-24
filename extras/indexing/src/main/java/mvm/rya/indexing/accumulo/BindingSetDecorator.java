@@ -1,4 +1,4 @@
-package mvm.rya.indexing.external;
+package mvm.rya.indexing.accumulo;
 
 import java.util.Iterator;
 import java.util.Set;

@@ -23,7 +23,9 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.rya.indexing.pcj.fluo.ITBase;
 import org.junit.Test;
@@ -68,12 +70,12 @@ public class CountStatementsIT extends ITBase {
     @Test
     public void test() {
         // Insert some Triples into the Fluo app.
-        final List<RyaStatement> triples = new ArrayList<>();
-        triples.add( RyaStatement.builder().setSubject(new RyaURI("http://Alice")).setPredicate(new RyaURI("http://talksTo")).setObject(new RyaURI("http://Bob")).build() );
-        triples.add( RyaStatement.builder().setSubject(new RyaURI("http://Bob")).setPredicate(new RyaURI("http://talksTo")).setObject(new RyaURI("http://Alice")).build() );
-        triples.add( RyaStatement.builder().setSubject(new RyaURI("http://Charlie")).setPredicate(new RyaURI("http://talksTo")).setObject(new RyaURI("http://Bob")).build() );
-        triples.add( RyaStatement.builder().setSubject(new RyaURI("http://David")).setPredicate(new RyaURI("http://talksTo")).setObject(new RyaURI("http://Bob")).build() );
-        triples.add( RyaStatement.builder().setSubject(new RyaURI("http://Eve")).setPredicate(new RyaURI("http://talksTo")).setObject(new RyaURI("http://Bob")).build() );
+        final Map<RyaStatement, String> triples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(triples, makeRyaStatement("http://Alice", "http://talksTo", "http://Bob"));
+        addStatementEmptyVisibilityEntry(triples, makeRyaStatement("http://Bob", "http://talksTo", "http://Alice"));
+        addStatementEmptyVisibilityEntry(triples, makeRyaStatement("http://Charlie", "http://talksTo", "http://Bob"));
+        addStatementEmptyVisibilityEntry(triples, makeRyaStatement("http://David", "http://talksTo", "http://Bob"));
+        addStatementEmptyVisibilityEntry(triples, makeRyaStatement("http://Eve", "http://talksTo", "http://Bob"));
 
         new InsertTriples().insert(fluoClient, triples);
 

@@ -244,6 +244,14 @@ public abstract class ITBase {
         return RyaToRdfConversions.convertStatement(ryaStmt);
     }
 
+    protected static void addStatementEmptyVisibilityEntry(Map<RyaStatement, String> map, RyaStatement statement) {
+        addStatementVisibilityEntry(map, statement, "");
+    }
+
+    protected static void addStatementVisibilityEntry(Map<RyaStatement, String> map, RyaStatement statement, String visibility) {
+        map.put(statement, visibility);
+    }
+
     /**
      * Fetches the binding sets that are the results of a specific SPARQL query
      * from the Fluo table.

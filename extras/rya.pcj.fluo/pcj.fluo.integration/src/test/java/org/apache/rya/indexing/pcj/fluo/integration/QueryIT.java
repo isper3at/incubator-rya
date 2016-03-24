@@ -20,7 +20,9 @@ package org.apache.rya.indexing.pcj.fluo.integration;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.rya.indexing.pcj.fluo.ITBase;
@@ -65,40 +67,40 @@ public class QueryIT extends ITBase {
                 "}";
 
         // Triples that will be streamed into Fluo after the PCJ has been created.
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
                 // Leaders
-                makeRyaStatement("http://Alice", "http://leaderOf", "http://GeekSquad"),
-                makeRyaStatement("http://Bob", "http://leaderOf", "http://GeekSquad"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://leaderOf", "http://GeekSquad"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://leaderOf", "http://GeekSquad"));
 
                 // Recruiters
-                makeRyaStatement("http://Charlie", "http://recruiterFor", "http://GeekSquad"),
-                makeRyaStatement("http://David", "http://recruiterFor", "http://GeekSquad"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://recruiterFor", "http://GeekSquad"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://recruiterFor", "http://GeekSquad"));
 
                 // Candidates
-                makeRyaStatement("http://Eve", "http://skilledWith", "http://Computers"),
-                makeRyaStatement("http://Eve", "http://livesIn", "USA"),
-                makeRyaStatement("http://Frank", "http://skilledWith", "http://Computers"),
-                makeRyaStatement("http://Frank", "http://livesIn", "USA"),
-                makeRyaStatement("http://George", "http://skilledWith", "http://Computers"),
-                makeRyaStatement("http://George", "http://livesIn", "Germany"),
-                makeRyaStatement("http://Harry", "http://skilledWith", "http://Negotiating"),
-                makeRyaStatement("http://Harry", "http://livesIn", "USA"),
-                makeRyaStatement("http://Ivan", "http://skilledWith", "http://Computers"),
-                makeRyaStatement("http://Ivan", "http://livesIn", "USA"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://skilledWith", "http://Computers"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://livesIn", "USA"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://skilledWith", "http://Computers"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://livesIn", "USA"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://George", "http://skilledWith", "http://Computers"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://George", "http://livesIn", "Germany"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Harry", "http://skilledWith", "http://Negotiating"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Harry", "http://livesIn", "USA"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Ivan", "http://skilledWith", "http://Computers"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Ivan", "http://livesIn", "USA"));
 
                 // Candidates the recruiters talk to.
-                makeRyaStatement("http://Charlie", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://Charlie", "http://talksTo", "http://George"),
-                makeRyaStatement("http://Charlie", "http://talksTo", "http://Harry"),
-                makeRyaStatement("http://David", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://David", "http://talksTo", "http://Frank"),
-                makeRyaStatement("http://David", "http://talksTo", "http://Ivan"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://talksTo", "http://George"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://talksTo", "http://Harry"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://talksTo", "http://Frank"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://talksTo", "http://Ivan"));
 
                 // Recruits that talk to leaders.
-                makeRyaStatement("http://Eve", "http://talksTo", "http://Alice"),
-                makeRyaStatement("http://George", "http://talksTo", "http://Alice"),
-                makeRyaStatement("http://Harry", "http://talksTo", "http://Bob"),
-                makeRyaStatement("http://Ivan", "http://talksTo", "http://Bob"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://talksTo", "http://Alice"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://George", "http://talksTo", "http://Alice"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Harry", "http://talksTo", "http://Bob"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Ivan", "http://talksTo", "http://Bob"));
 
         // The expected results of the SPARQL query once the PCJ has been computed.
         final Set<BindingSet> expected = new HashSet<>();
@@ -140,26 +142,26 @@ public class QueryIT extends ITBase {
                 "}";
 
         // Triples that will be streamed into Fluo after the PCJ has been created.
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
-                makeRyaStatement("http://Alice", "http://talksTo", "http://Bob"),
-                makeRyaStatement("http://Bob", "http://livesIn", "http://London"),
-                makeRyaStatement("http://Bob", "http://worksAt", "http://Chipotle"),
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://talksTo", "http://Bob"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://livesIn", "http://London"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://worksAt", "http://Chipotle"));
 
-                makeRyaStatement("http://Alice", "http://talksTo", "http://Charlie"),
-                makeRyaStatement("http://Charlie", "http://livesIn", "http://London"),
-                makeRyaStatement("http://Charlie", "http://worksAt", "http://Chipotle"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://talksTo", "http://Charlie"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://livesIn", "http://London"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://worksAt", "http://Chipotle"));
 
-                makeRyaStatement("http://Alice", "http://talksTo", "http://David"),
-                makeRyaStatement("http://David", "http://livesIn", "http://London"),
-                makeRyaStatement("http://David", "http://worksAt", "http://Chipotle"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://talksTo", "http://David"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://livesIn", "http://London"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://worksAt", "http://Chipotle"));
 
-                makeRyaStatement("http://Alice", "http://talksTo", "http://Eve"),
-                makeRyaStatement("http://Eve", "http://livesIn", "http://Leeds"),
-                makeRyaStatement("http://Eve", "http://worksAt", "http://Chipotle"),
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://talksTo", "http://Eve"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://livesIn", "http://Leeds"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://worksAt", "http://Chipotle"));
 
-                makeRyaStatement("http://Frank", "http://talksTo", "http://Alice"),
-                makeRyaStatement("http://Frank", "http://livesIn", "http://London"),
-                makeRyaStatement("http://Frank", "http://worksAt", "http://Chipotle"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://talksTo", "http://Alice"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://livesIn", "http://London"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Frank", "http://worksAt", "http://Chipotle"));
 
         // The expected results of the SPARQL query once the PCJ has been computed.
         final Set<BindingSet> expected = new HashSet<>();
@@ -198,18 +200,18 @@ public class QueryIT extends ITBase {
                   "?name <http://playsSport> \"Soccer\" " +
                 "}";
 
-        final Set<RyaStatement> streamedTriples = Sets.newHashSet(
-                makeRyaStatement("http://Alice", "http://hasAge", 18),
-                makeRyaStatement("http://Bob", "http://hasAge", 30),
-                makeRyaStatement("http://Charlie", "http://hasAge", 14),
-                makeRyaStatement("http://David", "http://hasAge", 16),
-                makeRyaStatement("http://Eve", "http://hasAge", 35),
+        final Map<RyaStatement, String> streamedTriples = new HashMap<>();
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://hasAge", 18));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://hasAge", 30));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://hasAge", 14));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://hasAge", 16));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Eve", "http://hasAge", 35));
 
-                makeRyaStatement("http://Alice", "http://playsSport", "Soccer"),
-                makeRyaStatement("http://Bob", "http://playsSport", "Soccer"),
-                makeRyaStatement("http://Charlie", "http://playsSport", "Basketball"),
-                makeRyaStatement("http://Charlie", "http://playsSport", "Soccer"),
-                makeRyaStatement("http://David", "http://playsSport", "Basketball"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Alice", "http://playsSport", "Soccer"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Bob", "http://playsSport", "Soccer"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://playsSport", "Basketball"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://Charlie", "http://playsSport", "Soccer"));
+        addStatementEmptyVisibilityEntry(streamedTriples, makeRyaStatement("http://David", "http://playsSport", "Basketball"));
 
         // The expected results of the SPARQL query once the PCJ has been computed.
         final Set<BindingSet> expected = new HashSet<>();
