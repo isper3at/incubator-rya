@@ -21,9 +21,12 @@ package mvm.rya.indexing.external.tupleSet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,6 +36,7 @@ import mvm.rya.accumulo.AccumuloRyaDAO;
 import mvm.rya.api.RdfCloudTripleStoreConfiguration;
 import mvm.rya.api.resolver.RyaTypeResolverException;
 import mvm.rya.indexing.accumulo.ConfigUtils;
+import mvm.rya.indexing.accumulo.VisibilityBindingSet;
 import mvm.rya.indexing.external.tupleSet.PcjTables.PcjException;
 import mvm.rya.indexing.external.tupleSet.PcjTables.PcjMetadata;
 import mvm.rya.indexing.external.tupleSet.PcjTables.PcjTableNameFactory;
@@ -49,10 +53,12 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -73,6 +79,7 @@ import org.openrdf.repository.RepositoryException;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
@@ -135,9 +142,11 @@ public class PcjTablesIntegrationTests {
      * Ensure when results have been written to the PCJ table that they are in Accumulo.
      * <p>
      * The method being tested is {@link PcjTables#addResults(Connector, String, java.util.Collection)}
+     * @throws AccumuloSecurityException 
+     * @throws AccumuloException 
      */
     @Test
-    public void addResults() throws PcjException, TableNotFoundException, RyaTypeResolverException {
+    public void addResults() throws PcjException, TableNotFoundException, RyaTypeResolverException, AccumuloException, AccumuloSecurityException {
         final String sparql =
                 "SELECT ?name ?age " +
                 "{" +
@@ -165,7 +174,7 @@ public class PcjTablesIntegrationTests {
         charlie.addBinding("name", new URIImpl("http://Charlie"));
         charlie.addBinding("age", new NumericLiteralImpl(12, XMLSchema.INTEGER));
 
-        Set<BindingSet> results = Sets.<BindingSet>newHashSet(alice, bob, charlie);
+        Set<VisibilityBindingSet> results = Sets.<VisibilityBindingSet>newHashSet(new VisibilityBindingSet(alice), new VisibilityBindingSet(bob), new VisibilityBindingSet(charlie));
         pcjs.addResults(accumuloConn, pcjTableName, results);
 
         // Make sure the cardinality was updated.
@@ -174,12 +183,19 @@ public class PcjTablesIntegrationTests {
 
         // Scan Accumulo for the stored results.
         Multimap<String, BindingSet> fetchedResults = loadPcjResults(accumuloConn, pcjTableName);
+        Multimap<String, VisibilityBindingSet> visibilityFetchedResults = HashMultimap.create();
+        for(String key : fetchedResults.keySet()) {
+            Collection<BindingSet> sets = fetchedResults.get(key);
+            for(BindingSet set : sets) {
+                visibilityFetchedResults.put(key, new VisibilityBindingSet(set));
+            }
+        }
 
         // Ensure the expected results match those that were stored.
         Multimap<String, BindingSet> expectedResults = HashMultimap.create();
         expectedResults.putAll("name;age", results);
         expectedResults.putAll("age;name", results);
-        assertEquals(expectedResults, fetchedResults);
+        assertEquals(expectedResults, visibilityFetchedResults);
     }
 
     /**
@@ -187,9 +203,11 @@ public class PcjTablesIntegrationTests {
      * the PCJ table for a new SPARQL query using those results.
      * <p>
      * The method being tested is: {@link PcjTables#populatePcj(Connector, String, RepositoryConnection, String)}
+     * @throws AccumuloSecurityException 
+     * @throws AccumuloException 
      */
     @Test
-    public void populatePcj() throws RepositoryException, PcjException, TableNotFoundException, RyaTypeResolverException {
+    public void populatePcj() throws RepositoryException, PcjException, TableNotFoundException, RyaTypeResolverException, AccumuloException, AccumuloSecurityException {
         // Load some Triples into Rya.
         Set<Statement> triples = new HashSet<>();
         triples.add( new StatementImpl(new URIImpl("http://Alice"), new URIImpl("http://hasAge"), new NumericLiteralImpl(14, XMLSchema.INTEGER)) );
@@ -255,9 +273,11 @@ public class PcjTablesIntegrationTests {
      * stores them in the PCJ table works.
      * <p>
      * The method being tested is: {@link PcjTables#createAndPopulatePcj(RepositoryConnection, Connector, String, String, String[], Optional)}
+     * @throws AccumuloSecurityException 
+     * @throws AccumuloException 
      */
     @Test
-    public void createAndPopulatePcj() throws RepositoryException, PcjException, TableNotFoundException, RyaTypeResolverException {
+    public void createAndPopulatePcj() throws RepositoryException, PcjException, TableNotFoundException, RyaTypeResolverException, AccumuloException, AccumuloSecurityException {
         // Load some Triples into Rya.
         Set<Statement> triples = new HashSet<>();
         triples.add( new StatementImpl(new URIImpl("http://Alice"), new URIImpl("http://hasAge"), new NumericLiteralImpl(14, XMLSchema.INTEGER)) );
@@ -316,13 +336,99 @@ public class PcjTablesIntegrationTests {
 
         assertEquals(expectedResults, fetchedResults);
     }
+    
+    @Test
+    public void createWithVisibility() throws RepositoryException, PcjException, TableNotFoundException, RyaTypeResolverException, AccumuloException, AccumuloSecurityException {
+    	// Create a PCJ table that will include those triples in its results.
+        final String sparql =
+                "SELECT ?name ?age " +
+                "{" +
+                  "FILTER(?age < 30) ." +
+                  "?name <http://hasAge> ?age." +
+                  "?name <http://playsSport> \"Soccer\" " +
+                "}";
+
+        final String pcjTableName = new PcjTableNameFactory().makeTableName(RYA_TABLE_PREFIX, "testPcj");
+
+        // Create and populate the PCJ table.
+        PcjTables pcjs = new PcjTables();
+        PcjVarOrderFactory varOrderFactory = Optional.<PcjVarOrderFactory>absent().or(new ShiftVarOrderFactory());
+        Set<VariableOrder> varOrders = varOrderFactory.makeVarOrders( new VariableOrder(new String[]{"name", "age"}) );
+
+        SecurityOperations specOps = accumuloConn.securityOperations(); 
+        specOps.changeUserAuthorizations("root", new Authorizations("A", "B", "C"));
+        specOps.createLocalUser("part", new PasswordToken("password"));
+        specOps.changeUserAuthorizations("part", new Authorizations("C"));
+        specOps.createLocalUser("noauth", new PasswordToken("password"));
+        specOps.changeUserAuthorizations("noauth", new Authorizations());
+
+        // Create the PCJ table in Accumulo.
+        pcjs.createPcjTable(accumuloConn, pcjTableName, varOrders, sparql);
+        specOps.grantTablePermission("part", pcjTableName, TablePermission.READ);
+        specOps.grantTablePermission("noauth", pcjTableName, TablePermission.READ);
+
+        // Add a few results to the PCJ table.
+        MapBindingSet alice = new MapBindingSet();
+        alice.addBinding("name", new URIImpl("http://Alice"));
+        alice.addBinding("age", new NumericLiteralImpl(14, XMLSchema.INTEGER));
+
+        MapBindingSet bob = new MapBindingSet();
+        bob.addBinding("name", new URIImpl("http://Bob"));
+        bob.addBinding("age", new NumericLiteralImpl(16, XMLSchema.INTEGER));
+
+        MapBindingSet charlie = new MapBindingSet();
+        charlie.addBinding("name", new URIImpl("http://Charlie"));
+        charlie.addBinding("age", new NumericLiteralImpl(12, XMLSchema.INTEGER));
+        
+        VisibilityBindingSet aliceVisibility = new VisibilityBindingSet(alice, Sets.newHashSet("A", "B", "C"));
+        VisibilityBindingSet bobVisibility = new VisibilityBindingSet(bob, Sets.newHashSet("B", "C"));
+        VisibilityBindingSet charlieVisibility = new VisibilityBindingSet(charlie, Sets.newHashSet("C"));
+        
+        Set<BindingSet> results = Sets.<BindingSet>newHashSet(alice, bob, charlie);
+        Set<VisibilityBindingSet> visibilityResults = Sets.<VisibilityBindingSet>newHashSet(aliceVisibility, bobVisibility, charlieVisibility);
+        // Load historic matches from Rya into the PCJ table.
+        pcjs.addResults(accumuloConn, pcjTableName, visibilityResults);
+
+        // Make sure the cardinality was updated.
+        PcjMetadata metadata = pcjs.getPcjMetadata(accumuloConn, pcjTableName);
+        assertEquals(3, metadata.getCardinality());
+
+        // Scan Accumulo for the stored results.
+        Multimap<String, BindingSet> fetchedResults = loadPcjResults(accumuloConn, pcjTableName, "A", "B", "C");
+        assertEquals(getExpectedResults(results), fetchedResults);
+        fetchedResults = loadPcjResults(accumuloConn, pcjTableName, "C", "B");
+        assertEquals(getExpectedResults(Sets.<BindingSet>newHashSet(bob, charlie)), fetchedResults);
+        fetchedResults = loadPcjResults(accumuloConn, pcjTableName, "C");
+        assertEquals(getExpectedResults(Sets.<BindingSet>newHashSet(charlie)), fetchedResults);
+        
+        Connector partConn = accumuloConn.getInstance().getConnector("part", new PasswordToken("password"));
+        // Scan Accumulo for the stored results.
+        fetchedResults = loadPcjResults(partConn, pcjTableName, "C");
+        assertEquals(getExpectedResults(Sets.<BindingSet>newHashSet(charlie)), fetchedResults);
+        fetchedResults = loadPcjResults(partConn, pcjTableName);
+        assertEquals(getExpectedResults(Sets.<BindingSet>newHashSet(charlie)), fetchedResults);
+        
+        Connector noAuthConn = accumuloConn.getInstance().getConnector("noauth", new PasswordToken("password"));
+        // Scan Accumulo for the stored results.
+        fetchedResults = loadPcjResults(noAuthConn, pcjTableName);
+        assertTrue(fetchedResults.isEmpty());
+    }
+    
+    private Multimap<String, BindingSet> getExpectedResults(Set<BindingSet> results) {
+    	Multimap<String, BindingSet> expectedResults = HashMultimap.create();
+        expectedResults.putAll("name;age", results);
+        expectedResults.putAll("age;name", results);
+        return expectedResults;
+    }
 
     /**
      * Scan accumulo for the results that are stored in a PCJ table. The
      * multimap stores a set of deserialized binding sets that were in the PCJ
      * table for every variable order that is found in the PCJ metadata.
+     * @throws AccumuloSecurityException 
+     * @throws AccumuloException 
      */
-    private static Multimap<String, BindingSet> loadPcjResults(Connector accumuloConn, String pcjTableName) throws PcjException, TableNotFoundException, RyaTypeResolverException {
+    private static Multimap<String, BindingSet> loadPcjResults(Connector accumuloConn, String pcjTableName, String ...auths) throws PcjException, TableNotFoundException, RyaTypeResolverException, AccumuloException, AccumuloSecurityException {
         Multimap<String, BindingSet> fetchedResults = HashMultimap.create();
 
         // Get the variable orders the data was written to.
@@ -331,7 +437,13 @@ public class PcjTablesIntegrationTests {
 
         // Scan Accumulo for the stored results.
         for(VariableOrder varOrder : pcjMetadata.getVarOrders()) {
-            Scanner scanner = accumuloConn.createScanner(pcjTableName, new Authorizations());
+            Authorizations authorizations;
+            if(auths.length == 0) {
+                authorizations = accumuloConn.securityOperations().getUserAuthorizations(accumuloConn.whoami());
+            } else {
+                authorizations = new Authorizations(auths);
+            }
+            Scanner scanner = accumuloConn.createScanner(pcjTableName, authorizations);
             scanner.fetchColumnFamily( new Text(varOrder.toString()) );
 
             for(Entry<Key, Value> entry : scanner) {

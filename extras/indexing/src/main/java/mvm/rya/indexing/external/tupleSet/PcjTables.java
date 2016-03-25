@@ -36,6 +36,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 
 import mvm.rya.api.resolver.RyaTypeResolverException;
+import mvm.rya.indexing.accumulo.VisibilityBindingSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -552,7 +554,7 @@ public class PcjTables {
     public void addResults(
             final Connector accumuloConn,
             final String pcjTableName,
-            final Collection<BindingSet> results) throws PcjException {
+            final Collection<VisibilityBindingSet> results) throws PcjException {
         checkNotNull(accumuloConn);
         checkNotNull(pcjTableName);
         checkNotNull(results);
@@ -576,7 +578,7 @@ public class PcjTables {
     private void writeResults(
             final Connector accumuloConn,
             final String pcjTableName,
-            final Collection<BindingSet> results) throws PcjException {
+            final Collection<VisibilityBindingSet> results) throws PcjException {
         checkNotNull(accumuloConn);
         checkNotNull(pcjTableName);
         checkNotNull(results);
@@ -588,7 +590,7 @@ public class PcjTables {
         BatchWriter writer = null;
         try {
             writer = accumuloConn.createBatchWriter(pcjTableName, new BatchWriterConfig());
-            for(BindingSet result : results) {
+            for(VisibilityBindingSet result : results) {
                 Set<Mutation> addResultMutations = makeWriteResultMutations(metadata.getVarOrders(), result);
                 writer.addMutations( addResultMutations );
             }
@@ -616,7 +618,7 @@ public class PcjTables {
      */
     private static Set<Mutation> makeWriteResultMutations(
             final Set<VariableOrder> varOrders,
-            final BindingSet result) throws PcjException {
+            final VisibilityBindingSet result) throws PcjException {
         checkNotNull(varOrders);
         checkNotNull(result);
 
@@ -629,7 +631,9 @@ public class PcjTables {
 
                 // Row ID = binding set values, Column Family = variable order of the binding set.
                 Mutation addResult = new Mutation(serializedResult);
-                addResult.put(varOrder.toString(), "", "");
+                Joiner visibilityJoiner = Joiner.on("&");
+                String visibility = visibilityJoiner.join(result.getVisibility());
+                addResult.put(varOrder.toString(), "", new ColumnVisibility(visibility), "");
                 mutations.add(addResult);
             } catch(RyaTypeResolverException e) {
                 throw new PcjException("Could not serialize a result.", e);
@@ -749,13 +753,13 @@ public class PcjTables {
             String sparql = pcjMetadata.getSparql();
 
             // Query Rya for results to the SPARQL query.
-            TupleQuery query = ryaConn.prepareTupleQuery(QueryLanguage.SPARQL, sparql);
+            TupleQuery query = (TupleQuery) ryaConn.prepareTupleQuery(QueryLanguage.SPARQL, sparql);
             TupleQueryResult results = query.evaluate();
 
             // Load batches of 1000 of them at a time into the PCJ table
-            Set<BindingSet> batch = new HashSet<>(1000);
+            Set<VisibilityBindingSet> batch = new HashSet<>(1000);
             while(results.hasNext()) {
-                batch.add( results.next() );
+                batch.add( new VisibilityBindingSet(results.next()) );
 
                 if(batch.size() == 1000) {
                     addResults(accumuloConn, pcjTableName, batch);
