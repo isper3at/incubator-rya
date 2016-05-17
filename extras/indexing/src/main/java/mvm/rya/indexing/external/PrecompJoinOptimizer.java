@@ -20,26 +20,12 @@ package mvm.rya.indexing.external;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import mvm.rya.api.RdfCloudTripleStoreConfiguration;
-import mvm.rya.indexing.IndexPlanValidator.IndexPlanValidator;
-import mvm.rya.indexing.IndexPlanValidator.IndexedExecutionPlanGenerator;
-import mvm.rya.indexing.IndexPlanValidator.ThreshholdPlanSelector;
-import mvm.rya.indexing.IndexPlanValidator.TupleReArranger;
-import mvm.rya.indexing.IndexPlanValidator.ValidIndexCombinationGenerator;
-import mvm.rya.indexing.accumulo.ConfigUtils;
-import mvm.rya.indexing.external.QueryVariableNormalizer.VarCollector;
-import mvm.rya.indexing.external.tupleSet.AccumuloIndexSet;
-import mvm.rya.indexing.external.tupleSet.ExternalTupleSet;
-import mvm.rya.indexing.external.tupleSet.PcjTables;
-import mvm.rya.indexing.external.tupleSet.PcjTables.PcjException;
-import mvm.rya.rdftriplestore.inference.DoNotExpandSP;
-import mvm.rya.rdftriplestore.utils.FixedStatementPattern;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -47,6 +33,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.rya.indexing.pcj.storage.PcjException;
+import org.apache.rya.indexing.pcj.storage.accumulo.PcjTables;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.Dataset;
 import org.openrdf.query.MalformedQueryException;
@@ -80,6 +68,19 @@ import org.openrdf.sail.SailException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import mvm.rya.api.RdfCloudTripleStoreConfiguration;
+import mvm.rya.indexing.IndexPlanValidator.IndexPlanValidator;
+import mvm.rya.indexing.IndexPlanValidator.IndexedExecutionPlanGenerator;
+import mvm.rya.indexing.IndexPlanValidator.ThreshholdPlanSelector;
+import mvm.rya.indexing.IndexPlanValidator.TupleReArranger;
+import mvm.rya.indexing.IndexPlanValidator.ValidIndexCombinationGenerator;
+import mvm.rya.indexing.accumulo.ConfigUtils;
+import mvm.rya.indexing.external.QueryVariableNormalizer.VarCollector;
+import mvm.rya.indexing.external.tupleSet.AccumuloIndexSet;
+import mvm.rya.indexing.external.tupleSet.ExternalTupleSet;
+import mvm.rya.rdftriplestore.inference.DoNotExpandSP;
+import mvm.rya.rdftriplestore.utils.FixedStatementPattern;
 
 /**
  * {@link QueryOptimizer} which matches TupleExpressions associated with
@@ -240,6 +241,25 @@ public class PrecompJoinOptimizer implements QueryOptimizer, Configurable {
 		public void setSegmentFilters(List<Filter> segmentFilters) {
 			this.segmentFilters = segmentFilters;
 		}
+
+
+		// this handles the case when the optional/LeftJoin is the first node
+		// below the Projection node.  Checks to see if any of the ExternalTupleSets
+		// match the LeftJoin exactly.
+		//TODO ExteranlTupleSet won't match this LeftJoin if query contains Filters and order of
+		//filters does not match order of filters in ExternalTupleSet after filters are pushed down
+		@Override
+		public void meet(LeftJoin node) {
+
+			updateFilters(segmentFilters, true);
+
+			List<TupleExpr> joinArgs = matchExternalTupleSets(Arrays.asList((TupleExpr) node), tupList);
+			if(joinArgs.size() == 1 && joinArgs.get(0) instanceof ExternalTupleSet) {
+				node.replaceWith(joinArgs.get(0));
+			}
+			return;
+		}
+
 
 		@Override
 		public void meet(Join node) {
