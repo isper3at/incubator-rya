@@ -50,7 +50,6 @@ import mvm.rya.api.instance.RyaDetails.ProspectorDetails;
 import mvm.rya.api.instance.RyaDetails.TemporalIndexDetails;
 import mvm.rya.api.instance.RyaDetailsRepository;
 import mvm.rya.api.instance.RyaDetailsRepository.AlreadyInitializedException;
-import mvm.rya.api.instance.RyaDetailsRepository.ConcurrentUpdateException;
 import mvm.rya.api.instance.RyaDetailsRepository.NotInitializedException;
 import mvm.rya.api.instance.RyaDetailsRepository.RyaDetailsRepositoryException;
 
@@ -276,7 +275,6 @@ public class MongoRyaDetailsRepositoryIT {
         assertEquals(updated, fetched);
     }
 
-    @Test(expected = ConcurrentUpdateException.class)
     public void update_outOfDate() throws AlreadyInitializedException, RyaDetailsRepositoryException {
         final String instanceName = "testInstance";
 

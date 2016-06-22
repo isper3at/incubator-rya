@@ -24,6 +24,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import mvm.rya.accumulo.AccumuloRdfConfiguration;
+import mvm.rya.api.RdfCloudTripleStoreConfiguration;
+import mvm.rya.api.persist.RyaDAOException;
+import mvm.rya.indexing.IndexPlanValidator.IndexPlanValidator;
+import mvm.rya.indexing.accumulo.ConfigUtils;
+import mvm.rya.indexing.external.tupleSet.AccumuloIndexSet;
+import mvm.rya.indexing.external.tupleSet.ExternalTupleSet;
+import mvm.rya.indexing.pcj.matching.PCJOptimizer;
+import mvm.rya.rdftriplestore.inference.InferenceEngineException;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -31,8 +41,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.rya.indexing.pcj.storage.PcjException;
 import org.apache.rya.indexing.pcj.storage.accumulo.PcjVarOrderFactory;
 import org.junit.After;
@@ -63,17 +72,12 @@ import com.beust.jcommander.internal.Sets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.indexing.IndexPlanValidator.IndexPlanValidator;
-import mvm.rya.indexing.external.tupleSet.AccumuloIndexSet;
-import mvm.rya.indexing.external.tupleSet.ExternalTupleSet;
-import mvm.rya.rdftriplestore.inference.InferenceEngineException;
-
 public class AccumuloPcjIntegrationTest {
 
 	private SailRepositoryConnection conn, pcjConn;
 	private SailRepository repo, pcjRepo;
 	private Connector accCon;
+	private Configuration conf = getConf();
 	private final String prefix = "table_";
 	private final String tablename = "table_INDEX_";
 	private URI obj, obj2, subclass, subclass2, talksTo;
@@ -108,7 +112,7 @@ public class AccumuloPcjIntegrationTest {
 		conn.add(sub2, RDFS.LABEL, new LiteralImpl("label2"));
 		conn.add(sub2, talksTo, obj2);
 
-		accCon = new MockInstance("instance").getConnector("root", new PasswordToken(""));
+		accCon = ConfigUtils.getConnector(conf);
 
 
 	}
@@ -1078,14 +1082,14 @@ public class AccumuloPcjIntegrationTest {
 				indexSparqlString, new String[] { "dog", "pig", "duck" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais1 = new AccumuloIndexSet(accCon,
+		final AccumuloIndexSet ais1 = new AccumuloIndexSet(conf,
 				tablename + 1);
 
 		PcjIntegrationTestingUtil.createAndPopulatePcj(conn, accCon, tablename + 2,
 				indexSparqlString2, new String[] { "o", "f", "e", "c", "l" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais2 = new AccumuloIndexSet(accCon,
+		final AccumuloIndexSet ais2 = new AccumuloIndexSet(conf,
 				tablename + 2);
 
 		final Set<String> ais1Set1 = Sets.newHashSet();
@@ -1252,13 +1256,13 @@ public class AccumuloPcjIntegrationTest {
 				indexSparqlString, new String[] { "dog", "pig", "duck" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais1 = new AccumuloIndexSet(accCon, tablename+1);
+		final AccumuloIndexSet ais1 = new AccumuloIndexSet(conf, tablename+1);
 
 		PcjIntegrationTestingUtil.createAndPopulatePcj(conn, accCon, tablename+2,
 				indexSparqlString2, new String[] { "o", "f", "e", "c", "l" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais2 = new AccumuloIndexSet(accCon, tablename+2);
+		final AccumuloIndexSet ais2 = new AccumuloIndexSet(conf, tablename+2);
 
 		final List<ExternalTupleSet> index = new ArrayList<>();
 		index.add(ais1);
@@ -1270,7 +1274,7 @@ public class AccumuloPcjIntegrationTest {
 		final List<TupleExpr> teList = Lists.newArrayList();
 		final TupleExpr te = pq.getTupleExpr();
 
-		final PrecompJoinOptimizer pcj = new PrecompJoinOptimizer(index, false);
+		final PCJOptimizer pcj = new PCJOptimizer(index, false);
         pcj.optimize(te, null, null);
 		teList.add(te);
 
@@ -1346,20 +1350,20 @@ public class AccumuloPcjIntegrationTest {
 				indexSparqlString, new String[] { "dog", "pig", "duck" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais1 = new AccumuloIndexSet(accCon, tablename+1);
+		final AccumuloIndexSet ais1 = new AccumuloIndexSet(conf, tablename+1);
 
 		PcjIntegrationTestingUtil.createAndPopulatePcj(conn, accCon, tablename+2,
 				indexSparqlString2, new String[] { "o", "f", "e", "c", "l" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais2 = new AccumuloIndexSet(accCon, tablename+2);
+		final AccumuloIndexSet ais2 = new AccumuloIndexSet(conf, tablename+2);
 
 		PcjIntegrationTestingUtil.createAndPopulatePcj(conn, accCon, tablename+3,
 				indexSparqlString3,
 				new String[] { "wolf", "sheep", "chicken" },
 				Optional.<PcjVarOrderFactory> absent());
 
-		final AccumuloIndexSet ais3 = new AccumuloIndexSet(accCon, tablename+3);
+		final AccumuloIndexSet ais3 = new AccumuloIndexSet(conf, tablename+3);
 
 		final List<ExternalTupleSet> index = new ArrayList<>();
 		index.add(ais1);
@@ -1372,7 +1376,7 @@ public class AccumuloPcjIntegrationTest {
 		final List<TupleExpr> teList = Lists.newArrayList();
 		final TupleExpr te = pq.getTupleExpr();
 
-		final PrecompJoinOptimizer pcj = new PrecompJoinOptimizer(index, false);
+		final PCJOptimizer pcj = new PCJOptimizer(index, false);
         pcj.optimize(te, null, null);
 
 		teList.add(te);
@@ -1422,6 +1426,18 @@ public class AccumuloPcjIntegrationTest {
 				throws QueryResultHandlerException {
 
 		}
+
+	}
+
+	private static Configuration getConf() {
+		final AccumuloRdfConfiguration conf = new AccumuloRdfConfiguration();
+		conf.setBoolean(ConfigUtils.USE_MOCK_INSTANCE, true);
+		conf.set(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX, "rya_");
+		conf.set(ConfigUtils.CLOUDBASE_USER, "root");
+		conf.set(ConfigUtils.CLOUDBASE_PASSWORD, "");
+		conf.set(ConfigUtils.CLOUDBASE_INSTANCE, "instance");
+		conf.set(ConfigUtils.CLOUDBASE_AUTHS, "");
+		return conf;
 	}
 
 }

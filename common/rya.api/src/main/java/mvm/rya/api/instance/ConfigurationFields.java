@@ -1,4 +1,4 @@
-package mvm.rya.indexing;
+package mvm.rya.api.instance;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +19,13 @@ package mvm.rya.indexing;
  * under the License.
  */
 
-
-import info.aduna.iteration.CloseableIteration;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.openrdf.model.Value;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.QueryEvaluationException;
-
-public interface PcjQuery {
-
-    public abstract CloseableIteration<BindingSet, QueryEvaluationException> queryPrecompJoin(List<String> varOrder,
-            String localityGroup, Map<String, Value> valMap, Map<String, String> varMap, Collection<BindingSet> constraints) throws QueryEvaluationException,TableNotFoundException;
-
+/**
+ * The possible configuration fields used in a Rya application.
+ */
+public class ConfigurationFields {
+    public static final String USE_GEO = "sc.use_geo";
+    public static final String USE_FREETEXT = "sc.use_freetext";
+    public static final String USE_TEMPORAL = "sc.use_temporal";
+    public static final String USE_ENTITY = "sc.use_entity";
+    public static final String USE_PCJ = "sc.use_pcj";
 }
-
