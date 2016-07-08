@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.export.api;
+package org.apache.rya.export.api.store;
 
 import java.util.Iterator;
 
-import info.aduna.iteration.CloseableIteration;
 import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.api.resolver.RyaTripleContext;
 
 /**
  * Allows specific CRUD operations on {@link RyaStatement} storage systems.
@@ -40,46 +37,38 @@ import mvm.rya.api.resolver.RyaTripleContext;
 public interface RyaStatementStore {
     /**
      * @return an {@link Iterator} containing all {@link RyaStatement}s found
-     * in this {@link RyaStatementStore}.
+     * in this {@link RyaStatementStore}.  The statements will be sorted by
+     * timestamp.
+     * @throws FetchStatementException - Thrown when fetching a statement fails.
      */
-    public Iterator<RyaStatement> fetchStatements() throws MergerException;
+    public Iterator<RyaStatement> fetchStatements() throws FetchStatementException;
 
     /**
      * @param statement - The {@link RyaStatement} to add to this {@link RyaStatementStore}.
+     * @throws AddStatementException Thrown when adding a statement fails.
      */
-    public void addStatement(final RyaStatement statement) throws MergerException;
+    public void addStatement(final RyaStatement statement) throws AddStatementException;
 
     /**
      * @param statement - The {@link RyaStatement} to remove from this {@link RyaStatementStore}.
+     * @throws RemoveStatementException - Thrown when the statement is not removed
      */
-    public void removeStatement(final RyaStatement statement) throws MergerException;
+    public void removeStatement(final RyaStatement statement) throws RemoveStatementException;
 
     /**
      * Updates the original {@link RyaStatement} with a new one.
      * @param original - The {@link RyaStatement} to update.
      * @param update - The new {@link RyaStatement} to replace the original one.
+     * @throws UpdateStatementException - Thrown when updating a statement fails.
      */
-    public void updateStatement(final RyaStatement original, final RyaStatement update) throws MergerException;
-
-    /**
-     * @return the {@link RyaTripleContext}.
-     */
-    public RyaTripleContext getRyaTripleContext();
+    public void updateStatement(final RyaStatement original, final RyaStatement update) throws UpdateStatementException;
 
     /**
      * Queries to see if the statement is contained in the statement store.
      * @param ryaStatement the {@link RyaStatement} to search for.
      * @return {@code true} if the statement store contains the statement.
      * {@code false} otherwise.
-     * @throws MergerException
+     * @throws ContainsStatementException - Thrown when an exception occurs trying to check for the statement.
      */
-    public boolean containsStatement(final RyaStatement ryaStatement) throws MergerException;
-
-    /**
-     * Queries for the specified statement in the statement store.
-     * @param ryaStatement the {@link RyaStatement} to search for.
-     * @return the {@code CloseableIteration} with the results.
-     * @throws MergerException
-     */
-    public CloseableIteration<RyaStatement, RyaDAOException> findStatement(final RyaStatement ryaStatement) throws MergerException;
+    public boolean containsStatement(final RyaStatement ryaStatement) throws ContainsStatementException;
 }

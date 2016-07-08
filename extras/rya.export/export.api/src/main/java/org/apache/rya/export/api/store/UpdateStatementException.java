@@ -16,22 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.export.api;
-
-import com.google.common.base.Optional;
+package org.apache.rya.export.api.store;
 
 import mvm.rya.api.domain.RyaStatement;
 
 /**
- * Defines how 2 {@link RyaStatement}s will merge.
+ * Exception thrown when failing to update a {@link RyaStatement} in a
+ * {@link RyaStatementStore}.
  */
-public interface StatementManager {
+public class UpdateStatementException extends StatementStoreException {
+    private static final long serialVersionUID = 1L;
+
     /**
-     * Merges the child statement into the parent statement.
-     * @param parent - The parent {@link RyaStatement}.
-     * @param child - The child {@link RyaStatement}
-     * @return The merged {@link RyaStatement}.
-     * @throws MergerException
+     * Creates a new {@link UpdateStatementException} with a message.
+     * @param message - The error message.
      */
-    public Optional<RyaStatement> merge(final Optional<RyaStatement> parent, Optional<RyaStatement> child) throws MergerException;
+    public UpdateStatementException(final String message) {
+        super(message);
+    }
+
+    /**
+     * Creates a new {@link UpdateStatementException} with a message and cause.
+     * @param message - The error message.
+     * @param cause - The cause of this exception
+     */
+    public UpdateStatementException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
+
 }

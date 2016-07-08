@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.export.api;
-
-import mvm.rya.api.domain.RyaStatement;
+package org.apache.rya.export.api.parent;
 
 /**
- * Performs the merging of {@link RyaStatement}s.
- * <p>
- * When merging statements, both the parent and child
- * databases may have changed since the initial export.
+ * Thrown when the {@link ParentMetadataRepository} attempts to set the
+ * {@link MergeParentMetadata} and it already exists.
  */
-public interface Merger {
-    /**
-     *  Performs the merging of {@link RyaStatement}s.
-     */
-    public void runJob();
+public class ParentMetadataExistsException extends ParentMetadataException {
+    private static final long serialVersionUID = 1L;
+
+    public ParentMetadataExistsException(final String message) {
+        super(message);
+    }
+
+    public ParentMetadataExistsException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }
