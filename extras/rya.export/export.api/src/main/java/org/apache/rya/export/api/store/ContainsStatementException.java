@@ -16,43 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.export.api;
+package org.apache.rya.export.api.store;
+
+import mvm.rya.api.domain.RyaStatement;
 
 /**
- * An exception to be used when there is a problem running the Merge Tool.
+ * Exception thrown when failing to check a {@link RyaStatementStore} for a
+ * {@link RyaStatement}.
  */
-public class MergerException extends Exception {
+public class ContainsStatementException extends StatementStoreException {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Creates a new instance of {@link MergerException}.
+     * Creates a new {@link ContainsStatementException} with a message.
+     * @param message - The error message.
      */
-    public MergerException() {
-        super();
-    }
-
-    /**
-     * Creates a new instance of {@link MergerException}.
-     * @param message the detail message.
-     */
-    public MergerException(final String message) {
+    public ContainsStatementException(final String message) {
         super(message);
     }
 
     /**
-     * Creates a new instance of {@link MergerException}.
-     * @param message the detail message.
-     * @param throwable the {@link Throwable} source.
+     * Creates a new {@link ContainsStatementException} with a message and cause.
+     * @param message - The error message.
+     * @param cause - The cause of this exception
      */
-    public MergerException(final String message, final Throwable source) {
-        super(message, source);
-    }
-
-    /**
-     * Creates a new instance of {@link MergerException}.
-     * @param source the {@link Throwable} source.
-     */
-    public MergerException(final Throwable source) {
-        super(source);
+    public ContainsStatementException(final String message, final Throwable cause) {
+        super(message, cause);
     }
 }

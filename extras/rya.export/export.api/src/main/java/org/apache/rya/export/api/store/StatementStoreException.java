@@ -16,28 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.export.accumulo;
+package org.apache.rya.export.api.store;
 
-import org.apache.rya.export.api.ParentMetadataRepository;
+import org.apache.rya.export.api.MergerException;
 
 /**
- * Accumulo repository for metadata pertaining to the parent database.  This
- * will contain all information to identify where any data was exported from.
- * <p>
- * The data found here is:
- * <li>Parent database Rya Instance Name</li>
- * <li>Timestamp used as the lower cutoff for the export</li>
+ * Thrown when an exception occurs in the {@link RyaStatementStore}.
  */
-public class AccumuloParentMetadataRepository implements ParentMetadataRepository {
-    private MergeParentMetadata metadata;
+class StatementStoreException extends MergerException {
+    private static final long serialVersionUID = 1L;
 
-    @Override
-    public MergeParentMetadata get() {
-        return metadata;
+    /**
+     * Creates a new {@link StatementStoreException} with a message.
+     * @param message The error message.
+     */
+    public StatementStoreException(final String message) {
+        super(message);
     }
 
-    @Override
-    public void set(final MergeParentMetadata metadata) {
-        this.metadata = metadata;
+    /**
+     * Creates a new {@link StatementStoreException} with a message and cause.
+     * @param message The error message.
+     * @param cause The cause of this exception.
+     */
+    public StatementStoreException(final String message, final Throwable cause) {
+        super(message, cause);
     }
 }
