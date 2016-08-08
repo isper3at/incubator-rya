@@ -65,11 +65,6 @@ public class MergeConfiguration {
      */
     protected MergeConfiguration(final Builder builder) throws MergeConfigurationException {
         try {
-            checkNotNull(builder);
-        } catch(final NullPointerException npe) {
-            throw new MergeConfigurationException("The configuration was passed a null builder.", npe);
-        }
-        try {
             this.parentHostname = checkNotNull(builder.parentHostname);
             this.parentUsername = checkNotNull(builder.parentUsername);
             this.parentPassword = checkNotNull(builder.parentPassword);
@@ -91,6 +86,7 @@ public class MergeConfiguration {
             this.ntpServerHost = checkNotNull(builder.ntpServerHost);
             this.toolStartTime = checkNotNull(builder.toolStartTime);
         } catch(final NullPointerException npe) {
+            //fix this.
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
         }
     }
