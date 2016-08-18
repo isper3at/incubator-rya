@@ -46,7 +46,6 @@ import com.google.common.collect.Iterators;
 
 import info.aduna.iteration.CloseableIteration;
 import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.api.RdfCloudTripleStoreConfiguration;
 import mvm.rya.api.RdfCloudTripleStoreConstants;
 import mvm.rya.api.domain.RyaStatement;
 import mvm.rya.api.persist.RyaDAOException;
@@ -85,7 +84,7 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
         final String userName = config.get(ConfigUtils.CLOUDBASE_USER, "root");
         final String pwd = config.get(ConfigUtils.CLOUDBASE_PASSWORD, "password");
         final InstanceType instanceType = InstanceType.fromName(config.get(AccumuloExportConstants.ACCUMULO_INSTANCE_TYPE_PROP, InstanceType.DISTRIBUTION.toString()));
-        tablePrefix = config.get(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX);
+        tablePrefix = config.get(ConfigUtils.CLOUDBASE_TBL_PREFIX);
         if (tablePrefix != null) {
             RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
         }
