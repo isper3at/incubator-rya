@@ -90,6 +90,9 @@ public class ConfigurationAdapter<B extends Builder, C extends JAXBMergeConfigur
             .setChildDBType(jConfig.getChildDBType())
             .setChildPort(jConfig.getChildPort())
             .setMergePolicy(jConfig.getMergePolicy())
+            .setCopyType(jConfig.getCopyType())
+            .setOutputPath(jConfig.getOutputPath())
+            .setImportPath(jConfig.getImportPath())
             .setUseNtpServer(jConfig.isUseNtpServer())
             .setNtpServerHost(jConfig.getNtpServerHost())
             .setToolStartTime(jConfig.getToolStartTime());

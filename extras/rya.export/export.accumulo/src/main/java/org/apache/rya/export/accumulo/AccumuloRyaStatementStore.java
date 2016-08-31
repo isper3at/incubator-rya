@@ -21,19 +21,21 @@ package org.apache.rya.export.accumulo;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.rya.export.accumulo.common.InstanceType;
-import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 import org.apache.rya.export.accumulo.util.AccumuloRyaUtils;
 import org.apache.rya.export.api.MergerException;
+import org.apache.rya.export.api.conf.AccumuloMergeConfiguration;
 import org.apache.rya.export.api.store.AddStatementException;
 import org.apache.rya.export.api.store.ContainsStatementException;
 import org.apache.rya.export.api.store.FetchStatementException;
@@ -51,7 +53,6 @@ import mvm.rya.api.domain.RyaStatement;
 import mvm.rya.api.persist.RyaDAOException;
 import mvm.rya.api.resolver.RyaTripleContext;
 import mvm.rya.api.resolver.triple.TripleRowResolverException;
-import mvm.rya.indexing.accumulo.ConfigUtils;
 
 /**
  * Allows specific CRUD operations an Accumulo {@link RyaStatement} storage
@@ -71,26 +72,35 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
 
     private final AccumuloRyaDAO accumuloRyaDao;
     private final String tablePrefix;
+    private final Set<IteratorSetting> iteratorSettings = new HashSet<>();
+    private final AccumuloInstanceDriver accumuloInstanceDriver;
+    private final AccumuloMergeConfiguration config;
 
     /**
      * Creates a new instance of {@link AccumuloRyaStatementStore}.
-     * @param config the {@link Configuration}.
+     * @param config the {@link AccumuloMergeConfiguration}. (not {@code null})
+     * @param isParent {@code true} if the {@link AccumuloRyaStatementStore} is
+     * the parent instance.  {@code false} if it is the child instance.
      * @throws MergerException
      */
-    public AccumuloRyaStatementStore(final Configuration config) throws MergerException {
+    public AccumuloRyaStatementStore(final AccumuloMergeConfiguration config, final boolean isParent) throws MergerException {
         checkNotNull(config);
+        this.config = config;
 
-        final String instance = config.get(ConfigUtils.CLOUDBASE_INSTANCE, "instance");
-        final String userName = config.get(ConfigUtils.CLOUDBASE_USER, "root");
-        final String pwd = config.get(ConfigUtils.CLOUDBASE_PASSWORD, "password");
-        final InstanceType instanceType = InstanceType.fromName(config.get(AccumuloExportConstants.ACCUMULO_INSTANCE_TYPE_PROP, InstanceType.DISTRIBUTION.toString()));
-        tablePrefix = config.get(ConfigUtils.CLOUDBASE_TBL_PREFIX);
+        final String instanceName = isParent ? config.getParentRyaInstanceName() : config.getChildRyaInstanceName();
+        final String username = isParent ? config.getParentUsername() : config.getChildUsername();
+        final String password = isParent ? config.getParentPassword() : config.getChildPassword();
+        final InstanceType instanceType = isParent ? config.getParentInstanceType() : config.getChildInstanceType();
+        final String tablePrefix = isParent ? config.getParentTablePrefix() : config.getChildTablePrefix();
+        final String auth = isParent ? config.getParentAuths() : config.getChildAuths();
+
+        this.tablePrefix = tablePrefix;
         if (tablePrefix != null) {
             RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
         }
-        final String auth = config.get(ConfigUtils.CLOUDBASE_AUTHS);
 
-        final AccumuloInstanceDriver accumuloInstanceDriver = new AccumuloInstanceDriver(AccumuloRyaStatementStore.class.getSimpleName(), instanceType, true, false, true, userName, pwd, instance, tablePrefix, auth);
+        final String driverName = (isParent ? "Parent " : "Child ") + AccumuloRyaStatementStore.class.getSimpleName();
+        accumuloInstanceDriver = new AccumuloInstanceDriver(driverName, instanceType, true, false, true, username, password, instanceName, tablePrefix, auth);
         try {
             accumuloInstanceDriver.setUp();
         } catch (final Exception e) {
@@ -107,6 +117,9 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
             Scanner scanner = null;
             try {
                 scanner = AccumuloRyaUtils.getScanner(tablePrefix + RdfCloudTripleStoreConstants.TBL_SPO_SUFFIX, accumuloRyaDao.getConf());
+                for (final IteratorSetting iteratorSetting : iteratorSettings) {
+                    scanner.addScanIterator(iteratorSetting);
+                }
             } catch (final IOException e) {
                 throw new FetchStatementException("Unable to get scanner to fetch Rya Statements", e);
             }
@@ -190,5 +203,23 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
     @Override
     public AccumuloRyaDAO getRyaDAO() {
         return accumuloRyaDao;
+    }
+
+    /**
+     * @return the {@link AccumuloInstanceDriver}.
+     */
+    public AccumuloInstanceDriver getAccumuloInstanceDriver() {
+        return accumuloInstanceDriver;
+    }
+
+    /**
+     * Adds an iterator setting to the statement store for it to use when it
+     * fetches statements.
+     * @param iteratorSetting the {@link IteratorSetting} to add.
+     * (not {@code null})
+     */
+    public void addIterator(final IteratorSetting iteratorSetting) {
+        checkNotNull(iteratorSetting);
+        iteratorSettings.add(iteratorSetting);
     }
 }

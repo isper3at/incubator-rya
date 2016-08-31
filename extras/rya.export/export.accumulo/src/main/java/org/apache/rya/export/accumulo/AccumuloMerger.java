@@ -22,10 +22,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Iterator;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.rya.export.api.Merger;
 import org.apache.rya.export.api.MergerException;
+import org.apache.rya.export.api.common.MergeProcessType;
+import org.apache.rya.export.api.conf.AccumuloMergeConfiguration;
 import org.apache.rya.export.api.parent.MergeParentMetadata;
 import org.apache.rya.export.api.parent.ParentMetadataDoesNotExistException;
 import org.apache.rya.export.api.store.RyaStatementStore;
@@ -44,9 +45,12 @@ public class AccumuloMerger implements Merger {
     private final AccumuloRyaStatementStore accumuloParentRyaStatementStore;
     private final RyaStatementStore childRyaStatementStore;
     private final AccumuloStatementManager accumuloStatementManager;
+    private final AccumuloMergeConfiguration accumuloMergeConfiguration;
 
     /**
      * Creates a new instance of {@link AccumuloMerger}.
+     * @param accumuloMergeConfiguration the {@link AccumuloMergeConfiguration}.
+     * (not {@code null})
      * @param accumuloParentRyaStatementStore the Accumulo parent
      * {@link RyaStatementStore}. (not {@code null})
      * @param childRyaStatementStore the child {@link RyaStatementStore}.
@@ -54,9 +58,10 @@ public class AccumuloMerger implements Merger {
      * @param accumuloParentMetadataRepository the
      * {@link AccumuloParentMetadataRepository}. (not {@code null})
      */
-    public AccumuloMerger(final AccumuloRyaStatementStore accumuloParentRyaStatementStore, final RyaStatementStore childRyaStatementStore, final AccumuloParentMetadataRepository accumuloParentMetadataRepository) {
+    public AccumuloMerger(final AccumuloMergeConfiguration accumuloMergeConfiguration, final AccumuloRyaStatementStore accumuloParentRyaStatementStore, final RyaStatementStore childRyaStatementStore, final AccumuloParentMetadataRepository accumuloParentMetadataRepository) {
         this.accumuloParentRyaStatementStore = checkNotNull(accumuloParentRyaStatementStore);
         this.childRyaStatementStore = checkNotNull(childRyaStatementStore);
+        this.accumuloMergeConfiguration = checkNotNull(accumuloMergeConfiguration);
 
         MergeParentMetadata mergeParentMetadata = null;
         try {
@@ -65,14 +70,7 @@ public class AccumuloMerger implements Merger {
             log.error("Error getting merge parent metadata from the repository.", e);
         }
 
-        accumuloStatementManager = new AccumuloStatementManager(accumuloParentRyaStatementStore, childRyaStatementStore, mergeParentMetadata);
-    }
-
-    /**
-     * @return the parent {@link Configuration}.
-     */
-    public Configuration getConfig() {
-        return accumuloParentRyaStatementStore.getRyaDAO().getConf();
+        accumuloStatementManager = new AccumuloStatementManager(accumuloParentRyaStatementStore, childRyaStatementStore, mergeParentMetadata, MergeProcessType.MERGE);
     }
 
     /**
@@ -133,7 +131,7 @@ public class AccumuloMerger implements Merger {
 
                 parentRyaStatement = nextRyaStatement(parentRyaStatementIterator);
             }
-        } catch (RyaDAOException | MergerException e) {
+        } catch (final RyaDAOException | MergerException e) {
             log.error("Error encountered while merging", e);
         }
     }

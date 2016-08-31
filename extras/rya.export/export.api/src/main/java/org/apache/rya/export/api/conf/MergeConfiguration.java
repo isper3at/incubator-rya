@@ -21,6 +21,7 @@ package org.apache.rya.export.api.conf;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.http.annotation.Immutable;
+import org.apache.rya.export.CopyType;
 import org.apache.rya.export.DBType;
 import org.apache.rya.export.MergePolicy;
 
@@ -55,7 +56,10 @@ public class MergeConfiguration {
     private final int childPort;
 
     private final MergePolicy mergePolicy;
+    private final CopyType copyType;
 
+    private final String outputPath;
+    private final String importPath;
     private final boolean useNtpServer;
     private final String ntpServerHost;
     private final String toolStartTime;
@@ -87,6 +91,9 @@ public class MergeConfiguration {
             this.childDBType = checkNotNull(builder.childDBType);
             this.childPort = checkNotNull(builder.childPort);
             this.mergePolicy = checkNotNull(builder.mergePolicy);
+            this.copyType = checkNotNull(builder.copyType);
+            this.outputPath = checkNotNull(builder.outputPath);
+            this.importPath = checkNotNull(builder.importPath);
             this.useNtpServer = checkNotNull(builder.useNtpServer);
             this.ntpServerHost = checkNotNull(builder.ntpServerHost);
             this.toolStartTime = checkNotNull(builder.toolStartTime);
@@ -215,6 +222,30 @@ public class MergeConfiguration {
     }
 
     /**
+     * @return the type of copying to perform based on if the datastores are
+     * online or offline.
+     */
+    public CopyType getCopyType() {
+        return copyType;
+    }
+
+    /**
+     * @return the path to output files to when copying to an offline child
+     * datastore.
+     */
+    public String getOutputPath() {
+        return outputPath;
+    }
+
+    /**
+     * @return the path to import files from when copying from an offline parent
+     * datastore.
+     */
+    public String getImportPath() {
+        return importPath;
+    }
+
+    /**
      * @return {@code true} to use the NTP server to handle time synchronization.
      * {@code false} to not use the NTP server.
      */
@@ -271,7 +302,10 @@ public class MergeConfiguration {
         private Integer childPort;
 
         private MergePolicy mergePolicy;
+        private CopyType copyType;
 
+        private String outputPath;
+        private String importPath;
         private Boolean useNtpServer;
         private String ntpServerHost;
         private String toolStartTime;
@@ -428,6 +462,36 @@ public class MergeConfiguration {
          */
         public Builder setMergePolicy(final MergePolicy mergePolicy) {
             this.mergePolicy = mergePolicy;
+            return this;
+        }
+
+        /**
+         * @param copyType - the type of copying to perform based on if the
+         * datastores are online or offline.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setCopyType(final CopyType copyType) {
+            this.copyType = copyType;
+            return this;
+        }
+
+        /**
+         * @param outpath - the path to output files to when copying to an
+         * offline child datastore.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setOutputPath(final String outputPath) {
+            this.outputPath = outputPath;
+            return this;
+        }
+
+        /**
+         * @param importPath - the path to import files from when copying from
+         * an offline parent datastore.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setImportPath(final String importPath) {
+            this.importPath = importPath;
             return this;
         }
 

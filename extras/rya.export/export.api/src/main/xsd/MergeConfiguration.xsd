@@ -49,7 +49,10 @@ under the License.
             <xs:element name="childPort" type="mc:Port" nillable="true"/>
 
             <xs:element name="mergePolicy" type="mc:MergePolicy"/>
+            <xs:element name="copyType" type="mc:CopyType"/>
 
+            <xs:element name="outputPath" type="xs:string"/>
+            <xs:element name="importPath" type="xs:string"/>
             <xs:element name="useNtpServer" type="xs:boolean" nillable="true"/>
             <xs:element name="ntpServerHost" type="xs:string"/>
             <xs:element name="toolStartTime" type="xs:string"/>
@@ -66,6 +69,14 @@ under the License.
       <xs:restriction base="xs:string">
         <xs:enumeration value="accumulo"/>
         <xs:enumeration value="mongo"/>
+      </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CopyType">
+      <xs:restriction base="xs:string">
+        <xs:enumeration value="FileExport"/>
+        <xs:enumeration value="FileImport"/>
+        <xs:enumeration value="ConnectedDatastores"/>
       </xs:restriction>
     </xs:simpleType>
 
