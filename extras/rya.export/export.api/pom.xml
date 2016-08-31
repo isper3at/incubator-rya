@@ -139,7 +139,7 @@ under the License.
                 </executions>
                 <configuration>
                     <sources>
-                        <source>src/main/xsd/MergeConfiguration.xsd</source>
+                        <source>src/main/xsd/</source>
                     </sources>
                     <packageName>org.apache.rya.export</packageName>
                     <outputDirectory>src/gen/java</outputDirectory>
