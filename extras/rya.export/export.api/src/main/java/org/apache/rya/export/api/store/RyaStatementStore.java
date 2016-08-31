@@ -20,8 +20,9 @@ package org.apache.rya.export.api.store;
 
 import java.util.Iterator;
 
+import mvm.rya.api.RdfCloudTripleStoreConfiguration;
 import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.resolver.RyaTripleContext;
+import mvm.rya.api.persist.RyaDAO;
 
 /**
  * Allows specific CRUD operations on {@link RyaStatement} storage systems.
@@ -46,13 +47,13 @@ public interface RyaStatementStore {
 
     /**
      * @param statement - The {@link RyaStatement} to add to this {@link RyaStatementStore}.
-     * @throws AddStatementException Thrown when adding a statement fails.
+     * @throws AddStatementException - Thrown when adding a statement fails.
      */
     public void addStatement(final RyaStatement statement) throws AddStatementException;
 
     /**
      * @param statement - The {@link RyaStatement} to remove from this {@link RyaStatementStore}.
-     * @throws RemoveStatementException - Thrown when the statement is not removed
+     * @throws RemoveStatementException - Thrown when the statement is not removed.
      */
     public void removeStatement(final RyaStatement statement) throws RemoveStatementException;
 
@@ -65,11 +66,6 @@ public interface RyaStatementStore {
     public void updateStatement(final RyaStatement original, final RyaStatement update) throws UpdateStatementException;
 
     /**
-     * @return the {@link RyaTripleContext}.
-     */
-    public RyaTripleContext getRyaTripleContext();
-
-    /**
      * Queries to see if the statement is contained in the statement store.
      * @param ryaStatement the {@link RyaStatement} to search for.
      * @return {@code true} if the statement store contains the statement.
@@ -77,4 +73,9 @@ public interface RyaStatementStore {
      * @throws ContainsStatementException - Thrown when an exception occurs trying to check for the statement.
      */
     public boolean containsStatement(final RyaStatement ryaStatement) throws ContainsStatementException;
+
+    /**
+     * Returns the {@link RyaDAO} associated with the {@link RyaStatementStore}.
+     */
+    public RyaDAO<? extends RdfCloudTripleStoreConfiguration> getRyaDAO();
 }
