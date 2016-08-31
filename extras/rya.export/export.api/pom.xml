@@ -38,7 +38,7 @@ under the License.
     </description>
     
     <dependencies>
-    	<!-- Rya Runtime Dependencies. --> 
+        <!-- Rya Runtime Dependencies. -->
         <dependency>
             <groupId>org.apache.rya</groupId>
             <artifactId>rya.sail</artifactId>

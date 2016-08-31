@@ -21,6 +21,7 @@ package org.apache.rya.export.api.conf;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.http.annotation.Immutable;
+import org.apache.rya.export.CopyType;
 import org.apache.rya.export.DBType;
 import org.apache.rya.export.MergePolicy;
 
@@ -37,7 +38,8 @@ public class MergeConfiguration {
     private final String parentUsername;
     private final String parentPassword;
     private final String parentRyaInstanceName;
-    private final String parentTomcatURL;
+    private final String parentTablePrefix;
+    private final String parentTomcatUrl;
     private final DBType parentDBType;
     private final int parentPort;
 
@@ -48,57 +50,53 @@ public class MergeConfiguration {
     private final String childUsername;
     private final String childPassword;
     private final String childRyaInstanceName;
-    private final String childTomcatURL;
+    private final String childTablePrefix;
+    private final String childTomcatUrl;
     private final DBType childDBType;
     private final int childPort;
 
     private final MergePolicy mergePolicy;
+    private final CopyType copyType;
 
+    private final String outputPath;
+    private final String importPath;
     private final boolean useNtpServer;
     private final String ntpServerHost;
+    private final String toolStartTime;
 
     /**
-     * Constructs a MergeConfiguration.  All fields are required.
-     * @param parentHostname
-     * @param parentUsername
-     * @param parentPassword
-     * @param parentPort
-     * @param parentRyaInstanceName
-     * @param parentDBType
-     * @param childHostname
-     * @param childUsername
-     * @param childPassword
-     * @param childPort
-     * @param childRyaInstanceName
-     * @param childDBType
-     * @param mergePolicy
-     * @param useNtpServer
-     * @param ntpServerHost
-     * @throws MergeConfigurationException
+     * Constructs a {@link MergeConfiguration}.
      */
-    private MergeConfiguration(final String parentHostname, final String parentUsername, final String parentPassword,
-            final int parentPort, final String parentRyaInstanceName, final String parentTomcatURL, final DBType parentDBType,
-            final String childHostname, final String childUsername, final String childPassword,
-            final int childPort, final String childRyaInstanceName, final String childTomcatURL, final DBType childDBType,
-            final MergePolicy mergePolicy, final boolean useNtpServer, final String ntpServerHost) throws MergeConfigurationException {
+    protected MergeConfiguration(final Builder builder) throws MergeConfigurationException {
         try {
-            this.parentHostname = checkNotNull(parentHostname);
-            this.parentUsername = checkNotNull(parentUsername);
-            this.parentPassword = checkNotNull(parentPassword);
-            this.parentRyaInstanceName = checkNotNull(parentRyaInstanceName);
-            this.parentTomcatURL = checkNotNull(parentTomcatURL);
-            this.parentDBType = checkNotNull(parentDBType);
-            this.parentPort = checkNotNull(parentPort);
-            this.childHostname = checkNotNull(childHostname);
-            this.childUsername = checkNotNull(childUsername);
-            this.childPassword = checkNotNull(childPassword);
-            this.childRyaInstanceName = checkNotNull(childRyaInstanceName);
-            this.childTomcatURL = checkNotNull(childTomcatURL);
-            this.childDBType = checkNotNull(childDBType);
-            this.childPort = checkNotNull(childPort);
-            this.mergePolicy = checkNotNull(mergePolicy);
-            this.useNtpServer = checkNotNull(useNtpServer);
-            this.ntpServerHost = checkNotNull(ntpServerHost);
+            checkNotNull(builder);
+        } catch(final NullPointerException npe) {
+            throw new MergeConfigurationException("The configuration was passed a null builder.", npe);
+        }
+        try {
+            this.parentHostname = checkNotNull(builder.parentHostname);
+            this.parentUsername = checkNotNull(builder.parentUsername);
+            this.parentPassword = checkNotNull(builder.parentPassword);
+            this.parentRyaInstanceName = checkNotNull(builder.parentRyaInstanceName);
+            this.parentTablePrefix = checkNotNull(builder.parentTablePrefix);
+            this.parentTomcatUrl = checkNotNull(builder.parentTomcatUrl);
+            this.parentDBType = checkNotNull(builder.parentDBType);
+            this.parentPort = checkNotNull(builder.parentPort);
+            this.childHostname = checkNotNull(builder.childHostname);
+            this.childUsername = checkNotNull(builder.childUsername);
+            this.childPassword = checkNotNull(builder.childPassword);
+            this.childRyaInstanceName = checkNotNull(builder.childRyaInstanceName);
+            this.childTablePrefix = checkNotNull(builder.childTablePrefix);
+            this.childTomcatUrl = checkNotNull(builder.childTomcatUrl);
+            this.childDBType = checkNotNull(builder.childDBType);
+            this.childPort = checkNotNull(builder.childPort);
+            this.mergePolicy = checkNotNull(builder.mergePolicy);
+            this.copyType = checkNotNull(builder.copyType);
+            this.outputPath = checkNotNull(builder.outputPath);
+            this.importPath = checkNotNull(builder.importPath);
+            this.useNtpServer = checkNotNull(builder.useNtpServer);
+            this.ntpServerHost = checkNotNull(builder.ntpServerHost);
+            this.toolStartTime = checkNotNull(builder.toolStartTime);
         } catch(final NullPointerException npe) {
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
         }
@@ -133,10 +131,17 @@ public class MergeConfiguration {
     }
 
     /**
-     * @return The location of Tomcat on the parent.
+     * @return the Rya table prefix of the parent.
      */
-    public String getParentTomcatURL() {
-        return parentTomcatURL;
+    public String getParentTablePrefix() {
+        return parentTablePrefix;
+    }
+
+    /**
+     * @return The URL of the Apache Tomcat server web page running on the parent machine.
+     */
+    public String getParentTomcatUrl() {
+        return parentTomcatUrl;
     }
 
     /**
@@ -182,10 +187,17 @@ public class MergeConfiguration {
     }
 
     /**
-     * @return The location of Tomcat on the child.
+     * @return the Rya table prefix of the child.
      */
-    public String getChildTomcatURL() {
-        return childTomcatURL;
+    public String getChildTablePrefix() {
+        return childTablePrefix;
+    }
+
+    /**
+     * @return The URL of the Apache Tomcat server web page running on the child machine.
+     */
+    public String getChildTomcatUrl() {
+        return childTomcatUrl;
     }
 
     /**
@@ -210,6 +222,30 @@ public class MergeConfiguration {
     }
 
     /**
+     * @return the type of copying to perform based on if the datastores are
+     * online or offline.
+     */
+    public CopyType getCopyType() {
+        return copyType;
+    }
+
+    /**
+     * @return the path to output files to when copying to an offline child
+     * datastore.
+     */
+    public String getOutputPath() {
+        return outputPath;
+    }
+
+    /**
+     * @return the path to import files from when copying from an offline parent
+     * datastore.
+     */
+    public String getImportPath() {
+        return importPath;
+    }
+
+    /**
      * @return {@code true} to use the NTP server to handle time synchronization.
      * {@code false} to not use the NTP server.
      */
@@ -225,124 +261,272 @@ public class MergeConfiguration {
     }
 
     /**
+     * @return The time of the data to be included in the copy/merge process.
+     */
+    public String getToolStartTime() {
+        return toolStartTime;
+    }
+
+    /**
+     * Abstract builder to help create {@link MergeConfiguration}s.
+     */
+    public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
+        /**
+         * @return The {@link MergeConfiguration} based on this builder.
+         * @throws MergeConfigurationException
+         * @throws NullPointerException if any field as not been provided
+         */
+        public abstract MergeConfiguration build() throws MergeConfigurationException;
+    }
+
+    /**
      * Builder to help create {@link MergeConfiguration}s.
      */
-    public static class Builder {
+    public static class Builder extends AbstractBuilder<Builder> {
         private String parentHostname;
         private String parentUsername;
         private String parentPassword;
         private String parentRyaInstanceName;
-        private String parentTomcatURL;
+        private String parentTablePrefix;
+        private String parentTomcatUrl;
         private DBType parentDBType;
-        private int parentPort;
+        private Integer parentPort;
 
         private String childHostname;
         private String childUsername;
         private String childPassword;
         private String childRyaInstanceName;
-        private String childTomcatURL;
+        private String childTablePrefix;
+        private String childTomcatUrl;
         private DBType childDBType;
-        private int childPort;
+        private Integer childPort;
 
         private MergePolicy mergePolicy;
+        private CopyType copyType;
 
-        private boolean useNtpServer;
+        private String outputPath;
+        private String importPath;
+        private Boolean useNtpServer;
         private String ntpServerHost;
+        private String toolStartTime;
 
+        /**
+         * @param hostname - the hostname of the parent.
+         * @return the updated {@link Builder}.
+         */
         public Builder setParentHostname(final String hostname) {
             parentHostname = hostname;
             return this;
         }
 
+        /**
+         * @param username - the username of the parent.
+         * @return the updated {@link Builder}.
+         */
         public Builder setParentUsername(final String username) {
             parentUsername = username;
             return this;
         }
 
+        /**
+         * @param password - the password of the parent.
+         * @return the updated {@link Builder}.
+         */
         public Builder setParentPassword(final String password) {
             parentPassword = password;
             return this;
         }
 
+        /**
+         * @param ryaInstanceName - the Rya Instance Name of the parent.
+         * @return the updated {@link Builder}.
+         */
         public Builder setParentRyaInstanceName(final String ryaInstanceName) {
             parentRyaInstanceName = ryaInstanceName;
             return this;
         }
 
-        public Builder setParentTomcatURL(final String tomcatURL) {
-            parentTomcatURL = tomcatURL;
+        /**
+         * @param tablePrefix - the Rya table prefix of the parent.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setParentTablePrefix(final String tablePrefix) {
+            parentTablePrefix = tablePrefix;
             return this;
         }
 
+        /**
+         * @param tomcatUrl - The URL of the Apache Tomcat server web page
+         * running on the parent machine.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setParentTomcatUrl(final String tomcatUrl) {
+            parentTomcatUrl = tomcatUrl;
+            return this;
+        }
+
+        /**
+         * @param dbType - the Database Type of the parent.
+         * @return the updated {@link Builder}.
+         */
         public Builder setParentDBType(final DBType dbType) {
             parentDBType = dbType;
             return this;
         }
 
-        public Builder setParentPort(final int port) {
+        /**
+         * @param port - the port of the parent.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setParentPort(final Integer port) {
             parentPort = port;
             return this;
         }
 
+        /**
+         * @param hostname - the hostname of the child.
+         * @return the updated {@link Builder}.
+         */
         public Builder setChildHostname(final String hostname) {
             childHostname = hostname;
             return this;
         }
 
+        /**
+         * @param username - the username of the child.
+         * @return the updated {@link Builder}.
+         */
         public Builder setChildUsername(final String username) {
             childUsername = username;
             return this;
         }
 
+        /**
+         * @param password - the password of the child.
+         * @return the updated {@link Builder}.
+         */
         public Builder setChildPassword(final String password) {
             childPassword = password;
             return this;
         }
 
+        /**
+         * @param ryaInstanceName - the Rya Instance Name of the child.
+         * @return the updated {@link Builder}.
+         */
         public Builder setChildRyaInstanceName(final String ryaInstanceName) {
             childRyaInstanceName = ryaInstanceName;
             return this;
         }
 
-        public Builder setChildTomcatURL(final String tomcatURL) {
-            childTomcatURL = tomcatURL;
+        /**
+         * @param tablePrefix - the Rya table prefix of the child.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setChildTablePrefix(final String tablePrefix) {
+            childTablePrefix = tablePrefix;
             return this;
         }
 
+        /**
+         * @param tomcatUrl -s The URL of the Apache Tomcat server web page
+         * running on the child machine.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setChildTomcatUrl(final String tomcatUrl) {
+            childTomcatUrl = tomcatUrl;
+            return this;
+        }
+
+        /**
+         * @param dbType - the Database Type of the child.
+         * @return the updated {@link Builder}.
+         */
         public Builder setChildDBType(final DBType dbType) {
             childDBType = dbType;
             return this;
         }
 
-        public Builder setChildPort(final int port) {
+        /**
+         * @param port - the port of the child.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setChildPort(final Integer port) {
             childPort = port;
             return this;
         }
 
+        /**
+         * @param mergePolicy - the policy to use when merging data.
+         * @return the updated {@link Builder}.
+         */
         public Builder setMergePolicy(final MergePolicy mergePolicy) {
             this.mergePolicy = mergePolicy;
             return this;
         }
 
-        public Builder setUseNtpServer(final boolean useNtpServer) {
+        /**
+         * @param copyType - the type of copying to perform based on if the
+         * datastores are online or offline.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setCopyType(final CopyType copyType) {
+            this.copyType = copyType;
+            return this;
+        }
+
+        /**
+         * @param outpath - the path to output files to when copying to an
+         * offline child datastore.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setOutputPath(final String outputPath) {
+            this.outputPath = outputPath;
+            return this;
+        }
+
+        /**
+         * @param importPath - the path to import files from when copying from
+         * an offline parent datastore.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setImportPath(final String importPath) {
+            this.importPath = importPath;
+            return this;
+        }
+
+        /**
+         * @param useNtpServer - {@code true} to use the NTP server to handle
+         * time synchronization. {@code false} to not use the NTP server.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setUseNtpServer(final Boolean useNtpServer) {
             this.useNtpServer = useNtpServer;
             return this;
         }
 
+        /**
+         * @param ntpServerHost - The host name of the time server to use.
+         * @return the updated {@link Builder}.
+         */
         public Builder setNtpServerHost(final String ntpServerHost) {
             this.ntpServerHost = ntpServerHost;
             return this;
         }
 
         /**
-         * @return The {@link MergeConfiguration} based on this builder.
-         * @throws MergeConfigurationException
-         * @throws NullPointerException if any field as not been provided
+         * @param toolStartTime - The time of the data to be included in the
+         * copy/merge process.
+         * @return the updated {@link Builder}.
          */
+        public Builder setToolStartTime(final String toolStartTime) {
+            this.toolStartTime = toolStartTime;
+            return this;
+        }
+
+        @Override
         public MergeConfiguration build() throws MergeConfigurationException {
-            return new MergeConfiguration(parentHostname, parentUsername, parentPassword, parentPort, parentRyaInstanceName,
-                parentTomcatURL, parentDBType, childHostname, childUsername, childPassword, childPort, childTomcatURL,
-                childRyaInstanceName, childDBType, mergePolicy, useNtpServer, ntpServerHost);
+            return new MergeConfiguration(this);
         }
     }
 }
