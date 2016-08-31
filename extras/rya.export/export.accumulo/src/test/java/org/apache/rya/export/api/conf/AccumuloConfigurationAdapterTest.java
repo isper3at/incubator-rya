@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.rya.export.CopyType;
 import org.apache.rya.export.DBType;
 import org.apache.rya.export.accumulo.common.InstanceType;
 import org.junit.Assert;
@@ -60,6 +61,9 @@ public class AccumuloConfigurationAdapterTest {
         "    <mc:childDBType>accumulo</mc:childDBType>",
         "    <mc:childPort>2222</mc:childPort>",
         "    <mc:mergePolicy>timestamp</mc:mergePolicy>",
+        "    <mc:copyType>ConnectedDatastores</mc:copyType>",
+        "    <mc:outputPath>/test/copy_tool_file_output/</mc:outputPath>",
+        "    <mc:importPath>resources/test/copy_tool_file_output/</mc:importPath>",
         "    <mc:useNtpServer>true</mc:useNtpServer>",
         "    <mc:ntpServerHost>time.nist.gov</mc:ntpServerHost>",
         "    <mc:toolStartTime>dialog</mc:toolStartTime>",
@@ -91,6 +95,9 @@ public class AccumuloConfigurationAdapterTest {
         "<mc:childDBType>",
         "<mc:childPort>",
         "<mc:mergePolicy>",
+        "<mc:copyType>",
+        "<mc:outputPath>",
+        "<mc:importPath>",
         "<mc:useNtpServer>",
         "<mc:ntpServerHost>",
         "<mc:toolStartTime>",
@@ -165,6 +172,9 @@ public class AccumuloConfigurationAdapterTest {
         Assert.assertEquals(Boolean.TRUE, mergeConfiguration.getUseNtpServer());
         Assert.assertEquals("time.nist.gov", mergeConfiguration.getNtpServerHost());
         Assert.assertEquals("dialog", mergeConfiguration.getToolStartTime());
+        Assert.assertEquals(CopyType.CONNECTED_DATASTORES, mergeConfiguration.getCopyType());
+        Assert.assertEquals("/test/copy_tool_file_output/", mergeConfiguration.getOutputPath());
+        Assert.assertEquals("resources/test/copy_tool_file_output/", mergeConfiguration.getImportPath());
     }
 
     //@Test

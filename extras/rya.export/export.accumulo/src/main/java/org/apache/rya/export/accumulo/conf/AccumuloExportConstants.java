@@ -24,6 +24,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.iterators.user.TimestampFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.rya.export.accumulo.common.InstanceType;
@@ -274,5 +276,41 @@ public class AccumuloExportConstants {
             return null;
         }
         return date;
+    }
+
+    /**
+     * Creates an {@link IteratorSetting} with a time stamp filter that starts with the specified data.
+     * @param startTimeString the start time of the filter.
+     * @return the {@link IteratorSetting}.
+     */
+    public static IteratorSetting getStartTimeSetting(final String startTimeString) {
+        Date date = null;
+        try {
+            date = START_TIME_FORMATTER.parse(startTimeString);
+        } catch (final ParseException e) {
+            throw new IllegalArgumentException("Couldn't parse " + startTimeString, e);
+        }
+        return getStartTimeSetting(date);
+    }
+
+    /**
+     * Creates an {@link IteratorSetting} with a time stamp filter that starts with the specified data.
+     * @param date the start {@link Date} of the filter.
+     * @return the {@link IteratorSetting}.
+     */
+    public static IteratorSetting getStartTimeSetting(final Date date) {
+        return getStartTimeSetting(date.getTime());
+    }
+
+    /**
+     * Creates an {@link IteratorSetting} with a time stamp filter that starts with the specified data.
+     * @param time the start time of the filter.
+     * @return the {@link IteratorSetting}.
+     */
+    public static IteratorSetting getStartTimeSetting(final long time) {
+        final IteratorSetting setting = new IteratorSetting(1, "startTimeIterator", TimestampFilter.class);
+        TimestampFilter.setStart(setting, time, true);
+        TimestampFilter.setEnd(setting, Long.MAX_VALUE, true);
+        return setting;
     }
 }

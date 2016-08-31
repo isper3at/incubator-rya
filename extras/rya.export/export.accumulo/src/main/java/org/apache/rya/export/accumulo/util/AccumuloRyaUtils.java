@@ -417,7 +417,7 @@ public final class AccumuloRyaUtils {
             final String zooKeepers = config.get(ConfigUtils.CLOUDBASE_ZOOKEEPERS);
             Instance instance;
             if (ConfigUtils.useMockInstance(config)) {
-                instance = new MockInstance(config.get(ConfigUtils.CLOUDBASE_INSTANCE));
+                instance = new MockInstance(instanceName);
             } else {
                 instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
             }

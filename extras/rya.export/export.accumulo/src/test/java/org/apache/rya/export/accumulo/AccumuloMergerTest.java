@@ -24,6 +24,8 @@ import static org.apache.rya.export.accumulo.TestUtils.YESTERDAY;
 import static org.apache.rya.export.accumulo.TestUtils.createRyaStatement;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -39,6 +41,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.apache.rya.export.CopyType;
+import org.apache.rya.export.MergePolicy;
 import org.apache.rya.export.accumulo.common.InstanceType;
 import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 import org.apache.rya.export.accumulo.driver.AccumuloDualInstanceDriver;
@@ -46,6 +50,7 @@ import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 import org.apache.rya.export.accumulo.util.AccumuloRyaUtils;
 import org.apache.rya.export.accumulo.util.TimeUtils;
 import org.apache.rya.export.api.MergerException;
+import org.apache.rya.export.api.conf.AccumuloMergeConfiguration;
 import org.apache.rya.export.api.parent.MergeParentMetadata;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -72,8 +77,6 @@ public class AccumuloMergerTest {
     private static final boolean IS_MOCK = INSTANCE_TYPE.isMock();
     private static final boolean USE_TIME_SYNC = false;
     private static final boolean IS_START_TIME_DIALOG_ENABLED = false;
-
-    private static final String CHILD_SUFFIX = AccumuloExportConstants.CHILD_SUFFIX;
 
     private static final String PARENT_PASSWORD = AccumuloDualInstanceDriver.PARENT_PASSWORD;
     private static final String PARENT_INSTANCE = AccumuloDualInstanceDriver.PARENT_INSTANCE;
@@ -102,14 +105,38 @@ public class AccumuloMergerTest {
 
     @Test
     public void testRunJob() throws Exception {
-        final AccumuloRyaStatementStore accumuloParentRyaStatementStore = new AccumuloRyaStatementStore(parentConfig);
-        final AccumuloRyaStatementStore childAccumuloRyaStatementStore = new AccumuloRyaStatementStore(childConfig);
+        final AccumuloMergeConfiguration accumuloMergeConfiguration = mock(AccumuloMergeConfiguration.class);
+        // Parent
+        when(accumuloMergeConfiguration.getParentRyaInstanceName()).thenReturn(PARENT_INSTANCE);
+        when(accumuloMergeConfiguration.getParentUsername()).thenReturn(accumuloDualInstanceDriver.getParentUser());
+        when(accumuloMergeConfiguration.getParentPassword()).thenReturn(PARENT_PASSWORD);
+        when(accumuloMergeConfiguration.getParentInstanceType()).thenReturn(INSTANCE_TYPE);
+        when(accumuloMergeConfiguration.getParentTablePrefix()).thenReturn(PARENT_TABLE_PREFIX);
+        when(accumuloMergeConfiguration.getParentAuths()).thenReturn(PARENT_AUTH);
+        // Child
+        when(accumuloMergeConfiguration.getChildRyaInstanceName()).thenReturn(CHILD_INSTANCE);
+        when(accumuloMergeConfiguration.getChildUsername()).thenReturn(accumuloDualInstanceDriver.getChildUser());
+        when(accumuloMergeConfiguration.getChildPassword()).thenReturn(CHILD_PASSWORD);
+        when(accumuloMergeConfiguration.getChildInstanceType()).thenReturn(INSTANCE_TYPE);
+        when(accumuloMergeConfiguration.getChildTablePrefix()).thenReturn(CHILD_TABLE_PREFIX);
+        when(accumuloMergeConfiguration.getChildAuths()).thenReturn(CHILD_AUTH);
+        // Other
+        when(accumuloMergeConfiguration.getMergePolicy()).thenReturn(MergePolicy.TIMESTAMP);
+        when(accumuloMergeConfiguration.getCopyType()).thenReturn(CopyType.CONNECTED_DATASTORES);
+        when(accumuloMergeConfiguration.getOutputPath()).thenReturn("/test/copy_tool_file_output/");
+        when(accumuloMergeConfiguration.getImportPath()).thenReturn("resources/test/copy_tool_file_output/");
+        when(accumuloMergeConfiguration.getNtpServerHost()).thenReturn(TimeUtils.DEFAULT_TIME_SERVER_HOST);
+        when(accumuloMergeConfiguration.getUseNtpServer()).thenReturn(USE_TIME_SYNC);
+        when(accumuloMergeConfiguration.getToolStartTime()).thenReturn(AccumuloExportConstants.convertDateToStartTimeString(new Date()));
+
+        final AccumuloRyaStatementStore accumuloParentRyaStatementStore = new AccumuloRyaStatementStore(accumuloMergeConfiguration, true);
+        final AccumuloRyaStatementStore childAccumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloMergeConfiguration, false);
 
         final MergeParentMetadata mergeParentMetadata = new MergeParentMetadata(PARENT_INSTANCE, new Date(), null, 0L);
         final AccumuloParentMetadataRepository accumuloParentMetadataRepository = new AccumuloParentMetadataRepository(accumuloParentRyaStatementStore.getRyaDAO());
         accumuloParentMetadataRepository.set(mergeParentMetadata);
 
-        final AccumuloMerger accumuloMerger = new AccumuloMerger(accumuloParentRyaStatementStore, childAccumuloRyaStatementStore, accumuloParentMetadataRepository);
+        final AccumuloMerger accumuloMerger = new AccumuloMerger(accumuloMergeConfiguration, accumuloParentRyaStatementStore, childAccumuloRyaStatementStore, accumuloParentMetadataRepository);
         accumuloMerger.runJob();
     }
 
@@ -154,20 +181,41 @@ public class AccumuloMergerTest {
     }
 
     private void mergeToolRun(final Date startDate) throws MergerException {
-        parentConfig.set(AccumuloExportConstants.PARENT_TOMCAT_URL_PROP, PARENT_TOMCAT_URL);
-        parentConfig.set(AccumuloExportConstants.CHILD_TOMCAT_URL_PROP, CHILD_TOMCAT_URL);
-        parentConfig.set(AccumuloExportConstants.NTP_SERVER_HOST_PROP, TimeUtils.DEFAULT_TIME_SERVER_HOST);
-        parentConfig.set(AccumuloExportConstants.USE_NTP_SERVER_PROP, Boolean.toString(USE_TIME_SYNC));
-        parentConfig.set(AccumuloExportConstants.START_TIME_PROP, AccumuloExportConstants.getStartTimeString(startDate, IS_START_TIME_DIALOG_ENABLED));
+        final AccumuloMergeConfiguration accumuloMergeConfiguration = mock(AccumuloMergeConfiguration.class);
+        // Parent
+        when(accumuloMergeConfiguration.getParentRyaInstanceName()).thenReturn(PARENT_INSTANCE);
+        when(accumuloMergeConfiguration.getParentUsername()).thenReturn(accumuloDualInstanceDriver.getParentUser());
+        when(accumuloMergeConfiguration.getParentPassword()).thenReturn(PARENT_PASSWORD);
+        when(accumuloMergeConfiguration.getParentInstanceType()).thenReturn(INSTANCE_TYPE);
+        when(accumuloMergeConfiguration.getParentTablePrefix()).thenReturn(PARENT_TABLE_PREFIX);
+        when(accumuloMergeConfiguration.getParentAuths()).thenReturn(PARENT_AUTH);
+        when(accumuloMergeConfiguration.getParentTomcatUrl()).thenReturn(PARENT_TOMCAT_URL);
+        // Child
+        when(accumuloMergeConfiguration.getChildRyaInstanceName()).thenReturn(CHILD_INSTANCE);
+        when(accumuloMergeConfiguration.getChildUsername()).thenReturn(accumuloDualInstanceDriver.getChildUser());
+        when(accumuloMergeConfiguration.getChildPassword()).thenReturn(CHILD_PASSWORD);
+        when(accumuloMergeConfiguration.getChildInstanceType()).thenReturn(INSTANCE_TYPE);
+        when(accumuloMergeConfiguration.getChildTablePrefix()).thenReturn(CHILD_TABLE_PREFIX);
+        when(accumuloMergeConfiguration.getChildAuths()).thenReturn(CHILD_AUTH);
+        when(accumuloMergeConfiguration.getChildTomcatUrl()).thenReturn(CHILD_TOMCAT_URL);
+        // Other
+        when(accumuloMergeConfiguration.getMergePolicy()).thenReturn(MergePolicy.TIMESTAMP);
+        when(accumuloMergeConfiguration.getCopyType()).thenReturn(CopyType.CONNECTED_DATASTORES);
+        when(accumuloMergeConfiguration.getOutputPath()).thenReturn("/test/copy_tool_file_output/");
+        when(accumuloMergeConfiguration.getImportPath()).thenReturn("resources/test/copy_tool_file_output/");
+        when(accumuloMergeConfiguration.getNtpServerHost()).thenReturn(TimeUtils.DEFAULT_TIME_SERVER_HOST);
+        when(accumuloMergeConfiguration.getUseNtpServer()).thenReturn(USE_TIME_SYNC);
+        when(accumuloMergeConfiguration.getToolStartTime()).thenReturn(AccumuloExportConstants.convertDateToStartTimeString(new Date()));
 
-        final AccumuloRyaStatementStore accumuloParentRyaStatementStore = new AccumuloRyaStatementStore(parentConfig);
-        final AccumuloRyaStatementStore childAccumuloRyaStatementStore = new AccumuloRyaStatementStore(childConfig);
+
+        final AccumuloRyaStatementStore accumuloParentRyaStatementStore = new AccumuloRyaStatementStore(accumuloMergeConfiguration, true);
+        final AccumuloRyaStatementStore childAccumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloMergeConfiguration, false);
 
         final MergeParentMetadata mergeParentMetadata = new MergeParentMetadata(PARENT_INSTANCE, startDate, null, 0L);
         final AccumuloParentMetadataRepository accumuloParentMetadataRepository = new AccumuloParentMetadataRepository(accumuloParentRyaStatementStore.getRyaDAO());
         accumuloParentMetadataRepository.set(mergeParentMetadata);
 
-        final AccumuloMerger accumuloMerger = new AccumuloMerger(accumuloParentRyaStatementStore, childAccumuloRyaStatementStore, accumuloParentMetadataRepository);
+        final AccumuloMerger accumuloMerger = new AccumuloMerger(accumuloMergeConfiguration, accumuloParentRyaStatementStore, childAccumuloRyaStatementStore, accumuloParentMetadataRepository);
         accumuloMerger.runJob();
 
         log.info("Finished running tool.");

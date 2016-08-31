@@ -20,6 +20,8 @@ package org.apache.rya.export.accumulo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -27,9 +29,13 @@ import java.util.Iterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.rya.export.CopyType;
+import org.apache.rya.export.MergePolicy;
 import org.apache.rya.export.accumulo.common.InstanceType;
+import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 import org.apache.rya.export.api.MergerException;
+import org.apache.rya.export.api.conf.AccumuloMergeConfiguration;
 import org.apache.rya.export.api.store.AddStatementException;
 import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RemoveStatementException;
@@ -42,7 +48,6 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 
-import mvm.rya.accumulo.AccumuloRdfConfiguration;
 import mvm.rya.api.domain.RyaStatement;
 import mvm.rya.indexing.accumulo.ConfigUtils;
 
@@ -62,7 +67,6 @@ public class AccumuloRyaStatementStoreTest {
 
     // Rya data store and connections.
     private static AccumuloInstanceDriver accumuloInstanceDriver = null;
-    private static AccumuloRdfConfiguration accumuloRdfConfiguration = null;
 
     private static final Date DATE = new Date();
 
@@ -78,8 +82,6 @@ public class AccumuloRyaStatementStoreTest {
     public static void setupResources() throws Exception {
         // Initialize the Accumulo instance that will be used to store Triples and get a connection to it.
         accumuloInstanceDriver = startAccumuloInstanceDriver();
-
-        accumuloRdfConfiguration = accumuloInstanceDriver.getDao().getConf();
     }
 
     @Before
@@ -104,7 +106,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test
     public void testFetchStatements() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -115,7 +117,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test (expected = FetchStatementException.class)
     public void testFetchStatements_FetchWrongInstance() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -130,7 +132,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test
     public void testAddStatement() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -139,14 +141,14 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test (expected = AddStatementException.class)
     public void testAddStatement_AddNull() throws Exception {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         accumuloRyaStatementStore.addStatement(null);
     }
 
     @Test
     public void testRemoveStatement() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         // Add one then remove it right away
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
@@ -191,7 +193,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test (expected = RemoveStatementException.class)
     public void testRemoveStatement_RemoveNull() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -202,7 +204,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test
     public void testRemoveStatement_RemoveStatementNotFound() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -214,7 +216,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test
     public void testUpdateStatement() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -254,7 +256,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test (expected = UpdateStatementException.class)
     public void testUpdateStatement_UpdateNull() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -275,7 +277,7 @@ public class AccumuloRyaStatementStoreTest {
 
     @Test
     public void testUpdateStatement_OriginalNotFound() throws MergerException {
-        final AccumuloRyaStatementStore accumuloRyaStatementStore = new AccumuloRyaStatementStore(accumuloRdfConfiguration);
+        final AccumuloRyaStatementStore accumuloRyaStatementStore = createAccumuloRyaStatementStore();
 
         for (final RyaStatement ryaStatement : RYA_STATEMENTS) {
             accumuloRyaStatementStore.addStatement(ryaStatement);
@@ -344,5 +346,34 @@ public class AccumuloRyaStatementStoreTest {
         accumuloInstanceDriver.setUp();
 
         return accumuloInstanceDriver;
+    }
+
+    private static AccumuloMergeConfiguration createAccumuloMergeConfiguration() {
+        final AccumuloMergeConfiguration accumuloMergeConfiguration = mock(AccumuloMergeConfiguration.class);
+
+        when(accumuloMergeConfiguration.getParentRyaInstanceName()).thenReturn(INSTANCE_NAME);
+        when(accumuloMergeConfiguration.getParentUsername()).thenReturn(USER_NAME);
+        when(accumuloMergeConfiguration.getParentPassword()).thenReturn(PASSWORD);
+        when(accumuloMergeConfiguration.getParentInstanceType()).thenReturn(INSTANCE_TYPE);
+        when(accumuloMergeConfiguration.getParentTablePrefix()).thenReturn(RYA_TABLE_PREFIX);
+        when(accumuloMergeConfiguration.getParentAuths()).thenReturn(AUTHS);
+
+        // Other
+        when(accumuloMergeConfiguration.getMergePolicy()).thenReturn(MergePolicy.TIMESTAMP);
+        when(accumuloMergeConfiguration.getCopyType()).thenReturn(CopyType.CONNECTED_DATASTORES);
+        when(accumuloMergeConfiguration.getOutputPath()).thenReturn("/test/copy_tool_file_output/");
+        when(accumuloMergeConfiguration.getImportPath()).thenReturn("resources/test/copy_tool_file_output/");
+        when(accumuloMergeConfiguration.getToolStartTime()).thenReturn(AccumuloExportConstants.convertDateToStartTimeString(new Date()));
+
+        return accumuloMergeConfiguration;
+    }
+
+    private static AccumuloRyaStatementStore createAccumuloRyaStatementStore() throws MergerException {
+        final AccumuloMergeConfiguration accumuloMergeConfiguration = createAccumuloMergeConfiguration();
+        return createAccumuloRyaStatementStore(accumuloMergeConfiguration);
+    }
+
+    private static AccumuloRyaStatementStore createAccumuloRyaStatementStore(final AccumuloMergeConfiguration accumuloMergeConfiguration) throws MergerException {
+        return new AccumuloRyaStatementStore(accumuloMergeConfiguration, true);
     }
 }

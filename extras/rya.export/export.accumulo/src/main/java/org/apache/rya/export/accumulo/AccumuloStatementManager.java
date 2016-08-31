@@ -31,6 +31,7 @@ import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 import org.apache.rya.export.accumulo.util.TimeUtils;
 import org.apache.rya.export.api.MergerException;
 import org.apache.rya.export.api.StatementMerger;
+import org.apache.rya.export.api.common.MergeProcessType;
 import org.apache.rya.export.api.parent.MergeParentMetadata;
 import org.apache.rya.export.api.store.RyaStatementStore;
 
@@ -51,6 +52,7 @@ public class AccumuloStatementManager implements StatementMerger {
     private static final Logger log = Logger.getLogger(AccumuloStatementManager.class);
 
     private final AccumuloRyaStatementStore parentAccumuloRyaStatementStore;
+    private final RyaStatementStore childRyaStatementStore;
     private final MergeParentMetadata mergeParentMetadata;
     private final RyaTripleContext parentRyaTripleContext;
     private final RyaTripleContext childRyaTripleContext;
@@ -60,18 +62,23 @@ public class AccumuloStatementManager implements StatementMerger {
     private boolean useMergeFileInput = false;
     private Long childTimeOffset = 0L;
 
+    private final MergeProcessType mergeProcessType;
+
     /**
      * Creates a new instance of {@link AccumuloStatementManager}.
      * @param parentAccumuloRyaStatementStore the parent
      * {@link AccumuloRyaStatementStore}. (not {@code null})
-     * @param parentAccumuloRyaStatementStore the child
+     * @param childRyaStatementStore the child
      * {@link RyaStatementStore}. (not {@code null})
      * @param mergeParentMetadata the {@link MergeParentMetadata}.
      * (not {@code null})
+     * @param mergeProcessType the {@link MergeProcessType}. (not {@code null})
      */
-    public AccumuloStatementManager(final AccumuloRyaStatementStore parentAccumuloRyaStatementStore, final RyaStatementStore childRyaStatementStore, final MergeParentMetadata mergeParentMetadata) {
+    public AccumuloStatementManager(final AccumuloRyaStatementStore parentAccumuloRyaStatementStore, final RyaStatementStore childRyaStatementStore, final MergeParentMetadata mergeParentMetadata, final MergeProcessType mergeProcessType) {
         this.parentAccumuloRyaStatementStore = checkNotNull(parentAccumuloRyaStatementStore);
+        this.childRyaStatementStore = checkNotNull(childRyaStatementStore);
         this.mergeParentMetadata = checkNotNull(mergeParentMetadata);
+        this.mergeProcessType = checkNotNull(mergeProcessType);
 
         parentRyaTripleContext = RyaTripleContext.getInstance(parentAccumuloRyaStatementStore.getRyaDAO().getConf());
         childRyaTripleContext = RyaTripleContext.getInstance(checkNotNull(childRyaStatementStore).getRyaDAO().getConf());
@@ -87,6 +94,17 @@ public class AccumuloStatementManager implements StatementMerger {
 
     @Override
     public Optional<RyaStatement> merge(final Optional<RyaStatement> parent, final Optional<RyaStatement> child) throws MergerException {
+        switch (mergeProcessType) {
+            case COPY:
+                return copyStatements(parent, child);
+            case MERGE:
+                return mergeStatements(parent, child);
+            default:
+                throw new MergerException("Unknown Merge process type being executed");
+        }
+    }
+
+    private Optional<RyaStatement> mergeStatements(final Optional<RyaStatement> parent, final Optional<RyaStatement> child) throws MergerException {
         final Date filterTimestamp = mergeParentMetadata.getFilterTimestamp();
         final Date startTime = mergeParentMetadata.getTimestamp();
 
@@ -145,6 +163,11 @@ public class AccumuloStatementManager implements StatementMerger {
         }
 
         return Optional.absent();
+    }
+
+    private Optional<RyaStatement> copyStatements(final Optional<RyaStatement> parent, final Optional<RyaStatement> child) throws MergerException {
+        childRyaStatementStore.addStatement(parent.get());
+        return parent;
     }
 
     private Optional<RyaStatement> checkColumnVisibilities(final RyaStatement parentRyaStatement, final RyaStatement childRyaStatement) throws MergerException {
