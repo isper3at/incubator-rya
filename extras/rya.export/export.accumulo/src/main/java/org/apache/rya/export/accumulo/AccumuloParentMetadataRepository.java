@@ -181,7 +181,7 @@ public class AccumuloParentMetadataRepository implements ParentMetadataRepositor
 
     private void createTableIfNeeded() throws MergerException {
         try {
-            if (!connector.tableOperations().exists(mergeParentMetadataTableName)) {
+            if (!doesMetadataTableExist()) {
                 log.debug("Creating table: " + mergeParentMetadataTableName);
                 connector.tableOperations().create(mergeParentMetadataTableName);
                 log.debug("Created table: " + mergeParentMetadataTableName);
@@ -193,6 +193,10 @@ public class AccumuloParentMetadataRepository implements ParentMetadataRepositor
         } catch (final TableExistsException | AccumuloException | AccumuloSecurityException e) {
             throw new MergerException("Could not create a new MergeParentMetadata table named: " + mergeParentMetadataTableName, e);
         }
+    }
+
+    private boolean doesMetadataTableExist() {
+        return connector.tableOperations().exists(mergeParentMetadataTableName);
     }
 
     /**

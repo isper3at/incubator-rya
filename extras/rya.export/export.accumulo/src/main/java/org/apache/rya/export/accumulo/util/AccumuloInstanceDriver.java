@@ -55,7 +55,6 @@ import mvm.rya.accumulo.AccumuloRyaDAO;
 import mvm.rya.accumulo.mr.MRUtils;
 import mvm.rya.api.RdfCloudTripleStoreConstants;
 import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.indexing.accumulo.ConfigUtils;
 
 /**
  * Handles running a single {@link MiniAccumuloCluster} or a single {@link MockInstance} for an instance.
@@ -253,11 +252,13 @@ public class AccumuloInstanceDriver {
 
         if (shouldCreateIndices) {
             indices = Arrays.asList(
+                /* TODO: SEE RYA-160
                 ConfigUtils.getFreeTextDocTablename(config),
                 ConfigUtils.getFreeTextTermTablename(config),
                 ConfigUtils.getGeoTablename(config),
                 ConfigUtils.getTemporalTableName(config),
                 ConfigUtils.getEntityTableName(config)
+                */
             );
 
             tableList.addAll(indices);
