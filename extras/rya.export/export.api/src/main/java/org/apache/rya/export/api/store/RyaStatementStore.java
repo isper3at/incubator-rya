@@ -21,6 +21,7 @@ package org.apache.rya.export.api.store;
 import java.util.Iterator;
 
 import mvm.rya.api.domain.RyaStatement;
+import mvm.rya.api.resolver.RyaTripleContext;
 
 /**
  * Allows specific CRUD operations on {@link RyaStatement} storage systems.
@@ -62,6 +63,11 @@ public interface RyaStatementStore {
      * @throws UpdateStatementException - Thrown when updating a statement fails.
      */
     public void updateStatement(final RyaStatement original, final RyaStatement update) throws UpdateStatementException;
+
+    /**
+     * @return the {@link RyaTripleContext}.
+     */
+    public RyaTripleContext getRyaTripleContext();
 
     /**
      * Queries to see if the statement is contained in the statement store.

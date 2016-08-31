@@ -120,8 +120,7 @@ public class AccumuloInstanceDriver {
     /**
      * Creates a new instance of {@link AccumuloInstanceDriver}.
      * @param driverName the name used to identify this driver in the logs. (not {@code null})
-     * @param isMock {@code true} if the instance will use {@link MockInstance}s.
-     * {@code false} if the instance will use {@link MiniAccumuloCluster}s.
+     * @param instanceType the {@link InstanceType} of this driver.
      * @param shouldCreateIndices {@code true} to create all the indices associated with a Rya deployment.
      * {@code false} otherwise.
      * @param isReadOnly {@code true} if all the tables in the instance should have their
@@ -324,6 +323,7 @@ public class AccumuloInstanceDriver {
         configMap.put(MRUtils.TABLE_PREFIX_PROPERTY, tablePrefix);
         configMap.put(MRUtils.AC_AUTH_PROP, auth);
         configMap.put(MRUtils.AC_ZK_PROP, zooKeepers != null ? zooKeepers : "localhost");
+        configMap.put(AccumuloExportConstants.ACCUMULO_INSTANCE_TYPE_PROP, instanceType.toString());
 
         log.info(driverName + " config properties");
         config.setTablePrefix(tablePrefix);

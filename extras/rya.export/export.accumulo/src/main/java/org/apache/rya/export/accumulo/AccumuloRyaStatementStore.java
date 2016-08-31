@@ -23,7 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -35,7 +34,12 @@ import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 import org.apache.rya.export.accumulo.util.AccumuloRyaUtils;
 import org.apache.rya.export.api.MergerException;
+import org.apache.rya.export.api.store.AddStatementException;
+import org.apache.rya.export.api.store.ContainsStatementException;
+import org.apache.rya.export.api.store.FetchStatementException;
+import org.apache.rya.export.api.store.RemoveStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
+import org.apache.rya.export.api.store.UpdateStatementException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
@@ -67,19 +71,41 @@ import mvm.rya.indexing.accumulo.ConfigUtils;
 public class AccumuloRyaStatementStore implements RyaStatementStore {
     private static final Logger log = Logger.getLogger(AccumuloRyaStatementStore.class);
 
-    private AccumuloRyaDAO accumuloRyaDAO;
+    private final AccumuloRyaDAO accumuloRyaDAO;
     private final Configuration config;
-    private AccumuloRdfConfiguration accumuloRdfConfiguration;
-    private RyaTripleContext ryaTripleContext;
-    private String tablePrefix;
-    private final AtomicBoolean isInitialized = new AtomicBoolean();
+    private final AccumuloRdfConfiguration accumuloRdfConfiguration;
+    private final RyaTripleContext ryaTripleContext;
+    private final String tablePrefix;
 
     /**
      * Creates a new instance of {@link AccumuloRyaStatementStore}.
      * @param config the {@link Configuration}.
+     * @throws MergerException
      */
-    public AccumuloRyaStatementStore(final Configuration config) {
+    public AccumuloRyaStatementStore(final Configuration config) throws MergerException {
         this.config = checkNotNull(config);
+
+        final String instance = config.get(ConfigUtils.CLOUDBASE_INSTANCE, "instance");
+        final String userName = config.get(ConfigUtils.CLOUDBASE_USER, "root");
+        final String pwd = config.get(ConfigUtils.CLOUDBASE_PASSWORD, "password");
+        final InstanceType instanceType = InstanceType.fromName(config.get(AccumuloExportConstants.ACCUMULO_INSTANCE_TYPE_PROP, InstanceType.DISTRIBUTION.toString()));
+        tablePrefix = config.get(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX);
+        if (tablePrefix != null) {
+            RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
+        }
+        final String auth = config.get(ConfigUtils.CLOUDBASE_AUTHS);
+
+        accumuloRdfConfiguration = new AccumuloRdfConfiguration(config);
+        accumuloRdfConfiguration.setTablePrefix(tablePrefix);
+        ryaTripleContext = RyaTripleContext.getInstance(accumuloRdfConfiguration);
+
+        final AccumuloInstanceDriver accumuloInstanceDriver = new AccumuloInstanceDriver(AccumuloRyaStatementStore.class.getSimpleName(), instanceType, true, false, true, userName, pwd, instance, tablePrefix, auth);
+        try {
+            accumuloInstanceDriver.setUp();
+        } catch (final Exception e) {
+            throw new MergerException(e);
+        }
+        accumuloRyaDAO = accumuloInstanceDriver.getDao();
     }
 
     /**
@@ -105,42 +131,7 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
     }
 
     @Override
-    public void init() throws MergerException {
-        if (isInitialized.get()) {
-            throw new MergerException("AccumuloRyaStatementStore already initialized");
-        } else {
-            final String instance = config.get(ConfigUtils.CLOUDBASE_INSTANCE, "instance");
-            final String userName = config.get(ConfigUtils.CLOUDBASE_USER, "root");
-            final String pwd = config.get(ConfigUtils.CLOUDBASE_PASSWORD, "password");
-            final InstanceType instanceType = InstanceType.fromName(config.get(AccumuloExportConstants.ACCUMULO_INSTANCE_TYPE_PROP, InstanceType.DISTRIBUTION.toString()));
-            tablePrefix = config.get(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX);
-            if (tablePrefix != null) {
-                RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
-            }
-            final String auth = config.get(ConfigUtils.CLOUDBASE_AUTHS);
-
-            accumuloRdfConfiguration = new AccumuloRdfConfiguration(config);
-            accumuloRdfConfiguration.setTablePrefix(tablePrefix);
-            ryaTripleContext = RyaTripleContext.getInstance(accumuloRdfConfiguration);
-
-            final AccumuloInstanceDriver accumuloInstanceDriver = new AccumuloInstanceDriver(AccumuloRyaStatementStore.class.getSimpleName(), instanceType, true, false, true, userName, pwd, instance, tablePrefix, auth);
-            try {
-                accumuloInstanceDriver.setUp();
-            } catch (final Exception e) {
-                throw new MergerException(e);
-            }
-            accumuloRyaDAO = accumuloInstanceDriver.getDao();
-            isInitialized.set(true);
-        }
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized.get();
-    }
-
-    @Override
-    public Iterator<RyaStatement> fetchStatements() throws MergerException {
+    public Iterator<RyaStatement> fetchStatements() throws FetchStatementException {
         try {
             final RyaTripleContext ryaTripleContext = RyaTripleContext.getInstance(accumuloRdfConfiguration);
 
@@ -168,54 +159,57 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
             });
             return ryaStatementIter;
         } catch (final Exception e) {
-            throw new MergerException("Failed to fetch statements.", e);
+            throw new FetchStatementException("Failed to fetch statements.", e);
         }
     }
 
     @Override
-    public void addStatement(final RyaStatement statement) throws MergerException {
+    public void addStatement(final RyaStatement statement) throws AddStatementException {
         try {
             accumuloRyaDAO.add(statement);
         } catch (final RyaDAOException e) {
-            throw new MergerException("Unable to add the Rya Statement", e);
+            throw new AddStatementException("Unable to add the Rya Statement", e);
         }
     }
 
     @Override
-    public void removeStatement(final RyaStatement statement) throws MergerException {
+    public void removeStatement(final RyaStatement statement) throws RemoveStatementException {
         try {
             accumuloRyaDAO.delete(statement, accumuloRdfConfiguration);
         } catch (final RyaDAOException e) {
-            throw new MergerException("Unable to delete the Rya Statement", e);
+            throw new RemoveStatementException("Unable to delete the Rya Statement", e);
         }
     }
 
     @Override
-    public void updateStatement(final RyaStatement original, final RyaStatement update) throws MergerException {
-        removeStatement(original);
-        addStatement(update);
+    public void updateStatement(final RyaStatement original, final RyaStatement update) throws UpdateStatementException {
+        try {
+            removeStatement(original);
+            addStatement(update);
+        } catch (final AddStatementException | RemoveStatementException e) {
+            throw new UpdateStatementException("Unable to update the Rya Statement", e);
+        }
     }
 
     @Override
-    public boolean containsStatement(final RyaStatement ryaStatement) throws MergerException {
+    public boolean containsStatement(final RyaStatement ryaStatement) throws ContainsStatementException {
         CloseableIteration<RyaStatement, RyaDAOException> iter = null;
         try {
             iter = findStatement(ryaStatement);
             return iter.hasNext();
-        } catch (final RyaDAOException e) {
-            throw new MergerException("Encountered an error while querying for statement.", e);
+        } catch (final RyaDAOException | MergerException e) {
+            throw new ContainsStatementException("Encountered an error while querying for statement.", e);
         } finally {
             try {
                 if (iter != null) {
                     iter.close();
                 }
             } catch (final RyaDAOException e) {
-                throw new MergerException("Error closing query iterator.", e);
+                throw new ContainsStatementException("Error closing query iterator.", e);
             }
         }
     }
 
-    @Override
     public CloseableIteration<RyaStatement, RyaDAOException> findStatement(final RyaStatement ryaStatement) throws MergerException {
         CloseableIteration<RyaStatement, RyaDAOException> iter = null;
         try {
