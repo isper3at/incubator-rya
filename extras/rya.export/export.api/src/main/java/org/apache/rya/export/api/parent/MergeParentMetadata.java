@@ -22,6 +22,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Date;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+
 /**
  * The parent database identifying information.  Use the {@link ParentMetadataRepository}
  * to retrieve this information
@@ -75,6 +78,30 @@ public class MergeParentMetadata {
      */
     public Long getParentTimeOffset() {
         return parentTimeOffset;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if(!(obj instanceof MergeParentMetadata)) {
+            return false;
+        }
+        final MergeParentMetadata other = (MergeParentMetadata) obj;
+        final EqualsBuilder builder = new EqualsBuilder()
+            .append(getRyaInstanceName(), other.getRyaInstanceName())
+            .append(getTimestamp(), other.getTimestamp())
+            .append(getFilterTimestamp(), other.getFilterTimestamp())
+            .append(getParentTimeOffset(), other.getParentTimeOffset());
+        return builder.isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        final HashCodeBuilder builder = new HashCodeBuilder()
+            .append(getRyaInstanceName())
+            .append(getTimestamp())
+            .append(getFilterTimestamp())
+            .append(getParentTimeOffset());
+        return builder.toHashCode();
     }
 
     public static class Builder {
