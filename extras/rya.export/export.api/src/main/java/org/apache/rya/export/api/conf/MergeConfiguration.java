@@ -65,26 +65,31 @@ public class MergeConfiguration {
      */
     protected MergeConfiguration(final Builder builder) throws MergeConfigurationException {
         try {
-            parentHostname = checkNotNull(builder.parentHostname);
-            parentUsername = checkNotNull(builder.parentUsername);
-            parentPassword = checkNotNull(builder.parentPassword);
-            parentRyaInstanceName = checkNotNull(builder.parentRyaInstanceName);
-            parentTablePrefix = checkNotNull(builder.parentTablePrefix);
-            parentTomcatUrl = checkNotNull(builder.parentTomcatUrl);
-            parentDBType = checkNotNull(builder.parentDBType);
-            parentPort = checkNotNull(builder.parentPort);
-            childHostname = checkNotNull(builder.childHostname);
-            childUsername = checkNotNull(builder.childUsername);
-            childPassword = checkNotNull(builder.childPassword);
-            childRyaInstanceName = checkNotNull(builder.childRyaInstanceName);
-            childTablePrefix = checkNotNull(builder.childTablePrefix);
-            childTomcatUrl = checkNotNull(builder.childTomcatUrl);
-            childDBType = checkNotNull(builder.childDBType);
-            childPort = checkNotNull(builder.childPort);
-            mergePolicy = checkNotNull(builder.mergePolicy);
-            useNtpServer = checkNotNull(builder.useNtpServer);
-            ntpServerHost = checkNotNull(builder.ntpServerHost);
-            toolStartTime = checkNotNull(builder.toolStartTime);
+            checkNotNull(builder);
+        } catch(final NullPointerException npe) {
+            throw new MergeConfigurationException("The configuration was passed a null builder.", npe);
+        }
+        try {
+            this.parentHostname = checkNotNull(builder.parentHostname);
+            this.parentUsername = checkNotNull(builder.parentUsername);
+            this.parentPassword = checkNotNull(builder.parentPassword);
+            this.parentRyaInstanceName = checkNotNull(builder.parentRyaInstanceName);
+            this.parentTablePrefix = checkNotNull(builder.parentTablePrefix);
+            this.parentTomcatUrl = checkNotNull(builder.parentTomcatUrl);
+            this.parentDBType = checkNotNull(builder.parentDBType);
+            this.parentPort = checkNotNull(builder.parentPort);
+            this.childHostname = checkNotNull(builder.childHostname);
+            this.childUsername = checkNotNull(builder.childUsername);
+            this.childPassword = checkNotNull(builder.childPassword);
+            this.childRyaInstanceName = checkNotNull(builder.childRyaInstanceName);
+            this.childTablePrefix = checkNotNull(builder.childTablePrefix);
+            this.childTomcatUrl = checkNotNull(builder.childTomcatUrl);
+            this.childDBType = checkNotNull(builder.childDBType);
+            this.childPort = checkNotNull(builder.childPort);
+            this.mergePolicy = checkNotNull(builder.mergePolicy);
+            this.useNtpServer = checkNotNull(builder.useNtpServer);
+            this.ntpServerHost = checkNotNull(builder.ntpServerHost);
+            this.toolStartTime = checkNotNull(builder.toolStartTime);
         } catch(final NullPointerException npe) {
             //fix this.
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
