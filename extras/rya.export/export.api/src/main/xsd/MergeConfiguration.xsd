@@ -17,37 +17,43 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-<schema xmlns="http://www.w3.org/2001/XMLSchema"
+<schema id="mergeconfiguration"
+    xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    xmlns:mc="http://mergeconfig"
-    targetNamespace="http://mergeconfig"
+    xmlns:mc="http://rya.apache.org/export/api/mergeconfig"
+    targetNamespace="http://rya.apache.org/export/api/mergeconfig"
     elementFormDefault="qualified">
 
     <xs:element name="configuration" type="mc:JAXBMergeConfiguration"/>
 
     <xs:complexType name="JAXBMergeConfiguration">
         <xs:sequence>
+            <!-- Parent Properties -->
             <xs:element name="parentHostname" type="xs:string"/>
             <xs:element name="parentUsername" type="xs:string"/>
             <xs:element name="parentPassword" type="xs:string"/>
             <xs:element name="parentRyaInstanceName" type="xs:string"/>
             <xs:element name="parentTablePrefix" type="xs:string"/>
-            <xs:element name="parentTomcatUrl" type="xs:string"/>
+            <xs:element name="parentTomcalUrl" type="xs:string"/>
             <xs:element name="parentDBType" type="mc:DBType"/>
-            <xs:element name="parentPort" type="mc:Port"/>
+            <xs:element name="parentPort" type="mc:Port" nillable="true"/>
 
+            <!-- Child Properties -->
             <xs:element name="childHostname" type="xs:string"/>
             <xs:element name="childUsername" type="xs:string"/>
             <xs:element name="childPassword" type="xs:string"/>
             <xs:element name="childRyaInstanceName" type="xs:string"/>
             <xs:element name="childTablePrefix" type="xs:string"/>
-            <xs:element name="childTomcatUrl" type="xs:string"/>
+            <xs:element name="childTomcalUrl" type="xs:string"/>
             <xs:element name="childDBType" type="mc:DBType"/>
-            <xs:element name="childPort" type="mc:Port"/>
+            <xs:element name="childPort" type="mc:Port" nillable="true"/>
 
             <xs:element name="mergePolicy" type="mc:MergePolicy"/>
+            <xs:element name="copyType" type="mc:CopyType"/>
 
-            <xs:element name="useNtpServer" type="xs:boolean"/>
+            <xs:element name="outputPath" type="xs:string"/>
+            <xs:element name="importPath" type="xs:string"/>
+            <xs:element name="useNtpServer" type="xs:boolean" nillable="true"/>
             <xs:element name="ntpServerHost" type="xs:string"/>
             <xs:element name="toolStartTime" type="xs:string"/>
         </xs:sequence>
@@ -66,15 +72,23 @@ under the License.
       </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="CopyType">
+      <xs:restriction base="xs:string">
+        <xs:enumeration value="FileExport"/>
+        <xs:enumeration value="FileImport"/>
+        <xs:enumeration value="ConnectedDatastores"/>
+      </xs:restriction>
+    </xs:simpleType>
+
     <xs:simpleType name="Port">
       <xs:annotation>
         <xs:documentation>
-          Port number in the range [1, 65536].
+          Port number in the range [0, 65535].
         </xs:documentation>
       </xs:annotation>
-      
       <xs:restriction base="xs:unsignedShort">
         <xs:minInclusive value="1"/>
+        <xs:maxInclusive value="65535"/>
       </xs:restriction>
     </xs:simpleType>
 </schema>

@@ -43,5 +43,4 @@ public class ContainsStatementException extends StatementStoreException {
     public ContainsStatementException(final String message, final Throwable cause) {
         super(message, cause);
     }
-
 }

@@ -21,6 +21,7 @@ package org.apache.rya.export.api.conf;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.http.annotation.Immutable;
+import org.apache.rya.export.CopyType;
 import org.apache.rya.export.DBType;
 import org.apache.rya.export.MergePolicy;
 
@@ -55,7 +56,10 @@ public class MergeConfiguration {
     private final int childPort;
 
     private final MergePolicy mergePolicy;
+    private final CopyType copyType;
 
+    private final String outputPath;
+    private final String importPath;
     private final boolean useNtpServer;
     private final String ntpServerHost;
     private final String toolStartTime;
@@ -65,26 +69,34 @@ public class MergeConfiguration {
      */
     protected MergeConfiguration(final Builder builder) throws MergeConfigurationException {
         try {
-            parentHostname = checkNotNull(builder.parentHostname);
-            parentUsername = checkNotNull(builder.parentUsername);
-            parentPassword = checkNotNull(builder.parentPassword);
-            parentRyaInstanceName = checkNotNull(builder.parentRyaInstanceName);
-            parentTablePrefix = checkNotNull(builder.parentTablePrefix);
-            parentTomcatUrl = checkNotNull(builder.parentTomcatUrl);
-            parentDBType = checkNotNull(builder.parentDBType);
-            parentPort = checkNotNull(builder.parentPort);
-            childHostname = checkNotNull(builder.childHostname);
-            childUsername = checkNotNull(builder.childUsername);
-            childPassword = checkNotNull(builder.childPassword);
-            childRyaInstanceName = checkNotNull(builder.childRyaInstanceName);
-            childTablePrefix = checkNotNull(builder.childTablePrefix);
-            childTomcatUrl = checkNotNull(builder.childTomcatUrl);
-            childDBType = checkNotNull(builder.childDBType);
-            childPort = checkNotNull(builder.childPort);
-            mergePolicy = checkNotNull(builder.mergePolicy);
-            useNtpServer = checkNotNull(builder.useNtpServer);
-            ntpServerHost = checkNotNull(builder.ntpServerHost);
-            toolStartTime = checkNotNull(builder.toolStartTime);
+            checkNotNull(builder);
+        } catch(final NullPointerException npe) {
+            throw new MergeConfigurationException("The configuration was passed a null builder.", npe);
+        }
+        try {
+            this.parentHostname = checkNotNull(builder.parentHostname);
+            this.parentUsername = checkNotNull(builder.parentUsername);
+            this.parentPassword = checkNotNull(builder.parentPassword);
+            this.parentRyaInstanceName = checkNotNull(builder.parentRyaInstanceName);
+            this.parentTablePrefix = checkNotNull(builder.parentTablePrefix);
+            this.parentTomcatUrl = checkNotNull(builder.parentTomcatUrl);
+            this.parentDBType = checkNotNull(builder.parentDBType);
+            this.parentPort = checkNotNull(builder.parentPort);
+            this.childHostname = checkNotNull(builder.childHostname);
+            this.childUsername = checkNotNull(builder.childUsername);
+            this.childPassword = checkNotNull(builder.childPassword);
+            this.childRyaInstanceName = checkNotNull(builder.childRyaInstanceName);
+            this.childTablePrefix = checkNotNull(builder.childTablePrefix);
+            this.childTomcatUrl = checkNotNull(builder.childTomcatUrl);
+            this.childDBType = checkNotNull(builder.childDBType);
+            this.childPort = checkNotNull(builder.childPort);
+            this.mergePolicy = checkNotNull(builder.mergePolicy);
+            this.copyType = checkNotNull(builder.copyType);
+            this.outputPath = checkNotNull(builder.outputPath);
+            this.importPath = checkNotNull(builder.importPath);
+            this.useNtpServer = checkNotNull(builder.useNtpServer);
+            this.ntpServerHost = checkNotNull(builder.ntpServerHost);
+            this.toolStartTime = checkNotNull(builder.toolStartTime);
         } catch(final NullPointerException npe) {
             //fix this.
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
@@ -211,6 +223,30 @@ public class MergeConfiguration {
     }
 
     /**
+     * @return the type of copying to perform based on if the datastores are
+     * online or offline.
+     */
+    public CopyType getCopyType() {
+        return copyType;
+    }
+
+    /**
+     * @return the path to output files to when copying to an offline child
+     * datastore.
+     */
+    public String getOutputPath() {
+        return outputPath;
+    }
+
+    /**
+     * @return the path to import files from when copying from an offline parent
+     * datastore.
+     */
+    public String getImportPath() {
+        return importPath;
+    }
+
+    /**
      * @return {@code true} to use the NTP server to handle time synchronization.
      * {@code false} to not use the NTP server.
      */
@@ -267,7 +303,10 @@ public class MergeConfiguration {
         private Integer childPort;
 
         private MergePolicy mergePolicy;
+        private CopyType copyType;
 
+        private String outputPath;
+        private String importPath;
         private Boolean useNtpServer;
         private String ntpServerHost;
         private String toolStartTime;
@@ -424,6 +463,36 @@ public class MergeConfiguration {
          */
         public Builder setMergePolicy(final MergePolicy mergePolicy) {
             this.mergePolicy = mergePolicy;
+            return this;
+        }
+
+        /**
+         * @param copyType - the type of copying to perform based on if the
+         * datastores are online or offline.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setCopyType(final CopyType copyType) {
+            this.copyType = copyType;
+            return this;
+        }
+
+        /**
+         * @param outpath - the path to output files to when copying to an
+         * offline child datastore.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setOutputPath(final String outputPath) {
+            this.outputPath = outputPath;
+            return this;
+        }
+
+        /**
+         * @param importPath - the path to import files from when copying from
+         * an offline parent datastore.
+         * @return the updated {@link Builder}.
+         */
+        public Builder setImportPath(final String importPath) {
+            this.importPath = importPath;
             return this;
         }
 
