@@ -43,7 +43,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
-import org.apache.rya.export.accumulo.common.InstanceType;
+import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 
 import com.google.common.base.Preconditions;
@@ -136,7 +136,7 @@ public class AccumuloInstanceDriver {
     public AccumuloInstanceDriver(final String driverName, final InstanceType instanceType, final boolean shouldCreateIndices, final boolean isReadOnly, final boolean isParent, final String user, final String password, final String instanceName, final String tablePrefix, final String auth, final String zooKeepers) {
         this.driverName = Preconditions.checkNotNull(driverName);
         this.instanceType = instanceType;
-        this.isMock = instanceType.isMock();
+        isMock = instanceType == InstanceType.MOCK;
         this.shouldCreateIndices = shouldCreateIndices;
         this.isReadOnly = isReadOnly;
         this.user = user;
@@ -156,7 +156,9 @@ public class AccumuloInstanceDriver {
      */
     public void setUp() throws Exception {
         setUpInstance();
-        setUpTables();
+        if((isMock || instanceType == InstanceType.MINI) && isParent) {
+            setUpTables();
+        }
         setUpDao();
         setUpConfig();
     }
@@ -282,10 +284,12 @@ public class AccumuloInstanceDriver {
         addAuths(auth);
         final TablePermission tablePermission = isReadOnly ? TablePermission.READ : TablePermission.WRITE;
         for (final String tableSuffix : TABLE_NAME_SUFFIXES) {
+            log.info("Giving user: " + user + " " + tablePermission.toString() + " permissions on table " + tablePrefix + tableSuffix);
             secOps.grantTablePermission(user, tablePrefix + tableSuffix, tablePermission);
         }
         if (shouldCreateIndices) {
             for (final String index : indices) {
+                log.info("Giving user: " + user + " " + tablePermission.toString() + " permissions on table " + index);
                 secOps.grantTablePermission(user, index, tablePermission);
             }
         }
@@ -394,7 +398,7 @@ public class AccumuloInstanceDriver {
      */
     public void tearDown() throws Exception {
         try {
-            //tearDownTables();
+            tearDownTables();
             tearDownDao();
             tearDownInstance();
         } finally {

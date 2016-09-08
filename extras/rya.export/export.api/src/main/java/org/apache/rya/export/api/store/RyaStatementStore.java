@@ -19,6 +19,10 @@
 package org.apache.rya.export.api.store;
 
 import java.util.Iterator;
+import java.util.Optional;
+
+import org.apache.rya.export.api.metadata.MergeParentMetadata;
+import org.apache.rya.export.api.metadata.ParentMetadataExistsException;
 
 import mvm.rya.api.domain.RyaStatement;
 
@@ -35,6 +39,7 @@ import mvm.rya.api.domain.RyaStatement;
  * some storage system that is used when merging in data or exporting data.
  */
 public interface RyaStatementStore {
+
     /**
      * @return an {@link Iterator} containing all {@link RyaStatement}s found
      * in this {@link RyaStatementStore}.  The statements will be sorted by
@@ -71,4 +76,16 @@ public interface RyaStatementStore {
      * @throws ContainsStatementException - Thrown when an exception occurs trying to check for the statement.
      */
     public boolean containsStatement(final RyaStatement ryaStatement) throws ContainsStatementException;
+
+    /**
+     * @return - The {@link MergeParentMetadata}, if it exists, of this Statement Store.
+     */
+    public Optional<MergeParentMetadata> getParentMetadata();
+
+    /**
+     * Sets the {@link MergeParentMetadata} for this rya statement store.
+     * The metadata points to the parent rya store
+     * @throws ParentMetadataExistsException
+     */
+    public void setParentMetadata(MergeParentMetadata metadata) throws ParentMetadataExistsException;
 }
