@@ -63,6 +63,7 @@ public class AccumuloRyaStatementStoreTest {
     private static final String INSTANCE_NAME = "test_instance";
     private static final String AUTHS = "test_auth";
     private static final String RYA_TABLE_PREFIX = "test_";
+    private static final String ZOOKEEPERS = "localhost";
 
     // Rya data store and connections.
     private static AccumuloInstanceDriver accumuloInstanceDriver = null;
@@ -341,7 +342,7 @@ public class AccumuloRyaStatementStoreTest {
      * @throws Exception
      */
     private static AccumuloInstanceDriver startAccumuloInstanceDriver() throws Exception {
-        final AccumuloInstanceDriver accumuloInstanceDriver = new AccumuloInstanceDriver("Test Driver", INSTANCE_TYPE, true, false, true, USER_NAME, PASSWORD, INSTANCE_NAME, RYA_TABLE_PREFIX, AUTHS);
+        final AccumuloInstanceDriver accumuloInstanceDriver = new AccumuloInstanceDriver("Test Driver", INSTANCE_TYPE, true, false, true, USER_NAME, PASSWORD, INSTANCE_NAME, RYA_TABLE_PREFIX, AUTHS, ZOOKEEPERS);
         accumuloInstanceDriver.setUp();
 
         return accumuloInstanceDriver;
@@ -376,7 +377,8 @@ public class AccumuloRyaStatementStoreTest {
         final InstanceType instanceType = accumuloMergeConfiguration.getParentInstanceType();
         final String tablePrefix = accumuloMergeConfiguration.getParentTablePrefix();
         final String auths = accumuloMergeConfiguration.getParentAuths();
+        final String zooKeepers = accumuloMergeConfiguration.getParentZookeepers();
 
-        return new AccumuloRyaStatementStore(instance, username, password, instanceType, tablePrefix, auths);
+        return new AccumuloRyaStatementStore(instance, username, password, instanceType, tablePrefix, auths, zooKeepers);
     }
 }

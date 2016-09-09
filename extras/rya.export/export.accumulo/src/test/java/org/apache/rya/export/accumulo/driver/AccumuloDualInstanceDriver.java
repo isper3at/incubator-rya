@@ -61,6 +61,7 @@ public class AccumuloDualInstanceDriver {
     public static final String PARENT_INSTANCE = "parent_instance";
     public static final String PARENT_TABLE_PREFIX = "pt_";
     public static final String PARENT_AUTH = "parent_auth";
+    public static final String PARENT_ZOOKEEPERS = "localhost:1111";
     public static final ColumnVisibility PARENT_COLUMN_VISIBILITY = new ColumnVisibility(PARENT_AUTH);
 
     public static final String CHILD_USER_NAME = "child_user";
@@ -68,6 +69,7 @@ public class AccumuloDualInstanceDriver {
     public static final String CHILD_INSTANCE = "child_instance";
     public static final String CHILD_TABLE_PREFIX = "ct_";
     public static final String CHILD_AUTH = "child_auth";
+    public static final String CHILD_ZOOKEEPERS = "localhost:2222";
     public static final ColumnVisibility CHILD_COLUMN_VISIBILITY = new ColumnVisibility(CHILD_AUTH);
 
     private final AccumuloInstanceDriver parentAccumuloInstanceDriver;
@@ -94,8 +96,8 @@ public class AccumuloDualInstanceDriver {
         this.doesChildInitiallyExist = doesChildInitiallyExist;
         final String parentUser =  isMock ? PARENT_USER_NAME : AccumuloInstanceDriver.ROOT_USER_NAME;
         final String childUser = isMock ? CHILD_USER_NAME : AccumuloInstanceDriver.ROOT_USER_NAME;
-        parentAccumuloInstanceDriver = new AccumuloInstanceDriver("Parent", instanceType, shouldCreateIndices, isParentReadOnly, true, parentUser, PARENT_PASSWORD, PARENT_INSTANCE, PARENT_TABLE_PREFIX, PARENT_AUTH);
-        childAccumuloInstanceDriver = new AccumuloInstanceDriver("Child", instanceType, shouldCreateIndices, isChildReadOnly, false, childUser, CHILD_PASSWORD, CHILD_INSTANCE, CHILD_TABLE_PREFIX, CHILD_AUTH);
+        parentAccumuloInstanceDriver = new AccumuloInstanceDriver("Parent", instanceType, shouldCreateIndices, isParentReadOnly, true, parentUser, PARENT_PASSWORD, PARENT_INSTANCE, PARENT_TABLE_PREFIX, PARENT_AUTH, PARENT_ZOOKEEPERS);
+        childAccumuloInstanceDriver = new AccumuloInstanceDriver("Child", instanceType, shouldCreateIndices, isChildReadOnly, false, childUser, CHILD_PASSWORD, CHILD_INSTANCE, CHILD_TABLE_PREFIX, CHILD_AUTH, CHILD_ZOOKEEPERS);
     }
 
     /**

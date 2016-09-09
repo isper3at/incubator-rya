@@ -131,8 +131,9 @@ public class AccumuloInstanceDriver {
      * @param instanceName the name of the instance.
      * @param tablePrefix the table prefix.
      * @param auth the comma-separated authorization list.
+     * @param zooKeepers the comma-separated list of zoo keeper host names.
      */
-    public AccumuloInstanceDriver(final String driverName, final InstanceType instanceType, final boolean shouldCreateIndices, final boolean isReadOnly, final boolean isParent, final String user, final String password, final String instanceName, final String tablePrefix, final String auth) {
+    public AccumuloInstanceDriver(final String driverName, final InstanceType instanceType, final boolean shouldCreateIndices, final boolean isReadOnly, final boolean isParent, final String user, final String password, final String instanceName, final String tablePrefix, final String auth, final String zooKeepers) {
         this.driverName = Preconditions.checkNotNull(driverName);
         this.instanceType = instanceType;
         this.isMock = instanceType.isMock();
@@ -143,6 +144,7 @@ public class AccumuloInstanceDriver {
         this.instanceName = instanceName;
         this.tablePrefix = tablePrefix;
         this.auth = auth;
+        this.zooKeepers = zooKeepers;
         this.isParent = isParent;
 
         config.setTablePrefix(tablePrefix);
@@ -167,14 +169,14 @@ public class AccumuloInstanceDriver {
     public void setUpInstance() throws Exception {
         switch (instanceType) {
             case DISTRIBUTION:
-                log.info("Setting up " + driverName + " mock instance...");
+                log.info("Setting up " + driverName + " distribution instance...");
                 if (instanceName == null) {
                     throw new IllegalArgumentException("Must specify instance name for distributed mode");
                 } else if (zooKeepers == null) {
                     throw new IllegalArgumentException("Must specify ZooKeeper hosts for distributed mode");
                 }
                 instance = new ZooKeeperInstance(instanceName, zooKeepers);
-                connector = instance.getConnector(user,  new PasswordToken(password));
+                connector = instance.getConnector(user, new PasswordToken(password));
                 log.info("Created connector to " + driverName + " distribution instance");
                 break;
             case MINI:
@@ -203,7 +205,7 @@ public class AccumuloInstanceDriver {
                 log.info("Created connector to " + driverName + " mock instance");
                 break;
             default:
-                    throw new AccumuloException("Unexpected instance type: " + instanceType);
+                throw new AccumuloException("Unexpected instance type: " + instanceType);
         }
         zooKeepers = instance.getZooKeepers();
     }
