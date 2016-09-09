@@ -31,13 +31,14 @@ public class AccumuloParentMetadataRepositoryAdapterTest {
     private static final String INSTANCE_NAME = "test_instance";
     private static final String AUTHS = "test_auth";
     private static final String RYA_TABLE_PREFIX = "test_";
+    private static final String ZOOKEEPERS = "localhost";
 
     private static AccumuloInstanceDriver accumuloInstanceDriver;
     private static AccumuloParentMetadataRepository accumuloParentMetadataRepository;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        accumuloInstanceDriver = new AccumuloInstanceDriver("Test Repository", INSTANCE_TYPE, false, false, true, USER_NAME, PASSWORD, INSTANCE_NAME, RYA_TABLE_PREFIX, AUTHS);
+        accumuloInstanceDriver = new AccumuloInstanceDriver("Test Repository", INSTANCE_TYPE, false, false, true, USER_NAME, PASSWORD, INSTANCE_NAME, RYA_TABLE_PREFIX, AUTHS, ZOOKEEPERS);
         accumuloInstanceDriver.setUp();
 
         accumuloParentMetadataRepository = new AccumuloParentMetadataRepository(accumuloInstanceDriver.getDao());

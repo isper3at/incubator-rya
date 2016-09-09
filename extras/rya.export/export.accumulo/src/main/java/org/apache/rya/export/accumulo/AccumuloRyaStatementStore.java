@@ -83,16 +83,17 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
      * @param tablePrefix the Rya instance's table prefix.
      * @param auths the comma-separated list of Accumulo authorizations for the
      * user.
+     * @param zooKeepers the comma-separated list of zoo keeper host names.
      * @throws MergerException
      */
-    public AccumuloRyaStatementStore(final String instanceName, final String username, final String password, final InstanceType instanceType, final String tablePrefix, final String auths) throws MergerException {
+    public AccumuloRyaStatementStore(final String instanceName, final String username, final String password, final InstanceType instanceType, final String tablePrefix, final String auths, final String zooKeepers) throws MergerException {
         this.tablePrefix = tablePrefix;
         if (tablePrefix != null) {
             RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
         }
 
         final String driverName = instanceName + AccumuloRyaStatementStore.class.getSimpleName();
-        accumuloInstanceDriver = new AccumuloInstanceDriver(driverName, instanceType, true, false, true, username, password, instanceName, tablePrefix, auths);
+        accumuloInstanceDriver = new AccumuloInstanceDriver(driverName, instanceType, true, false, true, username, password, instanceName, tablePrefix, auths, zooKeepers);
         try {
             accumuloInstanceDriver.setUp();
         } catch (final Exception e) {
