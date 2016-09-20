@@ -17,32 +17,27 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License. -->
 
-<mc:configuration xmlns:mc="http://rya.apache.org/export/api/mergeconfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://rya.apache.org/export/api/mergeconfig MergeConfiguration.xsd ">
-    <mc:parentHostname>parent_hostname</mc:parentHostname>
-    <mc:parentUsername>parent_username</mc:parentUsername>
-    <mc:parentPassword>parent_password</mc:parentPassword>
-    <mc:parentRyaInstanceName>parent_instance</mc:parentRyaInstanceName>
+<mc:JAXBMergeConfiguration xmlns:mc="http://rya.apache.org/export/api/mergeconfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://rya.apache.org/export/api/mergeconfig MergeConfiguration.xsd ">
+    <mc:parentHostname>10.10.10.6</mc:parentHostname>
+    <mc:parentUsername>user</mc:parentUsername>
+    <mc:parentPassword>password</mc:parentPassword>
+    <mc:parentRyaInstanceName>rya_demo</mc:parentRyaInstanceName>
     <mc:parentTablePrefix>parent_</mc:parentTablePrefix>
-    <mc:parentTomcalUrl>http://localhost:8080</mc:parentTomcalUrl>
+    <mc:parentTomcalUrl>http://10.10.10.6:8080</mc:parentTomcalUrl>
     <mc:parentDBType>accumulo</mc:parentDBType>
     <mc:parentPort>1111</mc:parentPort>
-    <mc:childHostname>child_hostname</mc:childHostname>
-    <mc:childUsername>child_username</mc:childUsername>
-    <mc:childPassword>child_password</mc:childPassword>
-    <mc:childRyaInstanceName>child_instance</mc:childRyaInstanceName>
+    <mc:childHostname>localhost</mc:childHostname>
+    <mc:childRyaInstanceName>rya_demo_child</mc:childRyaInstanceName>
     <mc:childTablePrefix>child_</mc:childTablePrefix>
     <mc:childTomcalUrl>http://localhost:8888</mc:childTomcalUrl>
-    <mc:childDBType>accumulo</mc:childDBType>
-    <mc:childPort>2222</mc:childPort>
+    <mc:childDBType>mongo</mc:childDBType>
+    <mc:childPort>27017</mc:childPort>
     <mc:mergePolicy>timestamp</mc:mergePolicy>
-    <mc:useNtpServer>true</mc:useNtpServer>
-    <mc:ntpServerHost>time.nist.gov</mc:ntpServerHost>
+    <mc:useNtpServer>false</mc:useNtpServer>
+    <!-- <mc:ntpServerHost>time.nist.gov</mc:ntpServerHost>  -->
     <mc:toolStartTime>dialog</mc:toolStartTime>
     <!-- Accumulo Properties below -->
-    <mc:parentZookeepers>localhost:1111</mc:parentZookeepers>
-    <mc:parentAuths>parent_auth</mc:parentAuths>
+    <mc:parentZookeepers>10.10.10.6:1111</mc:parentZookeepers>
+    <mc:parentAuths>U</mc:parentAuths>
     <mc:parentInstanceType>MOCK</mc:parentInstanceType>
-    <mc:childZookeepers>localhost:2222</mc:childZookeepers>
-    <mc:childAuths>child_auth</mc:childAuths>
-    <mc:childInstanceType>MOCK</mc:childInstanceType>
 </mc:configuration>

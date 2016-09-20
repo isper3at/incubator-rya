@@ -32,7 +32,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.Logger;
 import org.apache.rya.export.accumulo.common.InstanceType;
-import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 import org.apache.rya.export.accumulo.util.AccumuloRyaUtils;
 import org.apache.rya.export.api.MergerException;
 import org.apache.rya.export.api.store.AddStatementException;
@@ -72,7 +71,6 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
     private final AccumuloRyaDAO accumuloRyaDao;
     private final String tablePrefix;
     private final Set<IteratorSetting> iteratorSettings = new HashSet<>();
-    private final AccumuloInstanceDriver accumuloInstanceDriver;
 
     /**
      * Creates a new instance of {@link AccumuloRyaStatementStore}.
@@ -86,20 +84,12 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
      * @param zooKeepers the comma-separated list of zoo keeper host names.
      * @throws MergerException
      */
-    public AccumuloRyaStatementStore(final String instanceName, final String username, final String password, final InstanceType instanceType, final String tablePrefix, final String auths, final String zooKeepers) throws MergerException {
+    public AccumuloRyaStatementStore(final AccumuloRyaDAO dao, final String tablePrefix, final String ryaInstance) throws MergerException {
         this.tablePrefix = tablePrefix;
         if (tablePrefix != null) {
             RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
         }
-
-        final String driverName = instanceName + AccumuloRyaStatementStore.class.getSimpleName();
-        accumuloInstanceDriver = new AccumuloInstanceDriver(driverName, instanceType, true, false, true, username, password, instanceName, tablePrefix, auths, zooKeepers);
-        try {
-            accumuloInstanceDriver.setUp();
-        } catch (final Exception e) {
-            throw new MergerException(e);
-        }
-        accumuloRyaDao = accumuloInstanceDriver.getDao();
+        accumuloRyaDao = dao;
     }
 
     @Override
@@ -191,20 +181,6 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
         }
 
         return resultRyaStatement;
-    }
-
-    /**
-     * @return the {@link AccumuloRyaDAO}.
-     */
-    public AccumuloRyaDAO getRyaDAO() {
-        return accumuloRyaDao;
-    }
-
-    /**
-     * @return the {@link AccumuloInstanceDriver}.
-     */
-    public AccumuloInstanceDriver getAccumuloInstanceDriver() {
-        return accumuloInstanceDriver;
     }
 
     /**

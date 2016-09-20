@@ -30,7 +30,7 @@ public class ConfigurationAdapter {
      * @return The {@link MergeConfiguration} used in the application
      * @throws MergeConfigurationException
      */
-    public static MergeConfiguration createConfig(final JAXBMergeConfiguration jConfig) throws MergeConfigurationException {
+    public MergeConfiguration createConfig(final JAXBMergeConfiguration jConfig) throws MergeConfigurationException {
         final Builder configBuilder = new Builder()
         .setParentHostname(jConfig.getParentHostname())
         .setParentRyaInstanceName(jConfig.getParentRyaInstanceName())
@@ -40,7 +40,10 @@ public class ConfigurationAdapter {
         .setChildRyaInstanceName(jConfig.getChildRyaInstanceName())
         .setChildDBType(jConfig.getChildDBType())
         .setChildPort(jConfig.getChildPort())
-        .setMergePolicy(jConfig.getMergePolicy());
+        .setMergePolicy(jConfig.getMergePolicy())
+        .setUseNtpServer(jConfig.isUseNtpServer())
+        .setNtpServerHost(jConfig.getNtpServerHost())
+        .setToolStartTime(jConfig.getToolStartTime());
         return configBuilder.build();
     }
 }

@@ -18,8 +18,6 @@
  */
 package org.apache.rya.export.api.conf;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import org.apache.http.annotation.Immutable;
 import org.apache.rya.export.accumulo.common.InstanceType;
 
@@ -46,15 +44,15 @@ public class AccumuloMergeConfiguration extends MergeConfiguration {
     /**
      * Constructs a {@link AccumuloMergeConfiguration}.  All fields are required.
      */
-    private AccumuloMergeConfiguration(final AccumuloBuilder builder) throws MergeConfigurationException {
-        super(checkNotNull(builder));
+    private AccumuloMergeConfiguration(final AccumuloMergeConfiguration.AccumuloBuilder builder) throws MergeConfigurationException {
+        super(builder);
         try {
-            this.parentZookeepers = checkNotNull(builder.parentZookeepers);
-            this.parentAuths = checkNotNull(builder.parentAuths);
-            this.parentInstanceType = checkNotNull(builder.parentInstanceType);
-            this.childZookeepers = checkNotNull(builder.childZookeepers);
-            this.childAuths = checkNotNull(builder.childAuths);
-            this.childInstanceType = checkNotNull(builder.childInstanceType);
+            parentZookeepers = builder.parentZookeepers;
+            parentAuths = builder.parentAuths;
+            parentInstanceType = builder.parentInstanceType;
+            childZookeepers = builder.childZookeepers;
+            childAuths = builder.childAuths;
+            childInstanceType = builder.childInstanceType;
         } catch(final NullPointerException npe) {
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
         }
@@ -114,8 +112,8 @@ public class AccumuloMergeConfiguration extends MergeConfiguration {
         private String childAuths;
         private InstanceType childInstanceType;
 
-        public AccumuloBuilder() {
-            super();
+        public AccumuloBuilder(final MergeConfiguration.Builder builder) {
+            super(builder);
         }
 
         /**

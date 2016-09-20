@@ -35,8 +35,6 @@ import org.apache.rya.export.api.store.ContainsStatementException;
 import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RemoveStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
-import org.apache.rya.export.mongo.MongoRyaStatementStore;
-import org.apache.rya.export.mongo.time.TimeMongoRyaStatementStore;
 
 import mvm.rya.api.domain.RyaStatement;
 
@@ -57,6 +55,7 @@ public class MemoryTimeMerger implements Merger {
     private final StatementMerger statementMerger;
     private final Date timestamp;
     private final String ryaInstanceName;
+    private final Long timeOffset;
 
     /**
      * Creates a new {@link MemoryTimeMerger} to merge the statements from the parent to a child.
@@ -69,7 +68,8 @@ public class MemoryTimeMerger implements Merger {
      */
     public MemoryTimeMerger(final RyaStatementStore parentStore, final RyaStatementStore childStore,
             final ParentMetadataRepository parentMetadata, final ParentMetadataRepository childMetadata,
-            final StatementMerger statementMerger, final Date timestamp, final String ryaInstanceName) {
+            final StatementMerger statementMerger, final Date timestamp, final String ryaInstanceName,
+            final Long timeOffset) {
         this.parentStore = checkNotNull(parentStore);
         this.parentMetadata = checkNotNull(parentMetadata);
         this.childStore = checkNotNull(childStore);
@@ -77,16 +77,19 @@ public class MemoryTimeMerger implements Merger {
         this.statementMerger = checkNotNull(statementMerger);
         this.timestamp = checkNotNull(timestamp);
         this.ryaInstanceName = checkNotNull(ryaInstanceName);
+        this.timeOffset = checkNotNull(timeOffset);
     }
 
     @Override
     public void runJob() {
+        LOG.info("Merging statements...");
         MergeParentMetadata metadata = null;
         try {
             metadata = parentMetadata.get();
         } catch (final ParentMetadataDoesNotExistException e) {
-            LOG.error("Failed to export statements.", e);
+            LOG.debug("Parent has no metadata on the child.", e);
         }
+
         //check the parent for a parent metadata repo
         if(metadata != null) {
             if(metadata.getRyaInstanceName().equals(ryaInstanceName)) {
@@ -111,19 +114,22 @@ public class MemoryTimeMerger implements Merger {
      * @throws FetchStatementException
      */
     private void export() throws ParentMetadataExistsException, FetchStatementException {
+        LOG.info("Creating parent metadata in the child.");
         //setup parent metadata repo in the child
         final MergeParentMetadata metadata = new MergeParentMetadata.Builder()
             .setRyaInstanceName(ryaInstanceName)
             .setTimestamp(timestamp)
-            .setParentTimeOffset(0L)
+            .setParentTimeOffset(timeOffset)
+            .setFilterTimestmap(timestamp)
             .build();
         childMetadata.set(metadata);
 
         //fetch all statements after timestamp from the parent
         final Iterator<RyaStatement> statements = parentStore.fetchStatements();
-        //add all the statements to the child
+        LOG.info("Exporting statements.");
         while(statements.hasNext()) {
             final RyaStatement statement = statements.next();
+            System.out.println(statement.toString());
             try {
                 childStore.addStatement(statement);
             } catch (final AddStatementException e) {
@@ -133,9 +139,7 @@ public class MemoryTimeMerger implements Merger {
     }
 
     private void importStatements() throws AddStatementException, ContainsStatementException, RemoveStatementException, FetchStatementException {
-        final MongoRyaStatementStore childMongoStore = (MongoRyaStatementStore) childStore;
-        //in this case, the parent is where you are importing from.
-        final TimeMongoRyaStatementStore childTimeStore = new TimeMongoRyaStatementStore(childMongoStore, timestamp, ryaInstanceName);
+        LOG.info("Importing statements.");
         final Iterator<RyaStatement> parentStatements = parentStore.fetchStatements();
         final Iterator<RyaStatement> childStatements = childStore.fetchStatements();
         //statements are in order by timestamp.
@@ -146,7 +150,7 @@ public class MemoryTimeMerger implements Merger {
         while(childStatements.hasNext() && curTime < timestamp.getTime()) {
             final RyaStatement statement = childStatements.next();
             if(!parentStore.containsStatement(statement)) {
-                parentStore.removeStatement(statement);
+                childStore.removeStatement(statement);
             }
         }
 
@@ -154,7 +158,8 @@ public class MemoryTimeMerger implements Merger {
         while(parentStatements.hasNext()) {
             final RyaStatement statement = parentStatements.next();
             curTime = statement.getTimestamp();
-            if(!childTimeStore.containsStatement(statement)) {
+            if(!childStore.containsStatement(statement)) {
+                statement.setTimestamp(statement.getTimestamp() - timeOffset);
                 childStore.addStatement(statement);
             }
         }

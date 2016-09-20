@@ -35,15 +35,18 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.rya.export.DBType;
+import org.apache.rya.export.JAXBAccumuloMergeConfiguration;
 import org.apache.rya.export.JAXBMergeConfiguration;
 import org.apache.rya.export.MergePolicy;
+import org.apache.rya.export.accumulo.common.InstanceType;
+import org.apache.rya.export.api.conf.AccumuloMergeConfiguration;
 import org.apache.rya.export.api.conf.ConfigurationAdapter;
 import org.apache.rya.export.api.conf.MergeConfiguration;
 import org.apache.rya.export.api.conf.MergeConfigurationException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 
 /**
  * Helper class for processing command line arguments for the Merge Tool.
@@ -55,7 +58,31 @@ public class MergeConfigurationCLI {
 
     private static final Option CONFIG_OPTION = new Option("c", true, "Defines the configuration file for the Merge Tool to use.");
     private static final Option TIME_OPTION = new Option("t", true, "Defines the timestamp from which to filter RyaStatements when merging.");
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("MMM ddd yyy HH:mm:ss");
+    private static final Option PARENT_HOST_OPTION = new Option("a", "pHost", true, "Defines the hostname of the parent db to connect to.");
+    private static final Option PARENT_USER_OPTION = new Option("b", "pUser", true, "Defines the username to connect to the parent DB.");
+    private static final Option PARENT_PSWD_OPTION = new Option("d", "pPswd", true, "Defines the password to connect to the parent DB.");
+    private static final Option PARENT_RYA_OPTION = new Option("e", "pRya", true, "Defines the rya instance name of the parent DB.");
+    private static final Option PARENT_PREFIX_OPTION = new Option("f", "pPrefix", true, "Defines the table prefix of the parent DB.");
+    private static final Option PARENT_TOMCAT_OPTION = new Option("g", "pTomcat", true, "Defines the location of Tomcat for the parent DB.");
+    private static final Option PARENT_DB_OPTION = new Option("h", "pDB", true, "Defines the type of database the parent is.");
+    private static final Option PARENT_PORT_OPTION = new Option("i", "pPort", true, "Defines the port of the parent DB to connect to.");
+    private static final Option PARENT_ACCUMULO_ZOOKEEPERS_OPTION = new Option("j", "paZookeepers", true, "Defines the location of the zookeepers.");
+    private static final Option PARENT_ACCUMULO_AUTHS_OPTION = new Option("k", "paAuths", true, "Defines the authorization level of the user.");
+    private static final Option PARENT_ACCUMULO_TYPE_OPTION = new Option("l", "paType", true, "Defines the type of accumulo to connect to.");
+    private static final Option CHILD_HOST_OPTION = new Option("m", "cHost", true, "Defines the hostname of the child db to connect to.");
+    private static final Option CHILD_USER_OPTION = new Option("n", "cUser", true, "Defines the username to connect to the child DB.");
+    private static final Option CHILD_PSWD_OPTION = new Option("o", "cPswd", true, "Defines the password to connect to the child DB.");
+    private static final Option CHILD_RYA_OPTION = new Option("p", "cRya", true, "Defines the rya instance name of the child DB.");
+    private static final Option CHILD_PREFIX_OPTION = new Option("q", "cPrefix", true, "Defines the table prefix of the child DB.");
+    private static final Option CHILD_TOMCAT_OPTION = new Option("r", "cTomcat", true, "Defines the location of Tomcat for the child DB.");
+    private static final Option CHILD_DB_OPTION = new Option("s", "cDB", true, "Defines the type of database the child is.");
+    private static final Option CHILD_PORT_OPTION = new Option("u", "cPort", true, "Defines the port of the child DB to connect to.");
+    private static final Option CHILD_ACCUMULO_ZOOKEEPERS_OPTION = new Option("v", "caZookeepers", true, "Defines the location of the zookeepers.");
+    private static final Option CHILD_ACCUMULO_AUTHS_OPTION = new Option("w", "caAuths", true, "Defines the authorization level of the user.");
+    private static final Option CHILD_ACCUMULO_TYPE_OPTION = new Option("x", "caType", true, "Defines the type of accumulo to connect to.");
+    private static final Option MERGE_OPTION = new Option("y", "merge", true, "Defines the type of merging that should occur.");
+    private static final Option NTP_OPTION = new Option("z", "useNTP", true, "The hostname of the NTP server, if it is going to be used.");
+    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("MMM ddd yyy HH:mm:ss");
     private final CommandLine cmd;
 
     private MergeConfiguration configuration;
@@ -83,16 +110,49 @@ public class MergeConfigurationCLI {
     public static Options getOptions() {
         final Options cliOptions = new Options()
         .addOption(TIME_OPTION)
-        .addOption(CONFIG_OPTION);
+        .addOption(CONFIG_OPTION)
+        .addOption(PARENT_DB_OPTION)
+        .addOption(PARENT_HOST_OPTION)
+        .addOption(PARENT_PORT_OPTION)
+        .addOption(PARENT_PREFIX_OPTION)
+        .addOption(PARENT_PSWD_OPTION)
+        .addOption(PARENT_RYA_OPTION)
+        .addOption(PARENT_TOMCAT_OPTION)
+        .addOption(PARENT_USER_OPTION)
+        .addOption(PARENT_ACCUMULO_AUTHS_OPTION)
+        .addOption(PARENT_ACCUMULO_TYPE_OPTION)
+        .addOption(PARENT_ACCUMULO_ZOOKEEPERS_OPTION)
+        .addOption(CHILD_DB_OPTION)
+        .addOption(CHILD_HOST_OPTION)
+        .addOption(CHILD_PORT_OPTION)
+        .addOption(CHILD_PREFIX_OPTION)
+        .addOption(CHILD_PSWD_OPTION)
+        .addOption(CHILD_RYA_OPTION)
+        .addOption(CHILD_TOMCAT_OPTION)
+        .addOption(CHILD_USER_OPTION)
+        .addOption(CHILD_ACCUMULO_AUTHS_OPTION)
+        .addOption(CHILD_ACCUMULO_TYPE_OPTION)
+        .addOption(CHILD_ACCUMULO_ZOOKEEPERS_OPTION)
+        .addOption(MERGE_OPTION)
+        .addOption(NTP_OPTION);
         return cliOptions;
     }
 
-    @VisibleForTesting
     public static JAXBMergeConfiguration createConfigurationFromFile(final File configFile) throws MergeConfigurationException {
+        try {
+            final JAXBContext context = JAXBContext.newInstance(DBType.class, JAXBMergeConfiguration.class, JAXBAccumuloMergeConfiguration.class, MergePolicy.class, InstanceType.class, AccumuloMergeConfiguration.class, MergeConfiguration.class);
+            final Unmarshaller unmarshaller = context.createUnmarshaller();
+            return (JAXBMergeConfiguration) unmarshaller.unmarshal(configFile);
+        } catch (final JAXBException | IllegalArgumentException JAXBe) {
+            throw new MergeConfigurationException("Failed to create a config based on the provided configuration.", JAXBe);
+        }
+    }
+
+    private static JAXBAccumuloMergeConfiguration createAccumuloConfigurationFromFile(final File configFile) throws MergeConfigurationException {
         try {
             final JAXBContext context = JAXBContext.newInstance(DBType.class, JAXBMergeConfiguration.class, MergePolicy.class);
             final Unmarshaller unmarshaller = context.createUnmarshaller();
-            return (JAXBMergeConfiguration) unmarshaller.unmarshal(configFile);
+            return (JAXBAccumuloMergeConfiguration) unmarshaller.unmarshal(configFile);
         } catch (final JAXBException | IllegalArgumentException JAXBe) {
             throw new MergeConfigurationException("Failed to create a config based on the provided configuration.", JAXBe);
         }
@@ -127,29 +187,49 @@ public class MergeConfigurationCLI {
             //If the config option is present, ignore all other options.
             if(cmd.hasOption(CONFIG_OPTION.getOpt())) {
                 final File xml = new File(cmd.getOptionValue(CONFIG_OPTION.getOpt()));
-                configuration = ConfigurationAdapter.createConfig(createConfigurationFromFile(xml));
+                final ConfigurationAdapter adapter = new ConfigurationAdapter();
+                configuration = adapter.createConfig(createConfigurationFromFile(xml));
             } else {
-                throw new MergeConfigurationException("No configuration was provided.");
+                final DBType parentType = DBType.fromValue(cmd.getOptionValue(PARENT_DB_OPTION.getLongOpt()));
+                final DBType childType = DBType.fromValue(cmd.getOptionValue(CHILD_DB_OPTION.getLongOpt()));
+                final String ntp = cmd.getOptionValue(NTP_OPTION.getLongOpt());
+                MergeConfiguration.Builder builder = new MergeConfiguration.Builder()
+                    .setParentHostname(cmd.getOptionValue(PARENT_HOST_OPTION.getLongOpt()))
+                    .setParentUsername(cmd.getOptionValue(PARENT_USER_OPTION.getLongOpt()))
+                    .setParentPassword(cmd.getOptionValue(PARENT_PSWD_OPTION.getLongOpt()))
+                    .setParentRyaInstanceName(cmd.getOptionValue(PARENT_RYA_OPTION.getLongOpt()))
+                    .setParentTablePrefix(cmd.getOptionValue(PARENT_PREFIX_OPTION.getLongOpt()))
+                    .setParentTomcatUrl(cmd.getOptionValue(PARENT_TOMCAT_OPTION.getLongOpt()))
+                    .setParentDBType(parentType)
+                    .setParentPort(Integer.parseInt(cmd.getOptionValue(PARENT_PORT_OPTION.getLongOpt())))
+                    .setChildHostname(cmd.getOptionValue(CHILD_HOST_OPTION.getLongOpt()))
+                    .setChildUsername(cmd.getOptionValue(CHILD_USER_OPTION.getLongOpt()))
+                    .setChildPassword(cmd.getOptionValue(CHILD_PSWD_OPTION.getLongOpt()))
+                    .setChildRyaInstanceName(cmd.getOptionValue(CHILD_RYA_OPTION.getLongOpt()))
+                    .setChildTablePrefix(cmd.getOptionValue(CHILD_PREFIX_OPTION.getLongOpt()))
+                    .setChildTomcatUrl(cmd.getOptionValue(CHILD_TOMCAT_OPTION.getLongOpt()))
+                    .setChildDBType(childType)
+                    .setChildPort(Integer.parseInt(cmd.getOptionValue(CHILD_PORT_OPTION.getLongOpt())))
+                    .setToolStartTime(DATE_FORMAT.format(getRyaStatementMergeTime()));
+                if(Strings.isNullOrEmpty(ntp)) {
+                    builder.setUseNtpServer(true)
+                        .setNtpServerHost(ntp);
+                }
+                if (parentType == DBType.ACCUMULO) {
+                    builder = new AccumuloMergeConfiguration.AccumuloBuilder(builder)
+                        .setParentZookeepers(cmd.getOptionValue(PARENT_ACCUMULO_ZOOKEEPERS_OPTION.getLongOpt()))
+                        .setParentAuths(cmd.getOptionValue(PARENT_ACCUMULO_AUTHS_OPTION.getLongOpt()))
+                        .setParentInstanceType(InstanceType.fromName(cmd.getOptionValue(PARENT_ACCUMULO_TYPE_OPTION.getLongOpt())));
+                }
+                if (childType == DBType.ACCUMULO) {
+                    builder = new AccumuloMergeConfiguration.AccumuloBuilder(builder)
+                        .setChildZookeepers(cmd.getOptionValue(CHILD_ACCUMULO_ZOOKEEPERS_OPTION.getLongOpt()))
+                        .setChildAuths(cmd.getOptionValue(CHILD_ACCUMULO_AUTHS_OPTION.getLongOpt()))
+                        .setChildInstanceType(InstanceType.fromName(cmd.getOptionValue(CHILD_ACCUMULO_TYPE_OPTION.getLongOpt())));
+                }
+                configuration = builder.build();
             }
         }
         return configuration;
-    }
-
-    public Configuration getParentHadoopConfig() {
-        final Configuration conf = new Configuration();
-        /*conf.set(ConfigUtils.CLOUDBASE_INSTANCE + AccumuloExportConstants.CHILD_SUFFIX, configuration.getParentRyaInstanceName());
-        conf.set(ConfigUtils.CLOUDBASE_USER + AccumuloExportConstants.CHILD_SUFFIX, configuration.getParentUsername());
-        conf.set(ConfigUtils.CLOUDBASE_PASSWORD + AccumuloExportConstants.CHILD_SUFFIX, configuration.getParentPassword());
-        conf.set(AccumuloExportConstants.PARENT_TOMCAT_URL_PROP + AccumuloExportConstants.CHILD_SUFFIX, configuration.getParentTomcatURL());*/
-        return conf;
-    }
-
-    public Configuration getChildHadoopConfig() {
-        final Configuration conf = new Configuration();
-        /*conf.set(ConfigUtils.CLOUDBASE_INSTANCE + AccumuloExportConstants.CHILD_SUFFIX, configuration.getChildRyaInstanceName());
-        conf.set(ConfigUtils.CLOUDBASE_USER + AccumuloExportConstants.CHILD_SUFFIX, configuration.getChildUsername());
-        conf.set(ConfigUtils.CLOUDBASE_PASSWORD + AccumuloExportConstants.CHILD_SUFFIX, configuration.getChildPassword());
-        conf.set(AccumuloExportConstants.PARENT_TOMCAT_URL_PROP + AccumuloExportConstants.CHILD_SUFFIX, configuration.getChildTomcatURL());*/
-        return conf;
     }
 }

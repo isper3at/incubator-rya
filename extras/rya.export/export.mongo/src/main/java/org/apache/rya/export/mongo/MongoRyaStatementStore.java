@@ -46,8 +46,8 @@ import mvm.rya.mongodb.dao.SimpleMongoDBStorageStrategy;
  * Mongo implementation of {@link RyaStatementStore}.  Allows for exporting and
  * importing rya statements from MongoDB.
  */
-public class MongoRyaStatementStore implements RyaStatementStore{
-    public static final String TRIPLES_COLLECTION = "rya__triples";
+public class MongoRyaStatementStore implements RyaStatementStore {
+    public static final String TRIPLES_COLLECTION = "rya_triples";
     private final SimpleMongoDBStorageStrategy adapter;
     private final DB db;
 

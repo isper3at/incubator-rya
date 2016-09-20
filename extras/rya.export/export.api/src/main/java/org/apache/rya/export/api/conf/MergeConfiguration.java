@@ -66,25 +66,25 @@ public class MergeConfiguration {
     protected MergeConfiguration(final Builder builder) throws MergeConfigurationException {
         try {
             parentHostname = checkNotNull(builder.parentHostname);
-            parentUsername = checkNotNull(builder.parentUsername);
-            parentPassword = checkNotNull(builder.parentPassword);
+            parentUsername = builder.parentUsername;
+            parentPassword = builder.parentPassword;
             parentRyaInstanceName = checkNotNull(builder.parentRyaInstanceName);
             parentTablePrefix = checkNotNull(builder.parentTablePrefix);
             parentTomcatUrl = checkNotNull(builder.parentTomcatUrl);
             parentDBType = checkNotNull(builder.parentDBType);
             parentPort = checkNotNull(builder.parentPort);
             childHostname = checkNotNull(builder.childHostname);
-            childUsername = checkNotNull(builder.childUsername);
-            childPassword = checkNotNull(builder.childPassword);
+            childUsername = builder.childUsername;
+            childPassword = builder.childPassword;
             childRyaInstanceName = checkNotNull(builder.childRyaInstanceName);
             childTablePrefix = checkNotNull(builder.childTablePrefix);
             childTomcatUrl = checkNotNull(builder.childTomcatUrl);
             childDBType = checkNotNull(builder.childDBType);
             childPort = checkNotNull(builder.childPort);
-            mergePolicy = checkNotNull(builder.mergePolicy);
-            useNtpServer = checkNotNull(builder.useNtpServer);
-            ntpServerHost = checkNotNull(builder.ntpServerHost);
-            toolStartTime = checkNotNull(builder.toolStartTime);
+            mergePolicy = builder.mergePolicy;
+            useNtpServer = builder.useNtpServer;
+            ntpServerHost = builder.ntpServerHost;
+            toolStartTime = builder.toolStartTime;
         } catch(final NullPointerException npe) {
             //fix this.
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
@@ -185,7 +185,7 @@ public class MergeConfiguration {
     /**
      * @return The URL of the Apache Tomcat server web page running on the child machine.
      */
-    public String getChildTomcatUrl() {
+    public String getChildTomcatUrl() {;//
         return childTomcatUrl;
     }
 
@@ -233,21 +233,9 @@ public class MergeConfiguration {
     }
 
     /**
-     * Abstract builder to help create {@link MergeConfiguration}s.
-     */
-    public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
-        /**
-         * @return The {@link MergeConfiguration} based on this builder.
-         * @throws MergeConfigurationException
-         * @throws NullPointerException if any field as not been provided
-         */
-        public abstract MergeConfiguration build() throws MergeConfigurationException;
-    }
-
-    /**
      * Builder to help create {@link MergeConfiguration}s.
      */
-    public static class Builder extends AbstractBuilder<Builder> {
+    public static class Builder {
         private String parentHostname;
         private String parentUsername;
         private String parentPassword;
@@ -271,6 +259,42 @@ public class MergeConfiguration {
         private Boolean useNtpServer;
         private String ntpServerHost;
         private String toolStartTime;
+
+        /**
+         * Creates a new Builder to create a {@link MergeConfiguration}.
+         */
+        public Builder() {
+        }
+
+        /**
+         * Creates a Builder based on an existing one.
+         * @param builder - The {@link Builder}
+         */
+        public Builder(final Builder builder) {
+            parentDBType = builder.parentDBType;
+            parentHostname = builder.parentHostname;
+            parentPassword = builder.parentPassword;
+            parentPort = builder.parentPort;
+            parentRyaInstanceName = builder.parentRyaInstanceName;
+            parentTablePrefix = builder.parentTablePrefix;
+            parentTomcatUrl = builder.parentTomcatUrl;
+            parentUsername = builder.parentUsername;
+
+            childDBType = builder.childDBType;
+            childHostname = builder.childHostname;
+            childPassword = builder.childPassword;
+            childPort = builder.childPort;
+            childRyaInstanceName = builder.childRyaInstanceName;
+            childTablePrefix = builder.childTablePrefix;
+            childTomcatUrl = builder.childTomcatUrl;
+            childUsername = builder.childUsername;
+
+            mergePolicy = builder.mergePolicy;
+
+            useNtpServer = builder.useNtpServer;
+            ntpServerHost = builder.ntpServerHost;
+            toolStartTime = builder.toolStartTime;
+        }
 
         /**
          * @param hostname - the hostname of the parent.
@@ -456,7 +480,6 @@ public class MergeConfiguration {
             return this;
         }
 
-        @Override
         public MergeConfiguration build() throws MergeConfigurationException {
             return new MergeConfiguration(this);
         }

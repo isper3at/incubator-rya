@@ -98,7 +98,7 @@ public abstract class ITBase {
      * @throws IOException
      * @throws SailException
      */
-    public MongoClient getnewMongoResources(final String ryaInstanceName) throws MongoException, NumberFormatException, RepositoryException, AccumuloException, AccumuloSecurityException, RyaDAOException, InferenceEngineException, IOException, SailException {
+    public static MongoClient getNewMongoResources(final String ryaInstanceName) throws MongoException, NumberFormatException, RepositoryException, AccumuloException, AccumuloSecurityException, RyaDAOException, InferenceEngineException, IOException, SailException {
         // Initialize the test mongo that will be used to host rya.
         final MongodForTestsFactory mongodTestFactory = new MongodForTestsFactory();
         final MongoClient newClient = mongodTestFactory.newMongo();
@@ -243,8 +243,6 @@ public abstract class ITBase {
 
         final Sail sail = RyaSailFactory.getInstance(conf);
         final RyaSailRepository ryaRepo = new RyaSailRepository(sail);
-        ryaRepo.initialize();
-
         return ryaRepo;
     }
 
@@ -273,7 +271,7 @@ public abstract class ITBase {
         return conf;
     }
 
-    protected MongoDBRdfConfiguration getConf(final MongoClient client) {
+    protected static MongoDBRdfConfiguration getConf(final MongoClient client) {
         return configs.get(client);
     }
 

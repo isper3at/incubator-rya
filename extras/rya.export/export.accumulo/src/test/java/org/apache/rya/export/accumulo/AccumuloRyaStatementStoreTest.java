@@ -123,7 +123,7 @@ public class AccumuloRyaStatementStoreTest {
             accumuloRyaStatementStore.addStatement(ryaStatement);
         }
 
-        final Configuration config = accumuloRyaStatementStore.getRyaDAO().getConf();
+        final Configuration config = accumuloInstanceDriver.getDao().getConf();
 
         config.set(ConfigUtils.CLOUDBASE_INSTANCE, "wrong instance");
 
@@ -372,13 +372,8 @@ public class AccumuloRyaStatementStoreTest {
 
     private static AccumuloRyaStatementStore createAccumuloRyaStatementStore(final AccumuloMergeConfiguration accumuloMergeConfiguration) throws MergerException {
         final String instance = accumuloMergeConfiguration.getParentRyaInstanceName();
-        final String username = accumuloMergeConfiguration.getParentUsername();
-        final String password = accumuloMergeConfiguration.getParentPassword();
-        final InstanceType instanceType = accumuloMergeConfiguration.getParentInstanceType();
         final String tablePrefix = accumuloMergeConfiguration.getParentTablePrefix();
-        final String auths = accumuloMergeConfiguration.getParentAuths();
-        final String zooKeepers = accumuloMergeConfiguration.getParentZookeepers();
 
-        return new AccumuloRyaStatementStore(instance, username, password, instanceType, tablePrefix, auths, zooKeepers);
+        return new AccumuloRyaStatementStore(accumuloInstanceDriver.getDao(), tablePrefix, instance);
     }
 }
