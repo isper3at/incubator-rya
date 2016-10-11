@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -31,9 +32,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.Logger;
-import org.apache.rya.export.accumulo.common.InstanceType;
+import org.apache.rya.export.InstanceType;
+import org.apache.rya.export.accumulo.parent.AccumuloParentMetadataRepository;
 import org.apache.rya.export.accumulo.util.AccumuloRyaUtils;
 import org.apache.rya.export.api.MergerException;
+import org.apache.rya.export.api.metadata.MergeParentMetadata;
+import org.apache.rya.export.api.metadata.ParentMetadataExistsException;
 import org.apache.rya.export.api.store.AddStatementException;
 import org.apache.rya.export.api.store.ContainsStatementException;
 import org.apache.rya.export.api.store.FetchStatementException;
@@ -71,6 +75,7 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
     private final AccumuloRyaDAO accumuloRyaDao;
     private final String tablePrefix;
     private final Set<IteratorSetting> iteratorSettings = new HashSet<>();
+    private final AccumuloParentMetadataRepository metadataRepo;
 
     /**
      * Creates a new instance of {@link AccumuloRyaStatementStore}.
@@ -84,12 +89,13 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
      * @param zooKeepers the comma-separated list of zoo keeper host names.
      * @throws MergerException
      */
-    public AccumuloRyaStatementStore(final AccumuloRyaDAO dao, final String tablePrefix, final String ryaInstance) throws MergerException {
+    public AccumuloRyaStatementStore(final AccumuloRyaDAO dao, final String tablePrefix, final String ryaInstance) {
         this.tablePrefix = tablePrefix;
         if (tablePrefix != null) {
             RdfCloudTripleStoreConstants.prefixTables(tablePrefix);
         }
         accumuloRyaDao = dao;
+        metadataRepo = new AccumuloParentMetadataRepository(dao);
     }
 
     @Override
@@ -132,7 +138,14 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
     public void addStatement(final RyaStatement statement) throws AddStatementException {
         try {
             accumuloRyaDao.add(statement);
-        } catch (final RyaDAOException e) {
+            accumuloRyaDao.flush();
+            //This is a hack since a statement re-added with the same timestamp won't reappear since its been marked for deletion.
+            //RYA-197 is the ticket for fixing this hack.
+            if(!containsStatement(statement)) {
+                statement.setTimestamp(statement.getTimestamp() + 1L);
+                accumuloRyaDao.add(statement);
+            }
+        } catch (final RyaDAOException | ContainsStatementException e) {
             throw new AddStatementException("Unable to add the Rya Statement", e);
         }
     }
@@ -165,6 +178,22 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
             throw new ContainsStatementException("Encountered an error while querying for statement.", e);
         }
     }
+
+    @Override
+    public Optional<MergeParentMetadata> getParentMetadata() {
+        MergeParentMetadata metadata = null;
+        try {
+            metadata = metadataRepo.get();
+        } finally {
+            return Optional.ofNullable(metadata);
+        }
+    }
+
+    @Override
+    public void setParentMetadata(final MergeParentMetadata metadata) throws ParentMetadataExistsException {
+        metadataRepo.set(metadata);
+    }
+
 
     public RyaStatement findStatement(final RyaStatement ryaStatement) throws RyaDAOException {
         RyaStatement resultRyaStatement = null;

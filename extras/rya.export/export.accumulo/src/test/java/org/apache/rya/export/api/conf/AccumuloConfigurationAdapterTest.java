@@ -21,15 +21,16 @@ package org.apache.rya.export.api.conf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
+import org.apache.rya.export.AccumuloMergeToolConfiguration;
 import org.apache.rya.export.DBType;
-import org.apache.rya.export.JAXBAccumuloMergeConfiguration;
+import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.MergePolicy;
-import org.apache.rya.export.accumulo.common.InstanceType;
 import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 import org.apache.rya.export.accumulo.driver.AccumuloDualInstanceDriver;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
@@ -41,8 +42,8 @@ import org.junit.Test;
 public class AccumuloConfigurationAdapterTest {
     private static final InstanceType INSTANCE_TYPE = InstanceType.MOCK;
 
-    private static final boolean IS_MOCK = INSTANCE_TYPE.isMock();
-    private static final boolean USE_TIME_SYNC = false;
+    private static final boolean IS_MOCK = INSTANCE_TYPE == InstanceType.MOCK;
+    private static final boolean USE_TIME_SYNC = true;
 
     private static final String PARENT_HOST_NAME = "localhost:1234";
     private static final int PARENT_PORT = 1111;
@@ -70,7 +71,7 @@ public class AccumuloConfigurationAdapterTest {
 
     @Test
     public void testCreateConfig() throws MergeConfigurationException {
-        final JAXBAccumuloMergeConfiguration jConfig = mock(JAXBAccumuloMergeConfiguration.class);
+        final AccumuloMergeToolConfiguration jConfig = mock(AccumuloMergeToolConfiguration.class);
         // Parent Properties
         when(jConfig.getParentHostname()).thenReturn(PARENT_HOST_NAME);
         when(jConfig.getParentPort()).thenReturn(PARENT_PORT);
@@ -81,7 +82,7 @@ public class AccumuloConfigurationAdapterTest {
         when(jConfig.getParentDBType()).thenReturn(DBType.ACCUMULO);
         when(jConfig.getParentTomcatUrl()).thenReturn(PARENT_TOMCAT_URL);
         // Parent Accumulo Properties
-        when(jConfig.getParentInstanceType()).thenReturn(INSTANCE_TYPE.toString());
+        when(jConfig.getParentInstanceType()).thenReturn(INSTANCE_TYPE);
         when(jConfig.getParentAuths()).thenReturn(PARENT_AUTH);
         when(jConfig.getParentZookeepers()).thenReturn(PARENT_ZOOKEEPERS);
 
@@ -98,11 +99,10 @@ public class AccumuloConfigurationAdapterTest {
         when(jConfig.getMergePolicy()).thenReturn(MergePolicy.TIMESTAMP);
         when(jConfig.getNtpServerHost()).thenReturn(TIME_SERVER);
         when(jConfig.isUseNtpServer()).thenReturn(USE_TIME_SYNC);
-        when(jConfig.getToolStartTime()).thenReturn(TOOL_START_TIME);
 
 
         final AccumuloConfigurationAdapter adapter = new AccumuloConfigurationAdapter();
-        final AccumuloMergeConfiguration accumuloMergeConfiguration = adapter.createConfig(jConfig);
+        final AccumuloMergeConfiguration accumuloMergeConfiguration = (AccumuloMergeConfiguration) adapter.createConfig(jConfig);
 
         assertNotNull(accumuloMergeConfiguration);
         assertEquals(AccumuloMergeConfiguration.class, accumuloMergeConfiguration.getClass());
@@ -137,8 +137,7 @@ public class AccumuloConfigurationAdapterTest {
 
         // Other Properties
         assertEquals(MergePolicy.TIMESTAMP, accumuloMergeConfiguration.getMergePolicy());
-        assertEquals(Boolean.FALSE, accumuloMergeConfiguration.getUseNtpServer());
-        assertNull(accumuloMergeConfiguration.getNtpServerHost());
-        assertEquals(TOOL_START_TIME, accumuloMergeConfiguration.getToolStartTime());
+        assertTrue(accumuloMergeConfiguration.getUseNtpServer());
+        assertEquals(TIME_SERVER, accumuloMergeConfiguration.getNtpServerHost());
     }
 }

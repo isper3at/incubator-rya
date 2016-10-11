@@ -19,26 +19,30 @@
 package org.apache.rya.indexing.export;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
+import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.accumulo.AccumuloRyaStatementStore;
-import org.apache.rya.export.accumulo.common.InstanceType;
-import org.apache.rya.export.accumulo.parent.AccumuloParentMetadataRepository;
+import org.apache.rya.export.accumulo.policy.TimestampPolicyAccumuloRyaStatementStore;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
-import org.apache.rya.export.api.parent.ParentMetadataDoesNotExistException;
-import org.apache.rya.export.api.parent.ParentMetadataRepository;
+import org.apache.rya.export.api.metadata.ParentMetadataDoesNotExistException;
 import org.apache.rya.export.api.store.AddStatementException;
 import org.apache.rya.export.api.store.FetchStatementException;
-import org.apache.rya.export.api.store.RemoveStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
 import org.apache.rya.export.client.merge.MemoryTimeMerger;
 import org.apache.rya.export.client.merge.VisibilityStatementMerger;
 import org.apache.rya.export.mongo.MongoRyaStatementStore;
-import org.apache.rya.export.mongo.parent.MongoParentMetadataRepository;
+import org.apache.rya.export.mongo.policy.TimestampPolicyMongoRyaStatementStore;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -50,89 +54,123 @@ import mvm.rya.mongodb.MongoDBRyaDAO;
 @RunWith(Parameterized.class)
 public class StoreToStoreIT extends ITBase {
     private static final String RYA_INSTANCE = "ryaInstance";
+    private static final InstanceType type = InstanceType.MOCK;
+    private static final String tablePrefix = "accumuloTest";
+    private static final String auths = "U";
+
     private final RyaStatementStore parentStore;
     private final RyaStatementStore childStore;
+    private final static List<MongoClient> clients = new ArrayList<>();
+    private final static List<AccumuloInstanceDriver> drivers = new ArrayList<>();
+    private static Date currentDate;
 
-    private final ParentMetadataRepository parentMetadata;
-    private final ParentMetadataRepository childMetadata;
+    private static TimestampPolicyMongoRyaStatementStore getParentMongo() throws Exception {
+        final MongoClient mongo = getNewMongoResources(RYA_INSTANCE);
+        final MongoDBRyaDAO dao = new MongoDBRyaDAO(ITBase.getConf(mongo), mongo);
+        final MongoRyaStatementStore store = new MongoRyaStatementStore(mongo, RYA_INSTANCE, dao);
+        final TimestampPolicyMongoRyaStatementStore timeStore = new TimestampPolicyMongoRyaStatementStore(store, currentDate, RYA_INSTANCE);
+        clients.add(mongo);
+        return timeStore;
+    }
+
+    private static MongoRyaStatementStore getChildMongo() throws Exception {
+        final MongoClient mongo = getNewMongoResources(RYA_INSTANCE);
+        final MongoDBRyaDAO dao = new MongoDBRyaDAO(ITBase.getConf(mongo), mongo);
+        final MongoRyaStatementStore store = new MongoRyaStatementStore(mongo, RYA_INSTANCE, dao);
+        clients.add(mongo);
+        return store;
+    }
+
+    private static TimestampPolicyAccumuloRyaStatementStore getParentAccumulo() throws Exception {
+        final AccumuloInstanceDriver driver = new AccumuloInstanceDriver(RYA_INSTANCE, type, true, false, true, "TEST1", PASSWORD, RYA_INSTANCE, tablePrefix, auths, "");
+        driver.setUp();
+        final AccumuloRyaStatementStore store = new AccumuloRyaStatementStore(driver.getDao(), tablePrefix, RYA_INSTANCE);
+        drivers.add(driver);
+        return new TimestampPolicyAccumuloRyaStatementStore(store, currentDate);
+    }
+
+    private static AccumuloRyaStatementStore getChildAccumulo() throws Exception {
+        final AccumuloInstanceDriver driver = new AccumuloInstanceDriver(RYA_INSTANCE, type, true, false, false, "TEST2", PASSWORD, RYA_INSTANCE+"_child", tablePrefix, auths, "");
+        driver.setUp();
+        drivers.add(driver);
+        return new AccumuloRyaStatementStore(driver.getDao(), tablePrefix, RYA_INSTANCE);
+    }
+
+    @Before
+    public void clearDBS() throws Exception {
+        for(final AccumuloInstanceDriver driver : drivers) {
+            driver.setUpInstance();
+            driver.setUpTables();
+            driver.setUpDao();
+            driver.setUpConfig();
+        }
+    }
+
+    @After
+    public void cleanupTables() throws Exception {
+        for(final AccumuloInstanceDriver driver : drivers) {
+            driver.tearDown();
+        }
+        for(final MongoClient client : clients) {
+            client.dropDatabase(RYA_INSTANCE);
+        }
+    }
+
+    @AfterClass
+    public static void shutdown() throws Exception {
+        for(final AccumuloInstanceDriver driver : drivers) {
+            driver.tearDown();
+        }
+        for(final MongoClient client : clients) {
+            client.close();
+        }
+    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> instancesToTest() throws Exception {
-        final MongoClient mongoClient1 = ITBase.getNewMongoResources(RYA_INSTANCE);
-        final MongoClient mongoClient2 = ITBase.getNewMongoResources(RYA_INSTANCE);
-        final MongoDBRyaDAO mongodao1 = new MongoDBRyaDAO(ITBase.getConf(mongoClient1), mongoClient1);
-        final MongoDBRyaDAO mongodao2 = new MongoDBRyaDAO(ITBase.getConf(mongoClient2), mongoClient2);
-        final MongoRyaStatementStore mongoStore1 = new MongoRyaStatementStore(mongoClient1, RYA_INSTANCE, mongodao1);
-        final MongoRyaStatementStore mongoStore2 = new MongoRyaStatementStore(mongoClient2, RYA_INSTANCE, mongodao2);
-        final MongoParentMetadataRepository mongoMetadata1 = new MongoParentMetadataRepository(mongoClient1, RYA_INSTANCE);
-        final MongoParentMetadataRepository mongoMetadata2 = new MongoParentMetadataRepository(mongoClient2, RYA_INSTANCE);
-
-        final InstanceType type = InstanceType.MOCK;
-        final String tablePrefix = "accumuloTest";
-        final String auths = "U";
-        final AccumuloInstanceDriver aDriver1 = new AccumuloInstanceDriver(RYA_INSTANCE, type, true, false, true, "TEST", PASSWORD, RYA_INSTANCE, tablePrefix, auths, "");
-        aDriver1.setUp();
-        final AccumuloRyaStatementStore accumuloStore1 = new AccumuloRyaStatementStore(aDriver1.getDao(), tablePrefix, RYA_INSTANCE);
-        final AccumuloParentMetadataRepository accumuloMetadata1 = new AccumuloParentMetadataRepository(aDriver1.getDao());
-
-        final AccumuloInstanceDriver aDriver2 = new AccumuloInstanceDriver(RYA_INSTANCE, type, true, false, true, "TEST1", PASSWORD, RYA_INSTANCE, tablePrefix, auths, "");
-        aDriver2.setUp();
-        final AccumuloRyaStatementStore accumuloStore2 = new AccumuloRyaStatementStore(aDriver2.getDao(), tablePrefix, RYA_INSTANCE);
-        final AccumuloParentMetadataRepository accumuloMetadata2 = new AccumuloParentMetadataRepository(aDriver2.getDao());
-
+        currentDate = new Date();
         final Collection<Object[]> stores = new ArrayList<>();
-        //stores.add(new Object[]{mongoStore1, mongoMetadata1, mongoStore2, mongoMetadata2});
-        //stores.add(new Object[]{mongoStore1, mongoMetadata1, accumuloStore2, accumuloMetadata2});
-        stores.add(new Object[]{accumuloStore1, accumuloMetadata1, mongoStore2, mongoMetadata2});
-        //stores.add(new Object[]{accumuloStore1, accumuloMetadata1, accumuloStore2, accumuloMetadata2});
+        stores.add(new Object[]{getParentMongo(), getChildMongo()});
+        stores.add(new Object[]{getParentMongo(), getChildAccumulo()});
+        stores.add(new Object[]{getParentAccumulo(), getChildMongo()});
+        stores.add(new Object[]{getParentAccumulo(), getChildAccumulo()});
         return stores;
     }
 
     public StoreToStoreIT(final RyaStatementStore parentStore,
-            final ParentMetadataRepository parentMetadata,
-            final RyaStatementStore childStore,
-            final ParentMetadataRepository childMetadata) {
+            final RyaStatementStore childStore) {
         this.parentStore = parentStore;
-        this.parentMetadata = parentMetadata;
-
         this.childStore = childStore;
-        this.childMetadata = childMetadata;
     }
 
-    //@Test
+    @Test
     public void cloneTest() throws AddStatementException, FetchStatementException, ParentMetadataDoesNotExistException {
-        final Date currentTime = new Date(0L);
-        loadMockStatements(parentStore, 50);
-        System.out.println(count(parentStore));
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
 
         final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
-            parentMetadata, childMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         merger.runJob();
         assertEquals(50, count(childStore));
     }
 
-    //@Test
+    @Test
     public void no_statementsTest() throws AddStatementException, FetchStatementException {
-        loadMockStatements(parentStore, 50);
-        Date currentTime = new Date();
-        //ensure current time is later
-        currentTime = new Date(currentTime.getTime() + 10000L);
+        loadMockStatements(parentStore, 50, new Date(0L));
 
+        assertEquals(0, count(childStore));
         final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
-                parentMetadata, childMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+                new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         merger.runJob();
         assertEquals(0, count(childStore));
     }
 
-    //@Test
+    @Test
     public void childToParent_ChildAddTest() throws AddStatementException, FetchStatementException {
-        //get the timestamp now.
-        final Date currentTime = new Date();
-        loadMockStatements(parentStore, 50);
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 100L));
 
         //setup child
         final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
-            parentMetadata, childMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         merger.runJob();
 
         //add a few statements to child
@@ -142,20 +180,18 @@ public class StoreToStoreIT extends ITBase {
         childStore.addStatement(stmnt2);
 
         final MemoryTimeMerger otherMerger = new MemoryTimeMerger(childStore, parentStore,
-                childMetadata, parentMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+             new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         otherMerger.runJob();
         assertEquals(52, count(parentStore));
     }
 
-    //@Test
-    public void childToParent_ChildReAddsDeletedStatementTest() throws AddStatementException, RemoveStatementException, FetchStatementException {
-        //get the timestamp now.
-        final Date currentTime = new Date();
-        loadMockStatements(parentStore, 50);
+    @Test
+    public void childToParent_ChildReAddsDeletedStatementTest() throws Exception {
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
 
         //setup child
         final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
-                parentMetadata, childMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         merger.runJob();
 
         //remove a statement from the parent
@@ -163,41 +199,48 @@ public class StoreToStoreIT extends ITBase {
         parentStore.removeStatement(stmnt1);
         assertEquals(49, count(parentStore));
 
+        assertFalse(parentStore.containsStatement(stmnt1));
+
         final MemoryTimeMerger otherMerger = new MemoryTimeMerger(childStore, parentStore,
-                childMetadata, parentMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         otherMerger.runJob();
+
         //merging will have added the statement back
         assertEquals(50, count(parentStore));
     }
 
-    //@Test
-    public void childToParent_BothAddTest() throws AddStatementException, FetchStatementException {
-        //get the timestamp now.
-        final Date currentTime = new Date();
-        loadMockStatements(parentStore, 50);
+    @Test
+    public void childToParent_BothAddTest() throws Exception {
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
 
+        assertEquals(0, count(childStore));
         final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
-                parentMetadata, childMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         merger.runJob();
 
+
+        assertEquals(50, count(parentStore));
+        assertEquals(50, count(childStore));
+
         //add a statement to each store
-        final RyaStatement stmnt1 = makeRyaStatement("http://subject", "http://predicate", "http://51");
-        final RyaStatement stmnt2 = makeRyaStatement("http://subject", "http://predicate", "http://52");
+        final RyaStatement stmnt1 = makeRyaStatement("http://subject", "http://predicate", "http://add");
+        final RyaStatement stmnt2 = makeRyaStatement("http://subject", "http://predicate", "http://add2");
+        stmnt1.setTimestamp(new Date().getTime() + 10L);
+        stmnt2.setTimestamp(currentDate.getTime() + 1000L);
         parentStore.addStatement(stmnt1);
         childStore.addStatement(stmnt2);
 
-
         final MemoryTimeMerger otherMerger = new MemoryTimeMerger(childStore, parentStore,
-                childMetadata, parentMetadata, new VisibilityStatementMerger(), currentTime, RYA_INSTANCE, 0L);
+                new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
         otherMerger.runJob();
         //both should still be there
         assertEquals(52, count(parentStore));
     }
 
-    private void loadMockStatements(final RyaStatementStore store, final int count) throws AddStatementException {
+    private void loadMockStatements(final RyaStatementStore store, final int count, final Date timestamp) throws AddStatementException {
         for(int ii = 0; ii < count; ii++) {
             final RyaStatement statement = makeRyaStatement("http://subject", "http://predicate", "http://"+ii);
-            statement.setTimestamp(new Date().getTime());
+            statement.setTimestamp(timestamp.getTime());
             parentStore.addStatement(statement);
         }
     }
@@ -206,7 +249,8 @@ public class StoreToStoreIT extends ITBase {
         final Iterator<RyaStatement> statements = store.fetchStatements();
         int count = 0;
         while(statements.hasNext()) {
-            statements.next();
+            final RyaStatement statement = statements.next();
+            System.out.println(statement.getObject().getData() + "     " + statement.getTimestamp());
             count++;
         }
         return count;

@@ -26,6 +26,14 @@ import com.google.common.base.Optional;
 
 import mvm.rya.api.domain.RyaStatement;
 
+/**
+ * Merges two statements together at the visibility.  Two statements can be
+ * merged if the subject, predicate, and object are the same.  A merged statement
+ * has an unchanged subject, predicate, and object but a joined visiblity.
+ * The visibilities are joined with a logical AND, so a statement with
+ * visiblity 'A' and another statement with visibility 'B' will be merged
+ * to have visibility 'A&B'
+ */
 public class VisibilityStatementMerger implements StatementMerger {
     @Override
     public Optional<RyaStatement> merge(final Optional<RyaStatement> parent, final Optional<RyaStatement> child)

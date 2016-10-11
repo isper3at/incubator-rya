@@ -43,5 +43,4 @@ public class UpdateStatementException extends StatementStoreException {
     public UpdateStatementException(final String message, final Throwable cause) {
         super(message, cause);
     }
-
 }

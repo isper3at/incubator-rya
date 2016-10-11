@@ -35,7 +35,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.log4j.Logger;
-import org.apache.rya.export.accumulo.common.InstanceType;
+import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 
 import mvm.rya.accumulo.AccumuloRdfConfiguration;
@@ -89,7 +89,7 @@ public class AccumuloDualInstanceDriver {
      */
     public AccumuloDualInstanceDriver(final InstanceType instanceType, final boolean shouldCreateIndices, final boolean isParentReadOnly, final boolean isChildReadOnly, final boolean doesChildInitiallyExist) {
         this.instanceType = instanceType;
-        this.isMock = instanceType.isMock();
+        isMock = instanceType == InstanceType.MOCK;
         this.shouldCreateIndices = shouldCreateIndices;
         this.isParentReadOnly = isParentReadOnly;
         this.isChildReadOnly = isChildReadOnly;
@@ -186,7 +186,7 @@ public class AccumuloDualInstanceDriver {
      */
     public void tearDown() throws Exception {
         try {
-            //tearDownTables();
+            tearDownTables();
             tearDownDaos();
             tearDownInstances();
         } finally {

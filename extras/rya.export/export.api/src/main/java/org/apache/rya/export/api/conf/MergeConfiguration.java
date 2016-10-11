@@ -58,7 +58,6 @@ public class MergeConfiguration {
 
     private final boolean useNtpServer;
     private final String ntpServerHost;
-    private final String toolStartTime;
 
     /**
      * Constructs a {@link MergeConfiguration}.
@@ -84,7 +83,6 @@ public class MergeConfiguration {
             mergePolicy = builder.mergePolicy;
             useNtpServer = builder.useNtpServer;
             ntpServerHost = builder.ntpServerHost;
-            toolStartTime = builder.toolStartTime;
         } catch(final NullPointerException npe) {
             //fix this.
             throw new MergeConfigurationException("The configuration was missing required field(s)", npe);
@@ -226,13 +224,6 @@ public class MergeConfiguration {
     }
 
     /**
-     * @return The time of the data to be included in the copy/merge process.
-     */
-    public String getToolStartTime() {
-        return toolStartTime;
-    }
-
-    /**
      * Builder to help create {@link MergeConfiguration}s.
      */
     public static class Builder {
@@ -258,7 +249,6 @@ public class MergeConfiguration {
 
         private Boolean useNtpServer;
         private String ntpServerHost;
-        private String toolStartTime;
 
         /**
          * Creates a new Builder to create a {@link MergeConfiguration}.
@@ -293,7 +283,6 @@ public class MergeConfiguration {
 
             useNtpServer = builder.useNtpServer;
             ntpServerHost = builder.ntpServerHost;
-            toolStartTime = builder.toolStartTime;
         }
 
         /**
@@ -467,16 +456,6 @@ public class MergeConfiguration {
          */
         public Builder setNtpServerHost(final String ntpServerHost) {
             this.ntpServerHost = ntpServerHost;
-            return this;
-        }
-
-        /**
-         * @param toolStartTime - The time of the data to be included in the
-         * copy/merge process.
-         * @return the updated {@link Builder}.
-         */
-        public Builder setToolStartTime(final String toolStartTime) {
-            this.toolStartTime = toolStartTime;
             return this;
         }
 

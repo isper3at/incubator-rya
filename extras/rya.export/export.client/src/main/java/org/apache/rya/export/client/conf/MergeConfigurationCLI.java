@@ -19,6 +19,7 @@
 package org.apache.rya.export.client.conf;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.rya.export.MergePolicy.TIMESTAMP;
 
 import java.io.File;
 import java.text.DateFormat;
@@ -35,18 +36,19 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.rya.export.AccumuloMergeToolConfiguration;
 import org.apache.rya.export.DBType;
-import org.apache.rya.export.JAXBAccumuloMergeConfiguration;
-import org.apache.rya.export.JAXBMergeConfiguration;
+import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.MergePolicy;
-import org.apache.rya.export.accumulo.common.InstanceType;
+import org.apache.rya.export.MergeToolConfiguration;
+import org.apache.rya.export.TimestampMergePolicyConfiguration;
 import org.apache.rya.export.api.conf.AccumuloMergeConfiguration;
 import org.apache.rya.export.api.conf.ConfigurationAdapter;
 import org.apache.rya.export.api.conf.MergeConfiguration;
 import org.apache.rya.export.api.conf.MergeConfigurationException;
+import org.apache.rya.export.api.conf.policy.TimestampPolicyMergeConfiguration;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
 
 /**
  * Helper class for processing command line arguments for the Merge Tool.
@@ -81,7 +83,7 @@ public class MergeConfigurationCLI {
     private static final Option CHILD_ACCUMULO_AUTHS_OPTION = new Option("w", "caAuths", true, "Defines the authorization level of the user.");
     private static final Option CHILD_ACCUMULO_TYPE_OPTION = new Option("x", "caType", true, "Defines the type of accumulo to connect to.");
     private static final Option MERGE_OPTION = new Option("y", "merge", true, "Defines the type of merging that should occur.");
-    private static final Option NTP_OPTION = new Option("z", "useNTP", true, "The hostname of the NTP server, if it is going to be used.");
+    private static final Option NTP_OPTION = new Option("z", "useNTP", true, "Defines if NTP should be used to synch time.");
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("MMM ddd yyy HH:mm:ss");
     private final CommandLine cmd;
 
@@ -138,21 +140,11 @@ public class MergeConfigurationCLI {
         return cliOptions;
     }
 
-    public static JAXBMergeConfiguration createConfigurationFromFile(final File configFile) throws MergeConfigurationException {
+    public static MergeToolConfiguration createConfigurationFromFile(final File configFile) throws MergeConfigurationException {
         try {
-            final JAXBContext context = JAXBContext.newInstance(DBType.class, JAXBMergeConfiguration.class, JAXBAccumuloMergeConfiguration.class, MergePolicy.class, InstanceType.class, AccumuloMergeConfiguration.class, MergeConfiguration.class);
+            final JAXBContext context = JAXBContext.newInstance(DBType.class, MergeToolConfiguration.class, AccumuloMergeToolConfiguration.class, TimestampMergePolicyConfiguration.class, MergePolicy.class, InstanceType.class);
             final Unmarshaller unmarshaller = context.createUnmarshaller();
-            return (JAXBMergeConfiguration) unmarshaller.unmarshal(configFile);
-        } catch (final JAXBException | IllegalArgumentException JAXBe) {
-            throw new MergeConfigurationException("Failed to create a config based on the provided configuration.", JAXBe);
-        }
-    }
-
-    private static JAXBAccumuloMergeConfiguration createAccumuloConfigurationFromFile(final File configFile) throws MergeConfigurationException {
-        try {
-            final JAXBContext context = JAXBContext.newInstance(DBType.class, JAXBMergeConfiguration.class, MergePolicy.class);
-            final Unmarshaller unmarshaller = context.createUnmarshaller();
-            return (JAXBAccumuloMergeConfiguration) unmarshaller.unmarshal(configFile);
+            return (MergeToolConfiguration) unmarshaller.unmarshal(configFile);
         } catch (final JAXBException | IllegalArgumentException JAXBe) {
             throw new MergeConfigurationException("Failed to create a config based on the provided configuration.", JAXBe);
         }
@@ -192,7 +184,7 @@ public class MergeConfigurationCLI {
             } else {
                 final DBType parentType = DBType.fromValue(cmd.getOptionValue(PARENT_DB_OPTION.getLongOpt()));
                 final DBType childType = DBType.fromValue(cmd.getOptionValue(CHILD_DB_OPTION.getLongOpt()));
-                final String ntp = cmd.getOptionValue(NTP_OPTION.getLongOpt());
+                final MergePolicy mergePolicy = MergePolicy.fromValue(cmd.getOptionValue(MERGE_OPTION.getLongOpt()));
                 MergeConfiguration.Builder builder = new MergeConfiguration.Builder()
                     .setParentHostname(cmd.getOptionValue(PARENT_HOST_OPTION.getLongOpt()))
                     .setParentUsername(cmd.getOptionValue(PARENT_USER_OPTION.getLongOpt()))
@@ -210,22 +202,22 @@ public class MergeConfigurationCLI {
                     .setChildTomcatUrl(cmd.getOptionValue(CHILD_TOMCAT_OPTION.getLongOpt()))
                     .setChildDBType(childType)
                     .setChildPort(Integer.parseInt(cmd.getOptionValue(CHILD_PORT_OPTION.getLongOpt())))
-                    .setToolStartTime(DATE_FORMAT.format(getRyaStatementMergeTime()));
-                if(Strings.isNullOrEmpty(ntp)) {
-                    builder.setUseNtpServer(true)
-                        .setNtpServerHost(ntp);
+                    .setMergePolicy(mergePolicy);
+                if (mergePolicy == TIMESTAMP) {
+                    builder = new TimestampPolicyMergeConfiguration.TimestampPolicyBuilder(builder)
+                        .setToolStartTime(cmd.getOptionValue(TIME_OPTION.getLongOpt()));
                 }
                 if (parentType == DBType.ACCUMULO) {
                     builder = new AccumuloMergeConfiguration.AccumuloBuilder(builder)
                         .setParentZookeepers(cmd.getOptionValue(PARENT_ACCUMULO_ZOOKEEPERS_OPTION.getLongOpt()))
                         .setParentAuths(cmd.getOptionValue(PARENT_ACCUMULO_AUTHS_OPTION.getLongOpt()))
-                        .setParentInstanceType(InstanceType.fromName(cmd.getOptionValue(PARENT_ACCUMULO_TYPE_OPTION.getLongOpt())));
+                        .setParentInstanceType(InstanceType.fromValue(cmd.getOptionValue(PARENT_ACCUMULO_TYPE_OPTION.getLongOpt())));
                 }
                 if (childType == DBType.ACCUMULO) {
                     builder = new AccumuloMergeConfiguration.AccumuloBuilder(builder)
                         .setChildZookeepers(cmd.getOptionValue(CHILD_ACCUMULO_ZOOKEEPERS_OPTION.getLongOpt()))
                         .setChildAuths(cmd.getOptionValue(CHILD_ACCUMULO_AUTHS_OPTION.getLongOpt()))
-                        .setChildInstanceType(InstanceType.fromName(cmd.getOptionValue(CHILD_ACCUMULO_TYPE_OPTION.getLongOpt())));
+                        .setChildInstanceType(InstanceType.fromValue(cmd.getOptionValue(CHILD_ACCUMULO_TYPE_OPTION.getLongOpt())));
                 }
                 configuration = builder.build();
             }

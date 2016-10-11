@@ -18,135 +18,134 @@
  */
 package org.apache.rya.export.api.conf;
 
-import static java.util.Objects.requireNonNull;
-
 import org.apache.rya.export.DBType;
 import org.apache.rya.export.MergePolicy;
 
 /**
- *
+ * Decorator for {@link MergeConfiguration}.
+ * <p>
+ * The {@link MergeConfiguration} should be decorated when a new datastore
+ * has specific configuration fields or a new statement merge policy
+ * requires configuration.
  */
 public class MergeConfigurationDecorator extends MergeConfiguration {
 
-    private final MergeConfiguration conf;
-
-    public MergeConfigurationDecorator(final MergeConfiguration conf, final MergeConfiguration.Builder builder) throws MergeConfigurationException {
+    /**
+     * Creates a new {@link MergeConfigurationDecorator}
+     * @param builder - The configuratoin builder.
+     * @throws MergeConfigurationException
+     */
+    public MergeConfigurationDecorator(final MergeConfiguration.Builder builder) throws MergeConfigurationException {
         super(builder);
-        this.conf = requireNonNull(conf);
     }
 
     @Override
     public int hashCode() {
-        return conf.hashCode();
+        return super.hashCode();
     }
 
     @Override
     public boolean equals(final Object obj) {
-        return conf.equals(obj);
+        return super.equals(obj);
     }
 
     @Override
     public String getParentHostname() {
-        return conf.getParentHostname();
+        return super.getParentHostname();
     }
 
     @Override
     public String getParentUsername() {
-        return conf.getParentUsername();
+        return super.getParentUsername();
     }
 
     @Override
     public String getParentPassword() {
-        return conf.getParentPassword();
+        return super.getParentPassword();
     }
 
     @Override
     public String getParentRyaInstanceName() {
-        return conf.getParentRyaInstanceName();
+        return super.getParentRyaInstanceName();
     }
 
     @Override
     public String getParentTablePrefix() {
-        return conf.getParentTablePrefix();
+        return super.getParentTablePrefix();
     }
 
     @Override
     public String getParentTomcatUrl() {
-        return conf.getParentTomcatUrl();
+        return super.getParentTomcatUrl();
     }
 
     @Override
     public DBType getParentDBType() {
-        return conf.getParentDBType();
+        return super.getParentDBType();
     }
 
     @Override
     public int getParentPort() {
-        return conf.getParentPort();
+        return super.getParentPort();
     }
 
     @Override
     public String getChildHostname() {
-        return conf.getChildHostname();
+        return super.getChildHostname();
     }
 
     @Override
     public String getChildUsername() {
-        return conf.getChildUsername();
+        return super.getChildUsername();
     }
 
     @Override
     public String getChildPassword() {
-        return conf.getChildPassword();
+        return super.getChildPassword();
     }
 
     @Override
     public String getChildRyaInstanceName() {
-        return conf.getChildRyaInstanceName();
+        return super.getChildRyaInstanceName();
     }
 
     @Override
     public String getChildTablePrefix() {
-        return conf.getChildTablePrefix();
+        return super.getChildTablePrefix();
     }
 
     @Override
     public String getChildTomcatUrl() {
-        return conf.getChildTomcatUrl();
+        return super.getChildTomcatUrl();
     }
 
     @Override
     public DBType getChildDBType() {
-        return conf.getChildDBType();
+        return super.getChildDBType();
     }
 
     @Override
     public int getChildPort() {
-        return conf.getChildPort();
+        return super.getChildPort();
     }
 
     @Override
     public MergePolicy getMergePolicy() {
-        return conf.getMergePolicy();
+        return super.getMergePolicy();
     }
 
     @Override
     public Boolean getUseNtpServer() {
-        return conf.getUseNtpServer();
+        return super.getUseNtpServer();
     }
 
     @Override
     public String getNtpServerHost() {
-        return conf.getNtpServerHost();
-    }
-
-    @Override
-    public String getToolStartTime() {
-        return conf.getToolStartTime();
+        return super.getNtpServerHost();
     }
 
     @Override
     public String toString() {
-        return conf.toString();
+        return super.toString();
     }
 }
