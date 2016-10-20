@@ -19,7 +19,7 @@
 package org.apache.rya.export.mongo;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static mvm.rya.mongodb.dao.SimpleMongoDBStorageStrategy.TIMESTAMP;
+import static org.apache.mongodb.dao.SimpleMongoDBStorageStrategy.TIMESTAMP;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -38,13 +38,13 @@ import org.apache.rya.export.mongo.parent.MongoParentMetadataRepository;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Cursor;
 import com.mongodb.DB;
-import com.mongodb.DBObject;
+import com.mongodb.DBObject; 
 import com.mongodb.MongoClient;
 
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.mongodb.MongoDBRyaDAO;
-import mvm.rya.mongodb.dao.SimpleMongoDBStorageStrategy;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.mongodb.MongoDBRyaDAO;
+import org.apache.mongodb.dao.SimpleMongoDBStorageStrategy;
 
 /**
  * Mongo implementation of {@link RyaStatementStore}.  Allows for exporting and

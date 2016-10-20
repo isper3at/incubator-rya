@@ -35,7 +35,7 @@ import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RemoveStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
 
-import mvm.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaStatement;
 
 /**
  * An in memory {@link Merger}.  Merges {@link RyaStatement}s from a parent

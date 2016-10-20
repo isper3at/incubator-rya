@@ -21,7 +21,7 @@ package org.apache.rya.export.client.conf;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.rya.export.api.conf.MergeConfiguration;
 
-import mvm.rya.mongodb.MongoDBRdfConfiguration;
+import org.apache.mongodb.MongoDBRdfConfiguration;
 
 /**
  * Adapts the {@link MergeConfiguration} to the hadoop {@link Configuration}.

@@ -46,24 +46,23 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
+import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.accumulo.AccumuloRyaDAO;
+import org.apache.rya.accumulo.mr.MRUtils;
+import org.apache.rya.api.RdfCloudTripleStoreConstants;
+import org.apache.rya.api.RdfCloudTripleStoreConstants.TABLE_LAYOUT;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaURI;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.rya.api.resolver.RdfToRyaConversions;
+import org.apache.rya.api.resolver.RyaTripleContext;
+import org.apache.rya.api.resolver.triple.TripleRow;
+import org.apache.rya.api.resolver.triple.TripleRowResolverException;
+import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.openrdf.model.ValueFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-
-import mvm.rya.accumulo.AccumuloRdfConfiguration;
-import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.accumulo.mr.MRUtils;
-import mvm.rya.api.RdfCloudTripleStoreConstants;
-import mvm.rya.api.RdfCloudTripleStoreConstants.TABLE_LAYOUT;
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.domain.RyaURI;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.api.resolver.RdfToRyaConversions;
-import mvm.rya.api.resolver.RyaTripleContext;
-import mvm.rya.api.resolver.triple.TripleRow;
-import mvm.rya.api.resolver.triple.TripleRowResolverException;
-import mvm.rya.indexing.accumulo.ConfigUtils;
 
 /**
  * Utility methods for an Accumulo Rya instance.
@@ -78,8 +77,8 @@ public final class AccumuloRyaUtils {
      * Ignore the meta statements indicating the Rya version and copy time values.
      */
     public static final ImmutableSet<IteratorSetting> COMMON_REG_EX_FILTER_SETTINGS = ImmutableSet.of(
-        getVersionRegExFilterSetting()
-    );
+            getVersionRegExFilterSetting()
+            );
 
     /**
      * Private constructor to prevent instantiation.

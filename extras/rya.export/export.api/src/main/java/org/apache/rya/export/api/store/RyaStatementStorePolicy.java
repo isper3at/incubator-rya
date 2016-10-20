@@ -26,7 +26,7 @@ import java.util.Optional;
 import org.apache.rya.export.api.metadata.MergeParentMetadata;
 import org.apache.rya.export.api.metadata.ParentMetadataExistsException;
 
-import mvm.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaStatement;
 
 /**
  * Decorates a {@link RyaStatementStore}.  This is to be used when the default

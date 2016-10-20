@@ -25,7 +25,7 @@ under the License.
     <parent>
         <groupId>org.apache.rya</groupId>
         <artifactId>rya.extras</artifactId>
-        <version>3.2.10-SNAPSHOT</version>
+        <version>3.2.10-incubating-SNAPSHOT</version>
     </parent>
     
     <modelVersion>4.0.0</modelVersion>
@@ -37,8 +37,8 @@ under the License.
     <packaging>pom</packaging>
    
     <modules>
-        <module>export.accumulo</module>
         <module>export.api</module>
+        <module>export.accumulo</module>
         <module>export.client</module>
         <module>export.mongo</module>
         <module>export.integration</module>

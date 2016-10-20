@@ -50,7 +50,7 @@ import org.openrdf.sail.SailException;
 
 import com.google.common.base.Optional;
 
-import mvm.rya.rdftriplestore.inference.InferenceEngineException;
+import org.apache.rdftriplestore.inference.InferenceEngineException;
 
 /**
  * Drives the MergeTool.

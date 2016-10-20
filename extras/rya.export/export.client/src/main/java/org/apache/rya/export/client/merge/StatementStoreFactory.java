@@ -38,10 +38,10 @@ import org.apache.rya.export.mongo.policy.TimestampPolicyMongoRyaStatementStore;
 
 import com.mongodb.MongoClient;
 
-import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.mongodb.MongoDBRdfConfiguration;
-import mvm.rya.mongodb.MongoDBRyaDAO;
+import org.apache.accumulo.AccumuloRyaDAO;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.mongodb.MongoDBRdfConfiguration;
+import org.apache.mongodb.MongoDBRyaDAO;
 
 /**
  * Factory for creating {@link RyaStatementStore}s based on the {@link MergeConfiguration}.

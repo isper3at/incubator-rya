@@ -38,10 +38,10 @@ import org.apache.log4j.Logger;
 import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.accumulo.util.AccumuloInstanceDriver;
 
-import mvm.rya.accumulo.AccumuloRdfConfiguration;
-import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.persist.RyaDAOException;
+import org.apache.accumulo.AccumuloRdfConfiguration;
+import org.apache.accumulo.AccumuloRyaDAO;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.persist.RyaDAOException;
 
 /**
  * Handles running a {@link MiniAccumuloCluster} or a {@link MockInstance} for a parent and child instance for testing.

@@ -48,8 +48,8 @@ import org.junit.runners.Parameterized;
 
 import com.mongodb.MongoClient;
 
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.mongodb.MongoDBRyaDAO;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.mongodb.MongoDBRyaDAO;
 
 @RunWith(Parameterized.class)
 public class StoreToStoreIT extends ITBase {

@@ -32,6 +32,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.Logger;
+import org.apache.rya.accumulo.AccumuloRyaDAO;
+import org.apache.rya.api.RdfCloudTripleStoreConstants;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.rya.api.resolver.RyaTripleContext;
+import org.apache.rya.api.resolver.triple.TripleRowResolverException;
 import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.accumulo.parent.AccumuloParentMetadataRepository;
 import org.apache.rya.export.accumulo.util.AccumuloRyaUtils;
@@ -49,12 +55,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
 import info.aduna.iteration.CloseableIteration;
-import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.api.RdfCloudTripleStoreConstants;
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.api.resolver.RyaTripleContext;
-import mvm.rya.api.resolver.triple.TripleRowResolverException;
 
 /**
  * Allows specific CRUD operations an Accumulo {@link RyaStatement} storage
@@ -115,18 +115,18 @@ public class AccumuloRyaStatementStore implements RyaStatementStore {
             // Convert Entry iterator to RyaStatement iterator
             final Iterator<Entry<Key, Value>> entryIter = scanner.iterator();
             final Iterator<RyaStatement> ryaStatementIter = Iterators.transform(entryIter, new Function<Entry<Key, Value>, RyaStatement>() {
-               @Override
-               public RyaStatement apply(final Entry<Key, Value> entry) {
-                   final Key key = entry.getKey();
-                   final Value value = entry.getValue();
-                   RyaStatement ryaStatement = null;
-                   try {
-                       ryaStatement = AccumuloRyaUtils.createRyaStatement(key, value, ryaTripleContext);
-                   } catch (final TripleRowResolverException e) {
-                       log.error("Unable to convert the key/value pair into a Rya Statement", e);
-                   }
-                   return ryaStatement;
-               }
+                @Override
+                public RyaStatement apply(final Entry<Key, Value> entry) {
+                    final Key key = entry.getKey();
+                    final Value value = entry.getValue();
+                    RyaStatement ryaStatement = null;
+                    try {
+                        ryaStatement = AccumuloRyaUtils.createRyaStatement(key, value, ryaTripleContext);
+                    } catch (final TripleRowResolverException e) {
+                        log.error("Unable to convert the key/value pair into a Rya Statement", e);
+                    }
+                    return ryaStatement;
+                }
             });
             return ryaStatementIter;
         } catch (final Exception e) {

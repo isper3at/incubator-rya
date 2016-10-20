@@ -19,7 +19,7 @@
 
 package org.apache.rya.export.mongo.policy;
 
-import static mvm.rya.mongodb.dao.SimpleMongoDBStorageStrategy.TIMESTAMP;
+import static org.apache.mongodb.dao.SimpleMongoDBStorageStrategy.TIMESTAMP;
 import static org.apache.rya.export.mongo.MongoRyaStatementStore.TRIPLES_COLLECTION;
 
 import java.util.ArrayList;
@@ -38,8 +38,8 @@ import com.mongodb.Cursor;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
 
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.mongodb.dao.SimpleMongoDBStorageStrategy;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.mongodb.dao.SimpleMongoDBStorageStrategy;
 
 /**
  * A {@link RyaStatementStore} decorated to connect to a Mongo database and

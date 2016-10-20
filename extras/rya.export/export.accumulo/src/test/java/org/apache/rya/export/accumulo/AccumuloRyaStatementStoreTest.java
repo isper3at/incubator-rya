@@ -48,8 +48,8 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.indexing.accumulo.ConfigUtils;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.indexing.accumulo.ConfigUtils;
 
 /**
  * Tests the methods of {@link AccumuloRyaStatementStore}.

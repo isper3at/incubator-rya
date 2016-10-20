@@ -21,10 +21,9 @@ package org.apache.rya.export.api.store;
 import java.util.Iterator;
 import java.util.Optional;
 
+import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.export.api.metadata.MergeParentMetadata;
 import org.apache.rya.export.api.metadata.ParentMetadataExistsException;
-
-import mvm.rya.api.domain.RyaStatement;
 
 /**
  * Allows specific CRUD operations on {@link RyaStatement} storage systems.

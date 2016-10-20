@@ -24,7 +24,7 @@ import org.apache.rya.export.api.StatementMerger;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 
-import mvm.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaStatement;
 
 /**
  * Merges two statements together at the visibility.  Two statements can be

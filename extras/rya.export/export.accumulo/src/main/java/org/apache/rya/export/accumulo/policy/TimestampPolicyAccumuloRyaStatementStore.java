@@ -28,7 +28,7 @@ import org.apache.rya.export.api.conf.policy.TimestampPolicyStatementStore;
 import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
 
-import mvm.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaStatement;
 
 /**
  * A {@link RyaStatementStore} decorated to connect to an Accumulo database and

@@ -27,7 +27,7 @@ import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
 import org.apache.rya.export.api.store.RyaStatementStorePolicy;
 
-import mvm.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaStatement;
 
 /**
  * Statement Store decorated to fetch statements based on a timestamp.

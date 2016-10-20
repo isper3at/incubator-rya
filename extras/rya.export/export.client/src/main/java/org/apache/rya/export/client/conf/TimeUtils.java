@@ -2,7 +2,7 @@ package org.apache.rya.export.client.conf;
 
 /*
  * #%L
- * mvm.rya.accumulo.mr.merge
+ * org.apache.accumulo.mr.merge
  * %%
  * Copyright (C) 2014 Rya
  * %%

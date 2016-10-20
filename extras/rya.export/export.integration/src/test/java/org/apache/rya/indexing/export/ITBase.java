@@ -47,18 +47,18 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 
 import de.flapdoodle.embed.mongo.tests.MongodForTestsFactory;
-import mvm.rya.api.RdfCloudTripleStoreConfiguration;
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.domain.RyaStatement.RyaStatementBuilder;
-import mvm.rya.api.domain.RyaType;
-import mvm.rya.api.domain.RyaURI;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.api.resolver.RyaToRdfConversions;
-import mvm.rya.indexing.accumulo.ConfigUtils;
-import mvm.rya.mongodb.MongoDBRdfConfiguration;
-import mvm.rya.rdftriplestore.RyaSailRepository;
-import mvm.rya.rdftriplestore.inference.InferenceEngineException;
-import mvm.rya.sail.config.RyaSailFactory;
+import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaStatement.RyaStatementBuilder;
+import org.apache.rya.api.domain.RyaType;
+import org.apache.rya.api.domain.RyaURI;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.rya.api.resolver.RyaToRdfConversions;
+import org.apache.indexing.accumulo.ConfigUtils;
+import org.apache.mongodb.MongoDBRdfConfiguration;
+import org.apache.rdftriplestore.RyaSailRepository;
+import org.apache.rdftriplestore.inference.InferenceEngineException;
+import org.apache.sail.config.RyaSailFactory;
 
 /**
  * Integration tests that ensure the import/export process runs correctly.

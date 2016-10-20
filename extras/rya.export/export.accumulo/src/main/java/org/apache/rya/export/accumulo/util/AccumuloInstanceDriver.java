@@ -43,18 +43,17 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
+import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.accumulo.AccumuloRyaDAO;
+import org.apache.rya.accumulo.mr.MRUtils;
+import org.apache.rya.api.RdfCloudTripleStoreConstants;
+import org.apache.rya.api.persist.RyaDAOException;
 import org.apache.rya.export.InstanceType;
 import org.apache.rya.export.accumulo.conf.AccumuloExportConstants;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
-
-import mvm.rya.accumulo.AccumuloRdfConfiguration;
-import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.accumulo.mr.MRUtils;
-import mvm.rya.api.RdfCloudTripleStoreConstants;
-import mvm.rya.api.persist.RyaDAOException;
 
 /**
  * Handles running a single {@link MiniAccumuloCluster} or a single {@link MockInstance} for an instance.
@@ -106,15 +105,15 @@ public class AccumuloInstanceDriver {
     private File tempDir = null;
 
     public static final List<String> TABLE_NAME_SUFFIXES =
-        ImmutableList.<String>of(
-            RdfCloudTripleStoreConstants.TBL_SPO_SUFFIX,
-            RdfCloudTripleStoreConstants.TBL_PO_SUFFIX,
-            RdfCloudTripleStoreConstants.TBL_OSP_SUFFIX,
-            RdfCloudTripleStoreConstants.TBL_NS_SUFFIX,
-            RdfCloudTripleStoreConstants.TBL_EVAL_SUFFIX,
-            RdfCloudTripleStoreConstants.TBL_STATS_SUFFIX,
-            RdfCloudTripleStoreConstants.TBL_SEL_SUFFIX
-        );
+            ImmutableList.<String>of(
+                    RdfCloudTripleStoreConstants.TBL_SPO_SUFFIX,
+                    RdfCloudTripleStoreConstants.TBL_PO_SUFFIX,
+                    RdfCloudTripleStoreConstants.TBL_OSP_SUFFIX,
+                    RdfCloudTripleStoreConstants.TBL_NS_SUFFIX,
+                    RdfCloudTripleStoreConstants.TBL_EVAL_SUFFIX,
+                    RdfCloudTripleStoreConstants.TBL_STATS_SUFFIX,
+                    RdfCloudTripleStoreConstants.TBL_SEL_SUFFIX
+                    );
 
     /**
      * Creates a new instance of {@link AccumuloInstanceDriver}.
@@ -170,44 +169,44 @@ public class AccumuloInstanceDriver {
      */
     public void setUpInstance() throws Exception {
         switch (instanceType) {
-            case DISTRIBUTION:
-                log.info("Setting up " + driverName + " distribution instance...");
-                if (instanceName == null) {
-                    throw new IllegalArgumentException("Must specify instance name for distributed mode");
-                } else if (zooKeepers == null) {
-                    throw new IllegalArgumentException("Must specify ZooKeeper hosts for distributed mode");
-                }
-                instance = new ZooKeeperInstance(instanceName, zooKeepers);
-                connector = instance.getConnector(user, new PasswordToken(password));
-                log.info("Created connector to " + driverName + " distribution instance");
-                break;
-            case MINI:
-                log.info("Setting up " + driverName + " MiniAccumulo cluster...");
-                // Create and Run MiniAccumulo Cluster
-                tempDir = Files.createTempDir();
-                tempDir.deleteOnExit();
-                miniAccumuloCluster = new MiniAccumuloCluster(tempDir, password);
-                copyHadoopHomeToTemp();
-                miniAccumuloCluster.getConfig().setInstanceName(instanceName);
-                log.info(driverName + " MiniAccumulo instance starting up...");
-                miniAccumuloCluster.start();
-                Thread.sleep(1000);
-                log.info(driverName + " MiniAccumulo instance started");
-                log.info("Creating connector to " + driverName + " MiniAccumulo instance...");
-                zooKeeperInstance = new ZooKeeperInstance(miniAccumuloCluster.getClientConfig());
-                instance = zooKeeperInstance;
-                connector = zooKeeperInstance.getConnector(user, new PasswordToken(password));
-                log.info("Created connector to " + driverName + " MiniAccumulo instance");
-                break;
-            case MOCK:
-                log.info("Setting up " + driverName + " mock instance...");
-                mockInstance = new MockInstance(instanceName);
-                instance = mockInstance;
-                connector = mockInstance.getConnector(user, new PasswordToken(password));
-                log.info("Created connector to " + driverName + " mock instance");
-                break;
-            default:
-                throw new AccumuloException("Unexpected instance type: " + instanceType);
+        case DISTRIBUTION:
+            log.info("Setting up " + driverName + " distribution instance...");
+            if (instanceName == null) {
+                throw new IllegalArgumentException("Must specify instance name for distributed mode");
+            } else if (zooKeepers == null) {
+                throw new IllegalArgumentException("Must specify ZooKeeper hosts for distributed mode");
+            }
+            instance = new ZooKeeperInstance(instanceName, zooKeepers);
+            connector = instance.getConnector(user, new PasswordToken(password));
+            log.info("Created connector to " + driverName + " distribution instance");
+            break;
+        case MINI:
+            log.info("Setting up " + driverName + " MiniAccumulo cluster...");
+            // Create and Run MiniAccumulo Cluster
+            tempDir = Files.createTempDir();
+            tempDir.deleteOnExit();
+            miniAccumuloCluster = new MiniAccumuloCluster(tempDir, password);
+            copyHadoopHomeToTemp();
+            miniAccumuloCluster.getConfig().setInstanceName(instanceName);
+            log.info(driverName + " MiniAccumulo instance starting up...");
+            miniAccumuloCluster.start();
+            Thread.sleep(1000);
+            log.info(driverName + " MiniAccumulo instance started");
+            log.info("Creating connector to " + driverName + " MiniAccumulo instance...");
+            zooKeeperInstance = new ZooKeeperInstance(miniAccumuloCluster.getClientConfig());
+            instance = zooKeeperInstance;
+            connector = zooKeeperInstance.getConnector(user, new PasswordToken(password));
+            log.info("Created connector to " + driverName + " MiniAccumulo instance");
+            break;
+        case MOCK:
+            log.info("Setting up " + driverName + " mock instance...");
+            mockInstance = new MockInstance(instanceName);
+            instance = mockInstance;
+            connector = mockInstance.getConnector(user, new PasswordToken(password));
+            log.info("Created connector to " + driverName + " mock instance");
+            break;
+        default:
+            throw new AccumuloException("Unexpected instance type: " + instanceType);
         }
         zooKeepers = instance.getZooKeepers();
     }
@@ -256,14 +255,14 @@ public class AccumuloInstanceDriver {
 
         if (shouldCreateIndices) {
             indices = Arrays.asList(
-                /* TODO: SEE RYA-160
+                    /* TODO: SEE RYA-160
                 ConfigUtils.getFreeTextDocTablename(config),
                 ConfigUtils.getFreeTextTermTablename(config),
                 ConfigUtils.getGeoTablename(config),
                 ConfigUtils.getTemporalTableName(config),
                 ConfigUtils.getEntityTableName(config)
-                */
-            );
+                     */
+                    );
 
             tableList.addAll(indices);
 
