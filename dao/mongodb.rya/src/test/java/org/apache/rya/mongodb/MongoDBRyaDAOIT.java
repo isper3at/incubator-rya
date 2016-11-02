@@ -18,6 +18,7 @@ package org.apache.rya.mongodb;
  * under the License.
  */
 
+import static org.apache.rya.mongodb.dao.SimpleMongoDBStorageStrategy.DOCUMENT_VISIBILITY;
 import static org.apache.rya.mongodb.dao.SimpleMongoDBStorageStrategy.TIMESTAMP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -30,13 +31,14 @@ import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaStatement.RyaStatementBuilder;
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 public class MongoDBRyaDAOIT extends MongoRyaTestBase {
 
@@ -45,20 +47,22 @@ public class MongoDBRyaDAOIT extends MongoRyaTestBase {
 
     @Before
     public void setUp() throws IOException, RyaDAOException{
-           final Configuration conf = new Configuration();
-            conf.set(MongoDBRdfConfiguration.MONGO_DB_NAME, "test");
-            conf.set(MongoDBRdfConfiguration.MONGO_COLLECTION_PREFIX, "rya_");
-            conf.set(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX, "rya_");
-            configuration = new MongoDBRdfConfiguration(conf);
-            final int port = mongoClient.getServerAddressList().get(0).getPort();
-            configuration.set(MongoDBRdfConfiguration.MONGO_INSTANCE_PORT, Integer.toString(port));
-            dao = new MongoDBRyaDAO(configuration, mongoClient);
+        final Configuration conf = new Configuration();
+        conf.set(MongoDBRdfConfiguration.MONGO_DB_NAME, "test");
+        conf.set(MongoDBRdfConfiguration.MONGO_COLLECTION_PREFIX, "rya_");
+        conf.set(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX, "rya_");
+        configuration = new MongoDBRdfConfiguration(conf);
+        configuration.setAuths("A", "B", "C");
+        final int port = mongoClient.getServerAddressList().get(0).getPort();
+        configuration.set(MongoDBRdfConfiguration.MONGO_INSTANCE_PORT, Integer.toString(port));
+        dao = new MongoDBRyaDAO(configuration, mongoClient);
     }
 
     @Test
     public void testDeleteWildcard() throws RyaDAOException {
         final RyaStatementBuilder builder = new RyaStatementBuilder();
         builder.setPredicate(new RyaURI("http://temp.com"));
+        builder.setColumnVisibility(new DocumentVisibility("A").flatten());
         dao.delete(builder.build(), configuration);
     }
 
@@ -69,16 +73,18 @@ public class MongoDBRyaDAOIT extends MongoRyaTestBase {
         builder.setPredicate(new RyaURI("http://temp.com"));
         builder.setSubject(new RyaURI("http://subject.com"));
         builder.setObject(new RyaURI("http://object.com"));
+        builder.setColumnVisibility(new DocumentVisibility("B").flatten());
 
-        final DB db = mongoClient.getDB(configuration.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
-        final DBCollection coll = db.getCollection(configuration.getTriplesCollectionName());
+        final MongoDatabase db = mongoClient.getDatabase(configuration.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
+        final MongoCollection<Document> coll = db.getCollection(configuration.getTriplesCollectionName());
 
         dao.add(builder.build());
 
         assertEquals(coll.count(),1);
 
-        final DBObject dbo = coll.findOne();
-        assertTrue(dbo.containsField(TIMESTAMP));
+        final Document dbo = coll.find().first();
+        assertTrue(dbo.containsKey(DOCUMENT_VISIBILITY));
+        assertTrue(dbo.containsKey(TIMESTAMP));
     }
 
     @Test
@@ -87,9 +93,10 @@ public class MongoDBRyaDAOIT extends MongoRyaTestBase {
         builder.setPredicate(new RyaURI("http://temp.com"));
         builder.setSubject(new RyaURI("http://subject.com"));
         builder.setObject(new RyaURI("http://object.com"));
+        builder.setColumnVisibility(new DocumentVisibility("C").flatten());
         final RyaStatement statement = builder.build();
-        final DB db = mongoClient.getDB(configuration.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
-        final DBCollection coll = db.getCollection(configuration.getTriplesCollectionName());
+        final MongoDatabase db = mongoClient.getDatabase(configuration.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
+        final MongoCollection<Document> coll = db.getCollection(configuration.getTriplesCollectionName());
 
         dao.add(statement);
 
@@ -108,10 +115,11 @@ public class MongoDBRyaDAOIT extends MongoRyaTestBase {
         builder.setSubject(new RyaURI("http://subject.com"));
         builder.setObject(new RyaURI("http://object.com"));
         builder.setContext(new RyaURI("http://context.com"));
+        builder.setColumnVisibility(new DocumentVisibility("A&B&C").flatten());
         final RyaStatement statement = builder.build();
 
-        final DB db = mongoClient.getDB(configuration.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
-        final DBCollection coll = db.getCollection(configuration.getTriplesCollectionName());
+        final MongoDatabase db = mongoClient.getDatabase(configuration.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
+        final MongoCollection<Document> coll = db.getCollection(configuration.getTriplesCollectionName());
 
         dao.add(statement);
 

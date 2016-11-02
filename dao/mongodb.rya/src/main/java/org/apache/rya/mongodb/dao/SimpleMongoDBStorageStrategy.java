@@ -27,31 +27,38 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
-import org.openrdf.model.impl.ValueFactoryImpl;
-import org.openrdf.model.vocabulary.XMLSchema;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaType;
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.persist.query.RyaQuery;
+import org.apache.rya.mongodb.MongoDbRdfConstants;
+import org.apache.rya.mongodb.document.util.DocumentVisibilityUtil;
+import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
+import org.openrdf.model.impl.ValueFactoryImpl;
+import org.openrdf.model.vocabulary.XMLSchema;
+
+import com.google.common.base.Charsets;
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 
 /**
  * Defines how {@link RyaStatement}s are stored in MongoDB.
  */
 public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaStatement> {
     private static final Logger LOG = Logger.getLogger(SimpleMongoDBStorageStrategy.class);
-    protected static final String ID = "_id";
-    protected static final String OBJECT_TYPE = "objectType";
-    protected static final String OBJECT_TYPE_VALUE = XMLSchema.ANYURI.stringValue();
-    protected static final String CONTEXT = "context";
-    protected static final String PREDICATE = "predicate";
-    protected static final String OBJECT = "object";
-    protected static final String SUBJECT = "subject";
+
+    public static final String ID = "_id";
+    public static final String OBJECT_TYPE = "objectType";
+    public static final String OBJECT_TYPE_VALUE = XMLSchema.ANYURI.stringValue();
+    public static final String CONTEXT = "context";
+    public static final String PREDICATE = "predicate";
+    public static final String OBJECT = "object";
+    public static final String SUBJECT = "subject";
     public static final String TIMESTAMP = "insertTimestamp";
+    public static final String DOCUMENT_VISIBILITY = "documentVisibility";
+
     protected ValueFactoryImpl factory = new ValueFactoryImpl();
 
     @Override
@@ -96,12 +103,19 @@ public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaS
 
     @Override
     public RyaStatement deserializeDBObject(final DBObject queryResult) {
-        final Map result = queryResult.toMap();
+        final Map<?, ?> result = queryResult.toMap();
         final String subject = (String) result.get(SUBJECT);
         final String object = (String) result.get(OBJECT);
         final String objectType = (String) result.get(OBJECT_TYPE);
         final String predicate = (String) result.get(PREDICATE);
         final String context = (String) result.get(CONTEXT);
+        final Object documentVisibilityObject = result.get(DOCUMENT_VISIBILITY);
+        Object[] documentVisibilityArray = null;
+        if (documentVisibilityObject instanceof Object[]) {
+            documentVisibilityArray = (Object[]) documentVisibilityObject;
+        } else if (documentVisibilityObject instanceof BasicDBList) {
+            documentVisibilityArray = DocumentVisibilityUtil.convertBasicDBListToObjectArray((BasicDBList) documentVisibilityObject);
+        }
         final Long timestamp = (Long) result.get(TIMESTAMP);
         RyaType objectRya = null;
         if (objectType.equalsIgnoreCase(ANYURI.stringValue())){
@@ -119,6 +133,9 @@ public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaS
             statement = new RyaStatement(new RyaURI(subject), new RyaURI(predicate), objectRya);
         }
 
+        final String documentVisibilityString = DocumentVisibilityUtil.multidimensionalArrayToBooleanString(documentVisibilityArray);
+        final DocumentVisibility dv = documentVisibilityString == null ? MongoDbRdfConstants.EMPTY_DV : new DocumentVisibility(documentVisibilityString);
+        statement.setColumnVisibility(dv.flatten());
         if(timestamp != null) {
             statement.setTimestamp(timestamp);
         }
@@ -144,12 +161,20 @@ public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaS
         } catch (final NoSuchAlgorithmException e) {
             LOG.error("Unable to perform SHA-1 on the ID, defaulting to raw bytes.", e);
         }
+        String dvString = "";
+        if (statement.getColumnVisibility() == null) {
+            dvString = new String(MongoDbRdfConstants.EMPTY_DV.getExpression(), Charsets.UTF_8);
+        } else {
+            dvString = new String(statement.getColumnVisibility(), Charsets.UTF_8);
+        }
+        final Object[] dvArray = DocumentVisibilityUtil.toMultidimensionalArray(dvString);
         final BasicDBObject doc = new BasicDBObject(ID, new String(Hex.encodeHex(bytes)))
         .append(SUBJECT, statement.getSubject().getData())
         .append(PREDICATE, statement.getPredicate().getData())
         .append(OBJECT, statement.getObject().getData())
         .append(OBJECT_TYPE, statement.getObject().getDataType().toString())
         .append(CONTEXT, context)
+        .append(DOCUMENT_VISIBILITY, dvArray)
         .append(TIMESTAMP, statement.getTimestamp());
         return doc;
 
