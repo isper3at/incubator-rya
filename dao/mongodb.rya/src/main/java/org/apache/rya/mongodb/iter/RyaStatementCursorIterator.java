@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.persist.RyaDAOException;
 import org.apache.rya.mongodb.dao.MongoDBStorageStrategy;
+import org.apache.rya.mongodb.document.operators.aggregation.AggregationUtil;
 
 import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBObject;

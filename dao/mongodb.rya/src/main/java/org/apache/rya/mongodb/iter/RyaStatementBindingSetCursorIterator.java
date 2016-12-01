@@ -30,6 +30,7 @@ import org.apache.rya.api.RdfCloudTripleStoreUtils;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.persist.RyaDAOException;
 import org.apache.rya.mongodb.dao.MongoDBStorageStrategy;
+import org.apache.rya.mongodb.document.operators.aggregation.AggregationUtil;
 import org.openrdf.query.BindingSet;
 
 import com.google.common.collect.Multimap;
