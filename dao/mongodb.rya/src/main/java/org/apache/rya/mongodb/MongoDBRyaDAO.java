@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
@@ -41,7 +42,6 @@ import org.apache.rya.mongodb.dao.MongoDBStorageStrategy;
 import org.apache.rya.mongodb.dao.SimpleMongoDBNamespaceManager;
 import org.apache.rya.mongodb.dao.SimpleMongoDBStorageStrategy;
 import org.apache.rya.mongodb.document.util.DocumentVisibilityUtil;
-import org.apache.rya.mongodb.document.visibility.Authorizations;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -49,8 +49,6 @@ import com.mongodb.DBObject;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.InsertOptions;
 import com.mongodb.MongoClient;
-
-import de.flapdoodle.embed.mongo.tests.MongodForTestsFactory;
 
 /**
  * Default DAO for mongo backed RYA allowing for CRUD operations.
@@ -137,7 +135,6 @@ public final class MongoDBRyaDAO implements RyaDAO<MongoDBRdfConfiguration>{
     @Override
     public boolean isInitialized() throws RyaDAOException {
         return true;
-
     }
 
     @Override
@@ -170,10 +167,10 @@ public final class MongoDBRyaDAO implements RyaDAO<MongoDBRdfConfiguration>{
     }
 
     @Override
-    public void add(final Iterator<RyaStatement> statement) throws RyaDAOException {
+    public void add(final Iterator<RyaStatement> statementIter) throws RyaDAOException {
         final List<DBObject> dbInserts = new ArrayList<DBObject>();
-        while (statement.hasNext()){
-            final RyaStatement ryaStatement = statement.next();
+        while (statementIter.hasNext()){
+            final RyaStatement ryaStatement = statementIter.next();
             final boolean canAdd = DocumentVisibilityUtil.doesUserHaveDocumentAccess(auths, ryaStatement.getColumnVisibility());
             if (canAdd) {
                 final DBObject insert = storageStrategy.serialize(ryaStatement);

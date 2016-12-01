@@ -1,23 +1,3 @@
-package org.apache.rya.mongodb.iter;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-import org.apache.rya.api.domain.RyaStatement;
-import org.apache.rya.api.persist.RyaDAOException;
-import org.apache.rya.mongodb.MongoDBRdfConfiguration;
-import org.apache.rya.mongodb.MongoDbRdfConstants;
-import org.apache.rya.mongodb.dao.MongoDBStorageStrategy;
-import org.apache.rya.mongodb.document.visibility.Authorizations;
-
-import com.mongodb.AggregationOutput;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -36,7 +16,23 @@ import com.mongodb.DBObject;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.rya.mongodb.iter;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.log4j.Logger;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.rya.mongodb.dao.MongoDBStorageStrategy;
+
+import com.mongodb.AggregationOutput;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 
 import info.aduna.iteration.CloseableIteration;
 
@@ -50,15 +46,11 @@ public class RyaStatementCursorIterator implements CloseableIteration<RyaStateme
     private Long maxResults;
     private final Authorizations auths;
 
-    public RyaStatementCursorIterator(final DBCollection coll, final Set<DBObject> queries, final MongoDBStorageStrategy<RyaStatement> strategy, final MongoDBRdfConfiguration conf) {
+    public RyaStatementCursorIterator(final DBCollection coll, final Set<DBObject> queries, final MongoDBStorageStrategy<RyaStatement> strategy, final Authorizations auths) {
         this.coll = coll;
         this.queryIterator = queries.iterator();
         this.strategy = strategy;
-        if (conf != null) {
-            this.auths = conf.getAuthorizations();
-        } else {
-            auths = MongoDbRdfConstants.ALL_AUTHORIZATIONS;
-        }
+        this.auths = auths;
     }
 
     @Override

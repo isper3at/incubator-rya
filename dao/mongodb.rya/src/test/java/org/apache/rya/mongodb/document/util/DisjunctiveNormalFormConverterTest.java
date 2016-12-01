@@ -23,9 +23,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 
+import org.apache.accumulo.core.security.ColumnVisibility.Node;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
-import org.apache.rya.mongodb.document.visibility.DocumentVisibility.Node;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -59,7 +59,18 @@ public class DisjunctiveNormalFormConverterTest {
     @Test (expected=NullPointerException.class)
     public void testTruthTableNullNode() {
         final Node node = null;
-        DisjunctiveNormalFormConverter.createTruthTableInputs(node);
+        final byte[] expression = new DocumentVisibility("A").getExpression();
+        DisjunctiveNormalFormConverter.createTruthTableInputs(node, expression);
+    }
+
+    /**
+     * Test truth table with a {@code null} expression.
+     */
+    @Test (expected=NullPointerException.class)
+    public void testTruthTableNullExpression() {
+        final Node node = new DocumentVisibility("A").getParseTree();
+        final byte[] expression = null;
+        DisjunctiveNormalFormConverter.createTruthTableInputs(node, expression);
     }
 
     /**
@@ -110,7 +121,8 @@ public class DisjunctiveNormalFormConverterTest {
      */
     @Test
     public void testTruthTableSize3FromNode() {
-        final byte[][] truthTable = DisjunctiveNormalFormConverter.createTruthTableInputs(new DocumentVisibility("(A&B)|(A&C)").getParseTree());
+        final DocumentVisibility dv = new DocumentVisibility("(A&B)|(A&C)");
+        final byte[][] truthTable = DisjunctiveNormalFormConverter.createTruthTableInputs(dv.getParseTree(), dv.getExpression());
         final byte[][] expected =
             {
                 {0, 0, 0},

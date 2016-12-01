@@ -18,14 +18,22 @@
  */
 package org.apache.rya.mongodb;
 
-import org.apache.rya.mongodb.document.visibility.Authorizations;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
 
 /**
- * Interface MongoDbRdfConstants.
+ * Interface MongoDbRdfConstants. Holds constants for MongoDB related
+ * operations.
  */
 public interface MongoDbRdfConstants {
+    /**
+     * Constant Authorization that allows user to view all documents.
+     */
     public static final Authorizations ALL_AUTHORIZATIONS = Authorizations.EMPTY;
 
+    /**
+     * Constant representing a non-{@code null} {@link DocumentVisibility} which
+     * should be used if the document does not specify a document visibility.
+     */
     public static final DocumentVisibility EMPTY_DV = new DocumentVisibility(new byte[0]);
 }

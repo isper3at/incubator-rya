@@ -28,6 +28,7 @@ import org.apache.rya.api.domain.RyaStatement.RyaStatementBuilder;
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.persist.RyaDAOException;
 import org.apache.rya.mongodb.dao.SimpleMongoDBStorageStrategy;
+import org.apache.rya.mongodb.document.util.DocumentVisibilityConversionException;
 import org.apache.rya.mongodb.document.util.DocumentVisibilityUtil;
 import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
 import org.junit.Test;
@@ -64,7 +65,11 @@ public class SimpleMongoDBStorageStrategyTest {
         testDBO.put(SimpleMongoDBStorageStrategy.OBJECT, OBJECT);
         testDBO.put(SimpleMongoDBStorageStrategy.OBJECT_TYPE, ANYURI.stringValue());
         testDBO.put(SimpleMongoDBStorageStrategy.CONTEXT, CONTEXT);
-        testDBO.put(SimpleMongoDBStorageStrategy.DOCUMENT_VISIBILITY, DocumentVisibilityUtil.toMultidimensionalArray(DOCUMENT_VISIBILITY));
+        try {
+            testDBO.put(SimpleMongoDBStorageStrategy.DOCUMENT_VISIBILITY, DocumentVisibilityUtil.toMultidimensionalArray(DOCUMENT_VISIBILITY));
+        } catch (final DocumentVisibilityConversionException e) {
+            e.printStackTrace();
+        }
         testDBO.put(SimpleMongoDBStorageStrategy.TIMESTAMP, null);
     }
 

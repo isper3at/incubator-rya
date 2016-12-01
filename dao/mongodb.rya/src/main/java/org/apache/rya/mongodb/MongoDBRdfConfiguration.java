@@ -21,9 +21,9 @@ package org.apache.rya.mongodb;
 
 import java.util.List;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
-import org.apache.rya.mongodb.document.visibility.Authorizations;
 
 import com.google.common.collect.Lists;
 import com.mongodb.MongoClient;

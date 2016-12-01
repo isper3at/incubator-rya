@@ -91,7 +91,7 @@ public class MongoDBQueryEngine implements RyaQueryEngine<MongoDBRdfConfiguratio
         final Set<DBObject> queries = new HashSet<DBObject>();
         final DBObject query = strategy.getQuery(stmt);
         queries.add(query);
-        final RyaStatementCursorIterator iterator = new RyaStatementCursorIterator(coll, queries, strategy, configuration);
+        final RyaStatementCursorIterator iterator = new RyaStatementCursorIterator(coll, queries, strategy, conf.getAuthorizations());
 
         if (maxResults != null) {
             iterator.setMaxResults(maxResults);
@@ -118,7 +118,7 @@ public class MongoDBQueryEngine implements RyaQueryEngine<MongoDBRdfConfiguratio
             }
 
             // TODO not sure what to do about regex ranges?
-            final RyaStatementBindingSetCursorIterator iterator = new RyaStatementBindingSetCursorIterator(coll, rangeMap, strategy, conf);
+            final RyaStatementBindingSetCursorIterator iterator = new RyaStatementBindingSetCursorIterator(coll, rangeMap, strategy, conf.getAuthorizations());
 
             if (maxResults != null) {
                 iterator.setMaxResults(maxResults);
@@ -145,7 +145,7 @@ public class MongoDBQueryEngine implements RyaQueryEngine<MongoDBRdfConfiguratio
              }
 
             // TODO not sure what to do about regex ranges?
-            final RyaStatementCursorIterator iterator = new RyaStatementCursorIterator(coll, queries, strategy, configuration);
+            final RyaStatementCursorIterator iterator = new RyaStatementCursorIterator(coll, queries, strategy, configuration.getAuthorizations());
 
             if (maxResults != null) {
                 iterator.setMaxResults(maxResults);
@@ -166,7 +166,7 @@ public class MongoDBQueryEngine implements RyaQueryEngine<MongoDBRdfConfiguratio
 
                 // TODO not sure what to do about regex ranges?
                 // TODO this is gross
-                final RyaStatementCursorIterable iterator = new RyaStatementCursorIterable(new NonCloseableRyaStatementCursorIterator(new RyaStatementCursorIterator(coll, queries, strategy, configuration)));
+                final RyaStatementCursorIterable iterator = new RyaStatementCursorIterable(new NonCloseableRyaStatementCursorIterator(new RyaStatementCursorIterator(coll, queries, strategy, configuration.getAuthorizations())));
 
                 return iterator;
             } catch (final Exception e) {
@@ -185,7 +185,7 @@ public class MongoDBQueryEngine implements RyaQueryEngine<MongoDBRdfConfiguratio
 
             // TODO not sure what to do about regex ranges?
             // TODO this is gross
-            final RyaStatementCursorIterable iterator = new RyaStatementCursorIterable(new NonCloseableRyaStatementCursorIterator(new RyaStatementCursorIterator(coll, queries, strategy, configuration)));
+            final RyaStatementCursorIterable iterator = new RyaStatementCursorIterable(new NonCloseableRyaStatementCursorIterator(new RyaStatementCursorIterator(coll, queries, strategy, configuration.getAuthorizations())));
 
             return iterator;
         } catch (final Exception e) {

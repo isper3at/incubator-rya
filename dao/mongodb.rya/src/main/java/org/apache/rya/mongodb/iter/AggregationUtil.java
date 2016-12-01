@@ -24,12 +24,14 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.rya.mongodb.MongoDbRdfConstants;
 import org.apache.rya.mongodb.dao.SimpleMongoDBStorageStrategy;
-import org.apache.rya.mongodb.document.visibility.Authorizations;
+import org.apache.rya.mongodb.document.util.AuthorizationsUtil;
 
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
+import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBObject;
 
 /**
@@ -55,10 +57,11 @@ public final class AggregationUtil {
         if (MongoDbRdfConstants.ALL_AUTHORIZATIONS.equals(authorizations)) {
             return Lists.newArrayList();
         }
-        final List<String> authAndList = authorizations.getAuthorizationsStrings();
+
+        final List<String> authAndList = AuthorizationsUtil.getAuthorizationsStrings(authorizations);
 
         // Generate all combinations of the authorization strings without repetition.
-        final List<List<String>> authOrList = createCombinations(authorizations.getAuthorizationsStrings());
+        final List<List<String>> authOrList = createCombinations(AuthorizationsUtil.getAuthorizationsStrings(authorizations));
 
         final String documentVisibilityField = "$" + SimpleMongoDBStorageStrategy.DOCUMENT_VISIBILITY;
 
@@ -99,7 +102,7 @@ public final class AggregationUtil {
      * @param values the {@link List} of values to create combinations from.
      * @return the {@link List} of combinations.
      */
-    public static <T> List<List<T>> createCombinations(final List<T> values) {
+    private static <T> List<List<T>> createCombinations(final List<T> values) {
         final List<List<T>> allCombinations = new ArrayList<>();
         for (int i = 1; i <= values.size(); i++) {
             allCombinations.addAll(createCombinations(values, i));
@@ -114,7 +117,7 @@ public final class AggregationUtil {
      * @param size the size of the combinations.
      * @return the {@link List} of combinations.
      */
-    public static <T> List<List<T>> createCombinations(final List<T> values, final int size) {
+    private static <T> List<List<T>> createCombinations(final List<T> values, final int size) {
         if (0 == size) {
             return Collections.singletonList(Collections.<T> emptyList());
         }
@@ -152,10 +155,12 @@ public final class AggregationUtil {
      * {@code ifStatement} is {@code false}.
      * @return the "if" expression {@link BasicDBObject}.
      */
-    public static BasicDBObject ifThenElse(final BasicDBObject ifStatement, final Object thenResult, final Object elseResult) {
-        return new BasicDBObject("if", ifStatement)
-            .append("then", thenResult)
-            .append("else", elseResult);
+    private static BasicDBObject ifThenElse(final BasicDBObject ifStatement, final Object thenResult, final Object elseResult) {
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("if", ifStatement);
+        builder.append("then", thenResult);
+        builder.append("else", elseResult);
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -167,11 +172,10 @@ public final class AggregationUtil {
      * {@code expression} is {@code false}.
      * @return the $cond expression {@link BasicDBObject}.
      */
-    public static BasicDBObject cond(final BasicDBObject expression, final Object thenResult, final Object elseResult) {
-        return new BasicDBObject(
-            "$cond",
-            ifThenElse(expression, thenResult, elseResult)
-        );
+    private static BasicDBObject cond(final BasicDBObject expression, final Object thenResult, final Object elseResult) {
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$cond", ifThenElse(expression, thenResult, elseResult));
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -181,14 +185,16 @@ public final class AggregationUtil {
      * @param extras any additional operands.
      * @return the $and expression {@link BasicDBObject}.
      */
-    public static BasicDBObject and(final BasicDBObject lhs, final BasicDBObject rhs, final BasicDBObject... extras) {
+    private static BasicDBObject and(final BasicDBObject lhs, final BasicDBObject rhs, final BasicDBObject... extras) {
         final List<BasicDBObject> operands = Lists.newArrayList(lhs, rhs);
 
         if (extras != null && extras.length > 0) {
             operands.addAll(Lists.newArrayList(extras));
         }
 
-        return new BasicDBObject("$and", operands);
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$and", operands);
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -198,14 +204,16 @@ public final class AggregationUtil {
      * @param extras any additional operands.
      * @return the $or expression {@link BasicDBObject}.
      */
-    public static BasicDBObject or(final BasicDBObject lhs, final BasicDBObject rhs, final BasicDBObject... extras) {
+    private static BasicDBObject or(final BasicDBObject lhs, final BasicDBObject rhs, final BasicDBObject... extras) {
         final List<BasicDBObject> operands = Lists.newArrayList(lhs, rhs);
 
         if (extras != null && extras.length > 0) {
             operands.addAll(Lists.newArrayList(extras));
         }
 
-        return new BasicDBObject("$or", operands);
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$or", operands);
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -213,8 +221,10 @@ public final class AggregationUtil {
      * @param expression the expression to get the size of.
      * @return the $size expression {@link BasicDBObject}.
      */
-    public static BasicDBObject size(final BasicDBObject expression) {
-        return new BasicDBObject("$size", expression);
+    private static BasicDBObject size(final BasicDBObject expression) {
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$size", expression);
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -223,14 +233,10 @@ public final class AggregationUtil {
      * @param the value to test if the expression is greater than
      * @return the $gt expression {@link BasicDBObject}.
      */
-    public static BasicDBObject gt(final BasicDBObject expression, final Number value) {
-        return new BasicDBObject(
-            "$gt",
-            Arrays.asList(
-                expression,
-                value
-            )
-        );
+    private static BasicDBObject gt(final BasicDBObject expression, final Number value) {
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$gt", Arrays.asList(expression, value));
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -240,13 +246,9 @@ public final class AggregationUtil {
      * @return the $setIntersection expression {@link BasicDBObject}.
      */
     public static BasicDBObject setIntersection(final String field, final Object[] set) {
-        return new BasicDBObject(
-            "$setIntersection",
-            Arrays.asList(
-                field,
-                set
-            )
-        );
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$setIntersection", Arrays.asList(field, set));
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -256,13 +258,9 @@ public final class AggregationUtil {
      * @return the $setIsSubset expression {@link BasicDBObject}.
      */
     public static BasicDBObject setIsSubset(final DBObject expression, final Object[] set) {
-        return new BasicDBObject(
-            "$setIsSubset",
-            Arrays.asList(
-                expression,
-                set
-            ).toArray(new Object[0])
-        );
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$setIsSubset", Arrays.asList(expression, set).toArray(new Object[0]));
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -290,14 +288,10 @@ public final class AggregationUtil {
      * {@code null}.
      * @return the $ifNull expression {@link BasicDBObject}.
      */
-    public static BasicDBObject ifNull(final Object expression, final Object replacementExpression) {
-        return new BasicDBObject(
-            "$ifNull",
-            Arrays.asList(
-                expression,
-                replacementExpression
-            )
-        );
+    private static BasicDBObject ifNull(final Object expression, final Object replacementExpression) {
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$ifNull", Arrays.asList(expression, replacementExpression));
+        return (BasicDBObject) builder.get();
     }
 
     /**
@@ -310,13 +304,8 @@ public final class AggregationUtil {
      * @return the $redact expression {@link BasicDBObject}.
      */
     public static BasicDBObject redact(final BasicDBObject expression, final String acceptResult, final String rejectResult) {
-        return new BasicDBObject(
-            "$redact",
-            cond(
-                expression,
-                acceptResult,
-                rejectResult
-            )
-        );
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("$redact", cond(expression, acceptResult, rejectResult));
+        return (BasicDBObject) builder.get();
     }
 }

@@ -23,24 +23,24 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility.Node;
+import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
+import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.log4j.Logger;
 import org.apache.rya.mongodb.MongoDbRdfConstants;
-import org.apache.rya.mongodb.document.visibility.Authorizations;
-import org.apache.rya.mongodb.document.visibility.ByteSequence;
 import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
-import org.apache.rya.mongodb.document.visibility.DocumentVisibility.Node;
-import org.apache.rya.mongodb.document.visibility.DocumentVisibility.NodeType;
-import org.apache.rya.mongodb.document.visibility.VisibilityEvaluator;
-import org.apache.rya.mongodb.document.visibility.VisibilityParseException;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBList;
 
 /**
- * Utility methods for converting boolean expressions between an Accumulo column
- * visibility string style and a multidimensional array that can be used
- * in MongoDB expressions.
+ * Utility methods for converting boolean expressions between a string
+ * representation to a MongoDB-friendly multidimensional array form that can be
+ * used in MongoDB's aggregation set operations.
  */
 public final class DocumentVisibilityUtil {
     private static final Logger log = Logger.getLogger(DocumentVisibilityUtil.class);
@@ -57,8 +57,9 @@ public final class DocumentVisibilityUtil {
      * @param booleanString the boolean string expression.
      * @return the multidimensional array representation of the boolean
      * expression.
+     * @throws DocumentVisibilityConversionException
      */
-    public static Object[] toMultidimensionalArray(final String booleanString) {
+    public static Object[] toMultidimensionalArray(final String booleanString) throws DocumentVisibilityConversionException {
         final DocumentVisibility dv = new DocumentVisibility(booleanString);
         return toMultidimensionalArray(dv);
     }
@@ -69,12 +70,13 @@ public final class DocumentVisibilityUtil {
      * @param dv the {@link DocumentVisibility}. (not {@code null})
      * @return the multidimensional array representation of the boolean
      * expression.
+     * @throws DocumentVisibilityConversionException
      */
-    public static Object[] toMultidimensionalArray(final DocumentVisibility dv) {
+    public static Object[] toMultidimensionalArray(final DocumentVisibility dv) throws DocumentVisibilityConversionException {
         checkNotNull(dv);
         final byte[] expression = dv.flatten();
         final DocumentVisibility flattenedDv = DisjunctiveNormalFormConverter.createDnfDocumentVisibility(expression);
-        final Object[] result = toMultidimensionalArray(flattenedDv.getParseTree(), expression);
+        final Object[] result = toMultidimensionalArray(flattenedDv.getParseTree(), flattenedDv.getExpression());
         return result;
     }
 
@@ -85,13 +87,14 @@ public final class DocumentVisibilityUtil {
      * @param expression the expression byte array.
      * @return the multidimensional array representation of the boolean
      * expression.
+     * @throws DocumentVisibilityConversionException
      */
-    public static Object[] toMultidimensionalArray(final Node node, final byte[] expression) {
+    public static Object[] toMultidimensionalArray(final Node node, final byte[] expression) throws DocumentVisibilityConversionException {
         checkNotNull(node);
         final List<Object> array = new ArrayList<>();
 
         if (node.getChildren().isEmpty() && node.getType() == NodeType.TERM) {
-            final String data = getTermNodeData(node);
+            final String data = getTermNodeData(node, expression);
             array.add(data);
         }
 
@@ -102,7 +105,7 @@ public final class DocumentVisibilityUtil {
                 case TERM:
                     String data;
                     if (child.getType() == NodeType.TERM) {
-                        data = getTermNodeData(child);
+                        data = getTermNodeData(child, expression);
                     } else {
                         data = "";
                     }
@@ -117,18 +120,18 @@ public final class DocumentVisibilityUtil {
                     array.add(toMultidimensionalArray(child, expression));
                     break;
                 default:
-                    break;
+                    throw new DocumentVisibilityConversionException("Unknown type: " + child.getType());
             }
         }
 
         return array.toArray(new Object[0]);
     }
 
-    public static String nodeToBooleanString(final Node node) {
+    public static String nodeToBooleanString(final Node node, final byte[] expression) throws DocumentVisibilityConversionException {
         boolean isFirst = true;
         final StringBuilder sb = new StringBuilder();
         if (node.getType() == NodeType.TERM) {
-            final String data = getTermNodeData(node);
+            final String data = getTermNodeData(node, expression);
             sb.append(data);
         }
         if (node.getType() == NodeType.AND) {
@@ -149,19 +152,19 @@ public final class DocumentVisibilityUtil {
                     sb.append("");
                     break;
                 case TERM:
-                    final String data = getTermNodeData(child);
+                    final String data = getTermNodeData(child, expression);
                     sb.append(data);
                     break;
                 case OR:
                     sb.append("(");
-                    sb.append(nodeToBooleanString(child));
+                    sb.append(nodeToBooleanString(child, expression));
                     sb.append(")");
                     break;
                 case AND:
-                    sb.append(nodeToBooleanString(child));
+                    sb.append(nodeToBooleanString(child, expression));
                     break;
                 default:
-                    break;
+                    throw new DocumentVisibilityConversionException("Unknown type: " + child.getType());
             }
         }
         if (node.getType() == NodeType.AND) {
@@ -241,9 +244,9 @@ public final class DocumentVisibilityUtil {
      * @param node the {@link Node}.
      * @return the term node's data.
      */
-    public static String getTermNodeData(final Node node) {
-        final boolean isQuotedTerm = node.getExpression()[node.getTermStart()] == '"';
-        final ByteSequence bs = node.getTerm(node.getExpression());
+    public static String getTermNodeData(final Node node, final byte[] expression) {
+        final boolean isQuotedTerm = expression[node.getTermStart()] == '"';
+        final ByteSequence bs = node.getTerm(expression);
         final String data = addQuotes(new String(bs.toArray(), Charsets.UTF_8), isQuotedTerm);
         return data;
     }
@@ -301,6 +304,11 @@ public final class DocumentVisibilityUtil {
         return accept;
     }
 
+    /**
+     * Converts a {@link BasicDBList} into an array of {@link Object}s.
+     * @param basicDbList the {@link BasicDBList} to convert.
+     * @return the array of {@link Object}s.
+     */
     public static Object[] convertBasicDBListToObjectArray(final BasicDBList basicDbList) {
         final List<Object> list = new ArrayList<>();
         final Object[] array = basicDbList.toArray();

@@ -27,12 +27,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility.Node;
+import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.apache.rya.mongodb.document.visibility.Authorizations;
 import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
-import org.apache.rya.mongodb.document.visibility.DocumentVisibility.Node;
-import org.apache.rya.mongodb.document.visibility.DocumentVisibility.NodeType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -82,7 +82,7 @@ public final class DisjunctiveNormalFormConverter {
      */
     public static DocumentVisibility convertToDisjunctiveNormalForm(final DocumentVisibility documentVisibility) {
         // Find all the terms used in the expression
-        final List<String> terms = findNodeTerms(documentVisibility.getParseTree());
+        final List<String> terms = findNodeTerms(documentVisibility.getParseTree(), documentVisibility.getExpression());
         // Create an appropriately sized truth table that has the correct 0's
         // and 1's in place based on the number of terms.
         // This size should be [numberOfNumber][2 ^ numberOfTerms].
@@ -164,17 +164,17 @@ public final class DisjunctiveNormalFormConverter {
      * @param node the {@link Node}.
      * @return an unmodifiable {@link List} of string terms without duplicates.
      */
-    public static List<String> findNodeTerms(final Node node) {
+    public static List<String> findNodeTerms(final Node node, final byte[] expression) {
         final Set<String> terms = new LinkedHashSet<>();
         if (node.getType() == NodeType.TERM) {
-            final String data = DocumentVisibilityUtil.getTermNodeData(node);
+            final String data = DocumentVisibilityUtil.getTermNodeData(node, expression);
             terms.add(data);
         }
         for (final Node child : node.getChildren()) {
             switch (node.getType()) {
                 case AND:
                 case OR:
-                    terms.addAll(findNodeTerms(child));
+                    terms.addAll(findNodeTerms(child, expression));
                     break;
                 default:
                     break;
@@ -201,8 +201,8 @@ public final class DisjunctiveNormalFormConverter {
      * @return a two-dimensional array of bytes representing the truth table
      * inputs.  The table will be of size: [termNumber] x [2 ^ termNumber]
      */
-    public static byte[][] createTruthTableInputs(final Node node) {
-        final List<String> terms = findNodeTerms(node);
+    public static byte[][] createTruthTableInputs(final Node node, final byte[] expression) {
+        final List<String> terms = findNodeTerms(node, expression);
         return createTruthTableInputs(terms);
     }
 

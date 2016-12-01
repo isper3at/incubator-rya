@@ -85,13 +85,14 @@ public class DocumentVisibilityUtilTest {
         );
 
     @Test
-    public void testGoodExpressions() {
+    public void testGoodExpressions() throws DocumentVisibilityConversionException {
         int count = 1;
         for (final Pair<String, String> pair : INPUT_AND_EXPECTED_BOOLEAN_EXPRESSIONS) {
             final String booleanExpression = pair.getLeft();
             final String expected = pair.getRight();
             log.info("Valid Test: " + count);
             log.info("Original: " + booleanExpression);
+
             // Convert to multidimensional array
             final DocumentVisibility dv = new DocumentVisibility(booleanExpression);
             final Object[] multidimensionalArray = DocumentVisibilityUtil.toMultidimensionalArray(dv);

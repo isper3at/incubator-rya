@@ -32,6 +32,7 @@ import org.apache.rya.api.domain.RyaType;
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.persist.query.RyaQuery;
 import org.apache.rya.mongodb.MongoDbRdfConstants;
+import org.apache.rya.mongodb.document.util.DocumentVisibilityConversionException;
 import org.apache.rya.mongodb.document.util.DocumentVisibilityUtil;
 import org.apache.rya.mongodb.document.visibility.DocumentVisibility;
 import org.openrdf.model.impl.ValueFactoryImpl;
@@ -167,7 +168,12 @@ public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaS
         } else {
             dvString = new String(statement.getColumnVisibility(), Charsets.UTF_8);
         }
-        final Object[] dvArray = DocumentVisibilityUtil.toMultidimensionalArray(dvString);
+        Object[] dvArray = null;
+        try {
+            dvArray = DocumentVisibilityUtil.toMultidimensionalArray(dvString);
+        } catch (final DocumentVisibilityConversionException e) {
+            LOG.error("Unable to convert document visibility");
+        }
         final BasicDBObject doc = new BasicDBObject(ID, new String(Hex.encodeHex(bytes)))
         .append(SUBJECT, statement.getSubject().getData())
         .append(PREDICATE, statement.getPredicate().getData())
