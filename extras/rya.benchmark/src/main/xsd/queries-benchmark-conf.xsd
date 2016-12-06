@@ -25,7 +25,7 @@
         <xsd:complexType>
             <xsd:sequence>
                 <xsd:element name="Rya" type="Rya"/>
-                <xsd:element name="Parameters" type="Parameters"/>
+                <xsd:element name="Parameters" type="Parameters" minOccurs="0"/>
             </xsd:sequence>
         </xsd:complexType>
     </xsd:element>
@@ -33,16 +33,37 @@
     <xsd:complexType name="Rya">
         <xsd:sequence>
             <xsd:element name="ryaInstanceName" type="xsd:string" />
-            <xsd:element name="accumulo">
+            <xsd:element name="auths">
                 <xsd:complexType>
                     <xsd:sequence>
-                        <xsd:element name="username" type="xsd:string"/>
-                        <xsd:element name="password" type="xsd:string"/>
-                        <xsd:element name="zookeepers" type="xsd:string"/>
-                        <xsd:element name="instanceName" type="xsd:string"/>
+                        <xsd:element name="auth" type="xsd:string" maxOccurs="unbounded" minOccurs="0"/>
                     </xsd:sequence>
                 </xsd:complexType>
             </xsd:element>
+            <xsd:choice>
+	            <xsd:element name="accumulo">
+	                <xsd:complexType>
+	                    <xsd:sequence>
+	                        <xsd:element name="username" type="xsd:string"/>
+	                        <xsd:element name="password" type="xsd:string"/>
+	                        <xsd:element name="zookeepers" type="xsd:string"/>
+	                        <xsd:element name="instanceName" type="xsd:string"/>
+	                    </xsd:sequence>
+	                </xsd:complexType>
+	            </xsd:element>
+	            <xsd:element name="mongo">
+	                <xsd:complexType>
+	                    <xsd:sequence>
+	                        <xsd:element name="username" type="xsd:string" minOccurs="0"/>
+	                        <xsd:element name="password" type="xsd:string" minOccurs="0"/>
+	                        <xsd:element name="hostname" type="xsd:string"/>
+	                        <xsd:element name="port" type="xsd:string"/>
+	                        <xsd:element name="database" type="xsd:string"/>
+	                        <xsd:element name="collection" type="xsd:string"/>
+	                    </xsd:sequence>
+	                </xsd:complexType>
+	            </xsd:element>
+            </xsd:choice>
             <xsd:element name="secondaryIndexing">
                 <xsd:complexType>
                     <xsd:sequence>
