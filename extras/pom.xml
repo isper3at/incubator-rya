@@ -51,6 +51,7 @@ under the License.
             <id>geoindexing</id>
             <modules>
                 <module>rya.geoindexing</module>
+                <module>rya.geotemporalindexing</module>
            </modules>
         </profile>
 	</profiles>
