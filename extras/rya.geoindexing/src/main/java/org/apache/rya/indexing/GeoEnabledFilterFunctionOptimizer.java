@@ -34,6 +34,17 @@ import org.apache.commons.lang.Validate;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
+import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.indexing.IndexingFunctionRegistry.FUNCTION_TYPE;
+import org.apache.rya.indexing.accumulo.ConfigUtils;
+import org.apache.rya.indexing.accumulo.freetext.AccumuloFreeTextIndexer;
+import org.apache.rya.indexing.accumulo.freetext.FreeTextTupleSet;
+import org.apache.rya.indexing.accumulo.geo.GeoMesaGeoIndexer;
+import org.apache.rya.indexing.accumulo.geo.GeoTupleSet;
+import org.apache.rya.indexing.accumulo.temporal.AccumuloTemporalIndexer;
+import org.apache.rya.indexing.mongodb.freetext.MongoFreeTextIndexer;
+import org.apache.rya.indexing.mongodb.geo.MongoGeoIndexer;
+import org.apache.rya.indexing.mongodb.temporal.MongoTemporalIndexer;
 import org.geotools.feature.SchemaException;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
@@ -58,18 +69,6 @@ import org.openrdf.query.algebra.evaluation.QueryOptimizer;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 
 import com.google.common.collect.Lists;
-
-import org.apache.rya.accumulo.AccumuloRdfConfiguration;
-import org.apache.rya.indexing.IndexingFunctionRegistry.FUNCTION_TYPE;
-import org.apache.rya.indexing.accumulo.ConfigUtils;
-import org.apache.rya.indexing.accumulo.freetext.AccumuloFreeTextIndexer;
-import org.apache.rya.indexing.accumulo.freetext.FreeTextTupleSet;
-import org.apache.rya.indexing.accumulo.geo.GeoMesaGeoIndexer;
-import org.apache.rya.indexing.accumulo.geo.GeoTupleSet;
-import org.apache.rya.indexing.accumulo.temporal.AccumuloTemporalIndexer;
-import org.apache.rya.indexing.mongodb.freetext.MongoFreeTextIndexer;
-import org.apache.rya.indexing.mongodb.geo.MongoGeoIndexer;
-import org.apache.rya.indexing.mongodb.temporal.MongoTemporalIndexer;
 
 public class GeoEnabledFilterFunctionOptimizer implements QueryOptimizer, Configurable {
     private static final Logger LOG = Logger.getLogger(GeoEnabledFilterFunctionOptimizer.class);
@@ -97,18 +96,18 @@ public class GeoEnabledFilterFunctionOptimizer implements QueryOptimizer, Config
         this.conf = conf;
         //reset the init.
         init = false;
-            init();
+        init();
     }
 
     private synchronized void init() {
         if (!init) {
             if (ConfigUtils.getUseMongo(conf)) {
-                    geoIndexer = new MongoGeoIndexer();
-                    geoIndexer.setConf(conf);
-                    freeTextIndexer = new MongoFreeTextIndexer();
-                    freeTextIndexer.setConf(conf);
-                    temporalIndexer = new MongoTemporalIndexer();
-                    temporalIndexer.setConf(conf);
+                geoIndexer = new MongoGeoIndexer();
+                geoIndexer.setConf(conf);
+                freeTextIndexer = new MongoFreeTextIndexer();
+                freeTextIndexer.setConf(conf);
+                temporalIndexer = new MongoTemporalIndexer();
+                temporalIndexer.setConf(conf);
             } else {
                 geoIndexer = new GeoMesaGeoIndexer();
                 geoIndexer.setConf(conf);
@@ -123,12 +122,11 @@ public class GeoEnabledFilterFunctionOptimizer implements QueryOptimizer, Config
 
     @Override
     public void optimize(final TupleExpr tupleExpr, final Dataset dataset, final BindingSet bindings) {
-     // find variables used in property and resource based searches:
+        // find variables used in property and resource based searches:
         final SearchVarVisitor searchVars = new SearchVarVisitor();
         tupleExpr.visit(searchVars);
         // rewrites for property searches:
         processPropertySearches(tupleExpr, searchVars.searchProperties);
-
     }
 
 
