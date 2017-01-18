@@ -1,67 +1,110 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.rya.indexing;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.rya.api.persist.index.RyaSecondaryIndexer;
-import org.apache.rya.indexing.model.GeoTime;
+import org.apache.rya.indexing.storage.EventStorage;
 import org.openrdf.model.Statement;
-import org.openrdf.query.QueryEvaluationException;
-
-import info.aduna.iteration.CloseableIteration;
+import org.openrdf.model.URI;
+import org.openrdf.model.impl.URIImpl;
 
 /**
  * A repository to store, index, and retrieve {@link Statement}s based on geotemporal features.
  */
 public interface GeoTemporalIndexer extends RyaSecondaryIndexer {
-    /**
-     * Returns statements that contain occured based in a geometry and at a time.
-     * <br>
-     * The geometry properties are based on the {@link GeoPolicy}.
-     * <br>
-     * The temporal properties are based on the {@link TemporalPolicy}.
-     *
-     * @param geoTime - The {@link GeoTime}
-     * @param geoPolicy
-     * @param temporalPolicy
-     * @param contraints
-     *
-     * @return An iteration of {@link Statement}s matching the query.
-     * @see TemporalIndexer
-     * @see GeoIndexer
-     */
-    public abstract CloseableIteration<Statement, QueryEvaluationException> query(final GeoTime geoTime, final GeoPolicy geoPolicy, final TemporalPolicy temporalPolicy, final StatementConstraints contraints);
 
+    /**
+     * Creates the {@link Eventtorage} that will be used by the indexer.
+     *
+     * @param conf - Indicates how the {@link EventStorage} is initialized. (not null)
+     * @return The {@link EventStorage} that will be used by this indexer.
+     */
+    public abstract EventStorage getEventStorage(final Configuration conf);
 
     public enum GeoPolicy {
-        EQUALS,
-        DISJOINT,
-        INTERSECTS,
-        TOUCHES,
-        CROSSES,
-        WITHIN,
-        CONTAINS,
-        OVERLAPS;
+        EQUALS(GeoConstants.GEO_SF_EQUALS),
+        DISJOINT(GeoConstants.GEO_SF_DISJOINT),
+        INTERSECTS(GeoConstants.GEO_SF_INTERSECTS),
+        TOUCHES(GeoConstants.GEO_SF_TOUCHES),
+        CROSSES(GeoConstants.GEO_SF_CROSSES),
+        WITHIN(GeoConstants.GEO_SF_WITHIN),
+        CONTAINS(GeoConstants.GEO_SF_CONTAINS),
+        OVERLAPS(GeoConstants.GEO_SF_OVERLAPS);
+
+        private final URI uri;
+
+        private GeoPolicy(final URI uri) {
+            this.uri = uri;
+        }
+
+        public URI getURI() {
+            return uri;
+        }
+
+        public static GeoPolicy fromURI(final URI uri) {
+            for(final GeoPolicy policy : GeoPolicy.values()) {
+                if(policy.getURI().equals(uri)) {
+                    return policy;
+                }
+            }
+            return null;
+        }
     }
 
+    String TEMPORAL_NS = "tag:rya-rdf.org,2015:temporal#";
     public enum TemporalPolicy {
-        EQUALS_INSTANT(true),
-        BEFORE_INSTANT(true),
-        AFTER_INSTANT(true),
-        BEFORE_INTERVAL(false),
-        IN_INTERVAL(false),
-        AFTER_INTERVAL(false),
-        START_INTERVAL(false),
-        END_INTERVAL(false),
-        INTERVAL_EQUALS(false),
-        INTERVAL_BEFORE(false),
-        INTERVAL_AFTER(false);
+        INSTANT_EQUALS_INSTANT(true, new URIImpl(TEMPORAL_NS+"equals")),
+        INSTANT_BEFORE_INSTANT(true, new URIImpl(TEMPORAL_NS+"before")),
+        INSTANT_AFTER_INSTANT(true, new URIImpl(TEMPORAL_NS+"after")),
+        INSTANT_BEFORE_INTERVAL(false, new URIImpl(TEMPORAL_NS+"beforeInterval")),
+        INSTANT_IN_INTERVAL(false, new URIImpl(TEMPORAL_NS+"insideInterval")),
+        INSTANT_AFTER_INTERVAL(false, new URIImpl(TEMPORAL_NS+"afterInterval")),
+        INSTANT_START_INTERVAL(false, new URIImpl(TEMPORAL_NS+"hasBeginingInterval")),
+        INSTANT_END_INTERVAL(false, new URIImpl(TEMPORAL_NS+"hasEndInterval")),
+        INTERVAL_EQUALS(false, new URIImpl(TEMPORAL_NS+"intervalEquals")),
+        INTERVAL_BEFORE(false, new URIImpl(TEMPORAL_NS+"intervalBefore")),
+        INTERVAL_AFTER(false, new URIImpl(TEMPORAL_NS+"intervalAfter"));
 
         private final boolean isInstant;
+        private final URI uri;
 
-        TemporalPolicy(final boolean isInstant) {
+        TemporalPolicy(final boolean isInstant, final URI uri) {
             this.isInstant = isInstant;
+            this.uri = uri;
         }
 
         public boolean isInstant(){
             return isInstant;
+        }
+
+        public URI getURI() {
+            return uri;
+        }
+
+        public static TemporalPolicy fromURI(final URI uri) {
+            for(final TemporalPolicy policy : TemporalPolicy.values()) {
+                if(policy.getURI().equals(uri)) {
+                    return policy;
+                }
+            }
+            return null;
         }
     }
 }
