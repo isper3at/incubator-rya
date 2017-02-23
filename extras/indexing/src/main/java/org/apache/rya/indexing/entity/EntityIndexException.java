@@ -19,11 +19,12 @@
 package org.apache.rya.indexing.entity;
 
 import org.apache.rya.indexing.entity.model.TypedEntity;
+import org.apache.rya.indexing.mongodb.IndexingException;
 
 /**
  * An operation over the {@link TypedEntity} index failed to complete.
  */
-public class EntityIndexException extends Exception {
+public class EntityIndexException extends IndexingException {
     private static final long serialVersionUID = 1L;
 
     /**

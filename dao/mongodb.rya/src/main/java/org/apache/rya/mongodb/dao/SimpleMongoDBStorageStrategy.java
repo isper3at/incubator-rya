@@ -25,7 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Hex;
+import org.apache.directory.api.util.Hex;
 import org.apache.log4j.Logger;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaType;
@@ -125,12 +125,12 @@ public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaS
         }
         if(statementMetadata != null) {
             try {
-                StatementMetadata metadata = new StatementMetadata(statementMetadata);
+                final StatementMetadata metadata = new StatementMetadata(statementMetadata);
                 statement.setStatementMetadata(metadata);
             }
-            catch (Exception ex){
+            catch (final Exception ex){
                 LOG.debug("Error deserializing metadata for statement", ex);
-            }         
+            }
         }
         return statement;
     }
@@ -157,7 +157,7 @@ public class SimpleMongoDBStorageStrategy implements MongoDBStorageStrategy<RyaS
         if (statement.getMetadata() == null){
             statement.setStatementMetadata(StatementMetadata.EMPTY_METADATA);
         }
-        BasicDBObject doc = new BasicDBObject(ID, new String(Hex.encodeHex(bytes)))
+        final BasicDBObject doc = new BasicDBObject(ID, new String(Hex.encodeHex(bytes)))
         .append(SUBJECT, statement.getSubject().getData())
         .append(PREDICATE, statement.getPredicate().getData())
         .append(OBJECT, statement.getObject().getData())

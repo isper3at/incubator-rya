@@ -42,7 +42,7 @@ import com.vividsolutions.jts.io.WKTReader;
 public class GeoMongoDBStorageStrategy extends IndexingMongoDBStorageStrategy {
     private static final Logger LOG = Logger.getLogger(GeoMongoDBStorageStrategy.class);
 
-    private static final String GEO = "location";
+    public static final String GEO = "location";
     public enum GeoQueryType {
         INTERSECTS {
             @Override
@@ -65,7 +65,7 @@ public class GeoMongoDBStorageStrategy extends IndexingMongoDBStorageStrategy {
         public abstract String getKeyword();
     }
 
-    static class GeoQuery {
+    public static class GeoQuery {
         private final GeoQueryType queryType;
         private final Geometry geo;
 
@@ -90,7 +90,7 @@ public class GeoMongoDBStorageStrategy extends IndexingMongoDBStorageStrategy {
 
     @Override
     public void createIndices(final DBCollection coll){
-        coll.createIndex("{" + GEO + " : \"2dsphere\"" );
+        coll.createIndex(GEO);
     }
 
     public DBObject getQuery(final GeoQuery queryObj) throws MalformedQueryException {
@@ -136,7 +136,7 @@ public class GeoMongoDBStorageStrategy extends IndexingMongoDBStorageStrategy {
         }
     }
 
-    private List<double[]> getCorrespondingPoints(final Geometry geo){
+    public List<double[]> getCorrespondingPoints(final Geometry geo){
        final List<double[]> points = new ArrayList<double[]>();
         for (final Coordinate coord : geo.getCoordinates()){
             points.add(new double[] {
