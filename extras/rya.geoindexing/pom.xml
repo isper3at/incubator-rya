@@ -65,10 +65,9 @@
 			<artifactId>mongodb.rya</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.rya</groupId>
-			<artifactId>rya.prospector</artifactId>
-		</dependency>
-
+            <groupId>org.apache.rya</groupId>
+            <artifactId>rya.prospector</artifactId>
+        </dependency>
 		<!-- Free Text Indexing -->
 		<dependency>
 			<groupId>org.apache.lucene</groupId>

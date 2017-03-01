@@ -48,6 +48,7 @@ import org.apache.rya.indexing.mongodb.geo.GeoMongoDBStorageStrategy.GeoQuery;
 import org.apache.rya.indexing.mongodb.temporal.TemporalMongoDBStorageStrategy;
 import org.joda.time.DateTime;
 import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
 import org.openrdf.query.MalformedQueryException;
 
 import com.mongodb.BasicDBObject;
@@ -84,23 +85,44 @@ public class GeoTemporalMongoDBStorageStrategy extends IndexingMongoDBStorageStr
 
     public DBObject getFilterQuery(final Collection<IndexingExpr> geoFilters, final Collection<IndexingExpr> temporalFilters) throws GeoTemporalIndexException {
         final QueryBuilder builder = QueryBuilder.start();
-        final QueryBuilder geoBuilder = QueryBuilder.start();
-        final QueryBuilder temporalBuilder = QueryBuilder.start();
 
-        geoBuilder.and(getGeoObjs(geoFilters));
-        temporalBuilder.and(getTemporalObjs(temporalFilters));
-        builder.or(geoBuilder.get(), temporalBuilder.get());
-        return builder.get();
+        if(!geoFilters.isEmpty()) {
+            final DBObject[] geo = getGeoObjs(geoFilters);
+            if(!temporalFilters.isEmpty()) {
+                final DBObject[] temporal = getTemporalObjs(temporalFilters);
+                builder.and(oneOrAnd(geo), oneOrAnd(temporal));
+                return builder.get();
+            } else {
+                return oneOrAnd(geo);
+            }
+        } else if(!temporalFilters.isEmpty()) {
+            final DBObject[] temporal = getTemporalObjs(temporalFilters);
+            return oneOrAnd(temporal);
+        } else {
+            return builder.get();
+        }
+    }
+
+    private DBObject oneOrAnd(final DBObject[] dbos) {
+        if(dbos.length == 1) {
+            return dbos[0];
+        }
+        return QueryBuilder.start()
+            .and(dbos)
+            .get();
     }
 
     @Override
     public DBObject serialize(final RyaStatement ryaStatement) {
         final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start("_id", ryaStatement.getSubject().hashCode());
-        if(ryaStatement.getPredicate().equals(GeoConstants.GEO_AS_WKT) ||
-           ryaStatement.getPredicate().equals(GeoConstants.GEO_AS_GML)) {
+        final URI obj = ryaStatement.getObject().getDataType();
+
+
+        if(obj.equals(GeoConstants.GEO_AS_WKT) || obj.equals(GeoConstants.GEO_AS_GML) ||
+           obj.equals(GeoConstants.XMLSCHEMA_OGC_GML) || obj.equals(GeoConstants.XMLSCHEMA_OGC_WKT)) {
             try {
                 final Statement statement = RyaToRdfConversions.convertStatement(ryaStatement);
-                final Geometry geo = (new WKTReader()).read(GeoParseUtils.getWellKnownText(statement));
+                final Geometry geo = GeoParseUtils.getGeometry(statement);
                 builder.add(GEO_KEY, geoStrategy.getCorrespondingPoints(geo));
             } catch (final ParseException e) {
                 LOG.error("Could not create geometry for statement " + ryaStatement, e);
@@ -126,7 +148,7 @@ public class GeoTemporalMongoDBStorageStrategy extends IndexingMongoDBStorageStr
                 Log.error("Unable to parse '" + geoStr + "'.", e);
             }
         });
-        return (DBObject[]) objs.toArray();
+        return objs.toArray(new DBObject[]{});
     }
 
     private DBObject[] getTemporalObjs(final Collection<IndexingExpr> temporalFilters) {
@@ -155,7 +177,7 @@ public class GeoTemporalMongoDBStorageStrategy extends IndexingMongoDBStorageStr
                 objs.add(getTemporalObject(instant, policy));
             }
         });
-        return (DBObject[]) objs.toArray();
+        return objs.toArray(new DBObject[]{});
     }
 
     private DBObject getGeoObject (final Geometry geo, final GeoPolicy policy) throws GeoTemporalIndexException {

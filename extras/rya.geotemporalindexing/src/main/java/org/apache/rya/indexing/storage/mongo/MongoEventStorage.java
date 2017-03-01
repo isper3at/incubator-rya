@@ -1,7 +1,26 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.rya.indexing.storage.mongo;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
@@ -15,7 +34,6 @@ import org.apache.rya.indexing.entity.storage.mongo.DocumentConverter.DocumentCo
 import org.apache.rya.indexing.entity.storage.mongo.MongoEntityStorage;
 import org.apache.rya.indexing.model.Event;
 import org.apache.rya.indexing.mongo.GeoTemporalMongoDBStorageStrategy;
-import org.apache.rya.indexing.storage.EventDocumentConverter;
 import org.apache.rya.indexing.storage.EventStorage;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
@@ -100,19 +118,22 @@ public class MongoEventStorage implements EventStorage {
     }
 
     @Override
-    public Optional<Event> get(final RyaURI subject, final Collection<IndexingExpr> geoFilters, final Collection<IndexingExpr> temporalFilters) throws EventStorageException {
+    public Optional<Event> get(final Optional<RyaURI> subject, final Optional<Collection<IndexingExpr>> geoFilters, final Optional<Collection<IndexingExpr>> temporalFilters) throws EventStorageException {
         requireNonNull(subject);
 
         try {
-            final DBObject filterObj = queryAdapter.getFilterQuery(geoFilters, temporalFilters);
+            final Collection<IndexingExpr> geos = (geoFilters.isPresent() ? geoFilters.get() : new ArrayList<>());
+            final Collection<IndexingExpr> tempos = (temporalFilters.isPresent() ? temporalFilters.get() : new ArrayList<>());
+            final DBObject filterObj = queryAdapter.getFilterQuery(geos, tempos);
 
-            final DBObject query = BasicDBObjectBuilder
-            .start(filterObj.toMap())
-            .append(EventDocumentConverter.SUBJECT, subject.getData())
-            .get();
+            final BasicDBObjectBuilder builder = BasicDBObjectBuilder
+            .start(filterObj.toMap());
+            if(subject.isPresent()) {
+                builder.append(EventDocumentConverter.SUBJECT, subject.get().getData());
+            }
             final Document document = mongo.getDatabase(ryaInstanceName)
                 .getCollection(COLLECTION_NAME)
-                .find( BsonDocument.parse(query.toString()) )
+                .find( BsonDocument.parse(builder.get().toString()) )
                 .first();
 
             return document == null ?
@@ -120,7 +141,7 @@ public class MongoEventStorage implements EventStorage {
                     Optional.of( EVENT_CONVERTER.fromDocument(document) );
 
         } catch(final MongoException | DocumentConverterException | GeoTemporalIndexException e) {
-            throw new EventStorageException("Could not get the Event with Subject '" + subject.getData() + "'.", e);
+            throw new EventStorageException("Could not get the Event.", e);
         }
     }
 
@@ -152,8 +173,18 @@ public class MongoEventStorage implements EventStorage {
 
     @Override
     public boolean delete(final RyaURI subject) throws EventStorageException {
-        // TODO Auto-generated method stub
-        return false;
+        requireNonNull(subject);
+
+        try {
+            final Document deleted = mongo.getDatabase(ryaInstanceName)
+                .getCollection(COLLECTION_NAME)
+                .findOneAndDelete( makeSubjectFilter(subject) );
+
+            return deleted != null;
+
+        } catch(final MongoException e) {
+            throw new EventStorageException("Could not delete the Event with Subject '" + subject.getData() + "'.", e);
+        }
     }
 
     private static Bson makeSubjectFilter(final RyaURI subject) {

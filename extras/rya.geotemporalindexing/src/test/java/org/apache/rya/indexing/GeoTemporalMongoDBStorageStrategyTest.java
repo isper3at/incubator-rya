@@ -1,5 +1,5 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
+l * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -18,26 +18,42 @@
  */
 package org.apache.rya.indexing;
 
-import org.apache.rya.api.domain.RyaURI;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.rya.api.resolver.RdfToRyaConversions;
 import org.apache.rya.indexing.GeoTemporalIndexer.GeoPolicy;
 import org.apache.rya.indexing.GeoTemporalIndexer.TemporalPolicy;
-import org.apache.rya.indexing.model.Event;
+import org.apache.rya.indexing.IndexingFunctionRegistry.FUNCTION_TYPE;
 import org.apache.rya.indexing.mongo.GeoTemporalMongoDBStorageStrategy;
 import org.junit.Before;
 import org.junit.Test;
+import org.openrdf.model.Resource;
+import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
+import org.openrdf.model.Value;
+import org.openrdf.model.ValueFactory;
+import org.openrdf.model.impl.ContextStatementImpl;
+import org.openrdf.model.impl.URIImpl;
+import org.openrdf.model.impl.ValueFactoryImpl;
+import org.openrdf.query.algebra.FunctionCall;
+import org.openrdf.query.algebra.StatementPattern;
+import org.openrdf.query.algebra.ValueConstant;
+import org.openrdf.query.algebra.ValueExpr;
+import org.openrdf.query.algebra.Var;
 
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
-import com.vividsolutions.jts.geom.Polygon;
 
+/**
+ * Tests The {@link GeoTemporalMongoDBStorageStrategy}, which turns the filters
+ * into mongo {@link DBObject}s used to query.
+ *
+ * This tests also ensures all possible filter functions are accounted for in the test.
+ * @see TemporalPolicy Temporal Filter Functions
+ * @see GeoPolicy Geo Filter Functions
+ */
 public class GeoTemporalMongoDBStorageStrategyTest extends GeoTemporalTestBase {
-    private static final TemporalInstant TEST_INSTANT = makeInstant(0);
-    private static final TemporalInstant TEST_INTERVAL_START = makeInstant(0);
-    private static final TemporalInstant TEST_INTERVAL_END = makeInstant(50);
-    private static final TemporalInterval TEST_INTERVAL = new TemporalInterval(TEST_INTERVAL_START, TEST_INTERVAL_END);
-    private static final Polygon POLYGON = poly(bbox(-3, -2, 1, 2));
-    private static final RyaURI SUBJECT = new RyaURI("test:subject");
-
     private GeoTemporalMongoDBStorageStrategy adapter;
     @Before
     public void setup() {
@@ -45,268 +61,322 @@ public class GeoTemporalMongoDBStorageStrategyTest extends GeoTemporalTestBase {
     }
 
     @Test
-    public void withinInstantAfterInstant_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INSTANT_AFTER_INSTANT);
+    public void emptyFilters_test() throws Exception {
+        final List<IndexingExpr> geoFilters = new ArrayList<>();
+        final List<IndexingExpr> temporalFilters = new ArrayList<>();
+        final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
         final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$gt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                    + "}"
-                  + "}"
+                "{ }";
+        final DBObject expected = (DBObject) JSON.parse(expectedString);
+        assertEqualMongo(expected, actual);
+    }
+
+    @Test
+    public void equalsInstantAfterInterval_onlyOneGeo() throws Exception {
+        final String query =
+          "PREFIX geo: <http://www.opengis.net/ont/geosparql#>"
+        + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>"
+        + "SELECT ?point ?wkt "
+        + "WHERE { "
+          + "  ?point geo:asWKT ?wkt . "
+          + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-3 -2, -3 2, 1 2, 1 -2, -3 -2))\"^^geo:wktLiteral)) "
+        + "}";
+        final List<IndexingExpr> geoFilters = new ArrayList<>();
+        final List<StatementPattern> sps = getSps(query);
+        final List<FunctionCall> filters = getFilters(query);
+        for(final FunctionCall filter : filters) {
+            //should only be one.
+            final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(new URIImpl(filter.getURI()), filter.getArgs());
+            final IndexingExpr expr = new IndexingExpr(new URIImpl(filter.getURI()), sps.get(0), extractArguments(objVar.getName(), filter));
+            geoFilters.add(expr);
+        }
+        final List<IndexingExpr> temporalFilters = new ArrayList<>();
+        final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
+        final String expectedString =
+            "{ "
+              + "\"location\" : {"
+                + "\"$geoWithin\" : {"
+                  + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
                 + "}"
-              + "]"
+              + "}"
             + "}";
         final DBObject expected = (DBObject) JSON.parse(expectedString);
         assertEqualMongo(expected, actual);
     }
 
     @Test
-    public void equalsInstantAfterInterval_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.EQUALS, TemporalPolicy.INSTANT_AFTER_INTERVAL);
+    public void equalsInstantAfterInterval_onlyGeos() throws Exception {
+
+        /*
+         * TODO: change filter functions for coverage
+         */
+
+
+        final String query =
+                "PREFIX geo: <http://www.opengis.net/ont/geosparql#>"
+              + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>"
+              + "SELECT ?point ?wkt "
+              + "WHERE { "
+                + "  ?point geo:asWKT ?wkt . "
+                + "  FILTER(geof:sfIntersects(?wkt, \"POLYGON((-3 -2, -3 2, 1 2, 1 -2, -3 -2))\"^^geo:wktLiteral)) "
+                + "  FILTER(geof:sfEquals(?wkt, \"POLYGON((-4 -3, -4 3, 2 3, 2 -3, -4 -3))\"^^geo:wktLiteral)) "
+              + "}";
+              final List<IndexingExpr> geoFilters = new ArrayList<>();
+              final List<StatementPattern> sps = getSps(query);
+              final List<FunctionCall> filters = getFilters(query);
+              for(final FunctionCall filter : filters) {
+                  final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(new URIImpl(filter.getURI()), filter.getArgs());
+                  final IndexingExpr expr = new IndexingExpr(new URIImpl(filter.getURI()), sps.get(0), extractArguments(objVar.getName(), filter));
+                  geoFilters.add(expr);
+              }
+              final List<IndexingExpr> temporalFilters = new ArrayList<>();
+              final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
+              final String expectedString =
+                  "{ "
+                    + "\"$and\" : [{"
+                      + "\"location\" : [ [ -4.0 , -3.0] , [ -4.0 , 3.0] , [ 2.0 , 3.0] , [ 2.0 , -3.0] , [ -4.0 , -3.0]]"
+                      + "}, {"
+                      + "\"location\" : {"
+                        + "\"$geoIntersects\" : {"
+                          + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
+                        + "}"
+                      + "}"
+                    + "}]"
+                  + "}";
+              final DBObject expected = (DBObject) JSON.parse(expectedString);
+              assertEqualMongo(expected, actual);
+    }
+
+    @Test
+    public void equalsInstantAfterInterval_onlyOneTemporal() throws Exception {
+        final String query =
+          "PREFIX time: <http://www.w3.org/2006/time#> \n"
+        + "PREFIX tempo: <tag:rya-rdf.org,2015:temporal#> \n"
+        + "SELECT ?event ?time "
+        + "WHERE { "
+          + "  ?event time:atTime ?time . "
+          + "  FILTER(tempo:equals(?time, \"2015-12-30T12:00:00Z\")) . "
+        + "}";
+        final List<IndexingExpr> geoFilters = new ArrayList<>();
+        final List<IndexingExpr> temporalFilters = new ArrayList<>();
+        final List<StatementPattern> sps = getSps(query);
+        final List<FunctionCall> filters = getFilters(query);
+        for(final FunctionCall filter : filters) {
+            //should only be one.
+            final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(new URIImpl(filter.getURI()), filter.getArgs());
+            final IndexingExpr expr = new IndexingExpr(new URIImpl(filter.getURI()), sps.get(0), extractArguments(objVar.getName(), filter));
+            temporalFilters.add(expr);
+        }
+        final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
         final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : "
-                    + "[ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$gt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:50.000Z\""
-                    + "}"
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
+        "{ "
+        + "\"instant\" : {"
+          + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
+        + "}"
+      + "}";
         final DBObject expected = (DBObject) JSON.parse(expectedString);
         assertEqualMongo(expected, actual);
     }
 
     @Test
-    public void intersectsInstantBeforeInstant_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.INTERSECTS, TemporalPolicy.INSTANT_BEFORE_INSTANT);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoIntersects\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$lt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                    + "}"
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinInstantBeforeInterval_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INSTANT_BEFORE_INTERVAL);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$lt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                    + "}"
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinInstantEndInterval_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INSTANT_END_INTERVAL);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$date\" : \"2015-12-30T12:00:50.000Z\""
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinInstantEqualsInstant_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INSTANT_EQUALS_INSTANT);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinInstantInInterval_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INSTANT_IN_INTERVAL);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$gt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                    + "},"
-                    + "\"$lt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:50.000Z\""
-                  + "}"
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinInstantStartInterval_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INSTANT_START_INTERVAL);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"instant\" : { "
-                    + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinIntervalAfter_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INTERVAL_AFTER);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"start\" : { "
-                    + "\"$gt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:50.000Z\""
-                    + "}"
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinIntervalBefore_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INTERVAL_BEFORE);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"end\" : { "
-                    + "\"$lt\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
-                    + "}"
-                  + "}"
-                + "}"
-              + "]"
-            + "}";
-        final DBObject expected = (DBObject) JSON.parse(expectedString);
-        assertEqualMongo(expected, actual);
-    }
-
-    @Test
-    public void withinIntervalEquals_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        final DBObject actual = adapter.getQuery(geoTime, GeoPolicy.WITHIN, TemporalPolicy.INTERVAL_EQUALS);
-        final String expectedString =
-                "{ "
-                + "\"$or\" : [ { "
-                  + "\"location\" : { "
-                    + "\"$geoWithin\" : { "
-                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
-                    + "}"
-                  + "}"
-                + "} ,{ "
-                + "  \"start\" : { "
-                      + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
+    public void equalsInstantAfterInterval_onlyTemporal() throws Exception {
+        final String query =
+                "PREFIX time: <http://www.w3.org/2006/time#> \n"
+              + "PREFIX tempo: <tag:rya-rdf.org,2015:temporal#> \n"
+              + "SELECT ?event ?time "
+              + "WHERE { "
+                + "  ?event time:atTime ?time . "
+                + "  FILTER(tempo:before(?time, \"2015-12-30T12:00:00Z\")) . "
+                + "  FILTER(tempo:insideInterval(?time, \"[1969-12-31T19:00:00-05:00,1969-12-31T19:00:01-05:00]\")) . "
+              + "}";
+              final List<IndexingExpr> geoFilters = new ArrayList<>();
+              final List<IndexingExpr> temporalFilters = new ArrayList<>();
+              final List<StatementPattern> sps = getSps(query);
+              final List<FunctionCall> filters = getFilters(query);
+              for(final FunctionCall filter : filters) {
+                  final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(new URIImpl(filter.getURI()), filter.getArgs());
+                  final IndexingExpr expr = new IndexingExpr(new URIImpl(filter.getURI()), sps.get(0), extractArguments(objVar.getName(), filter));
+                  temporalFilters.add(expr);
+              }
+              final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
+              final String expectedString =
+              "{ "
+              + "\"$and\" : [{"
+                + "\"instant\" : {"
+                  + "\"$gt\" : {"
+                    + "\"$date\" : \"1970-01-01T00:00:00.000Z\""
                   + "},"
-                + "  \"end\" : { "
-                  + "\"$date\" : \"2015-12-30T12:00:50.000Z\""
+                  + "\"$lt\" : {"
+                    + "\"$date\" : \"1970-01-01T00:00:01.000Z\""
+                  + "},"
+                + "}}, {"
+                + "\"instant\" : {"
+                  + "\"$lt\" : {"
+                    + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
+                  + "}"
                 + "}"
+              + "}]"
+            + "}";
+              final DBObject expected = (DBObject) JSON.parse(expectedString);
+              assertEqualMongo(expected, actual);
+    }
+
+    @Test
+    public void equalsInstantAfterInterval_GeoTemporalOneEach() throws Exception {
+        final String query =
+                "PREFIX time: <http://www.w3.org/2006/time#> \n"
+              + "PREFIX tempo: <tag:rya-rdf.org,2015:temporal#> \n"
+              + "PREFIX geo: <http://www.opengis.net/ont/geosparql#>"
+              + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>"
+              + "SELECT ?event ?time ?point ?wkt "
+              + "WHERE { "
+                + "  ?event time:atTime ?time . "
+                + "  ?point geo:asWKT ?wkt . "
+                + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-3 -2, -3 2, 1 2, 1 -2, -3 -2))\"^^geo:wktLiteral)) "
+                + "  FILTER(tempo:after(?time, \"2015-12-30T12:00:00Z\")) "
+              + "}";
+              final List<IndexingExpr> geoFilters = new ArrayList<>();
+              final List<IndexingExpr> temporalFilters = new ArrayList<>();
+              final List<StatementPattern> sps = getSps(query);
+              final List<FunctionCall> filters = getFilters(query);
+              for(final FunctionCall filter : filters) {
+                  final URI filterURI = new URIImpl(filter.getURI());
+                  final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(filterURI, filter.getArgs());
+                  final IndexingExpr expr = new IndexingExpr(filterURI, sps.get(0), extractArguments(objVar.getName(), filter));
+                  if(IndexingFunctionRegistry.getFunctionType(filterURI) == FUNCTION_TYPE.GEO) {
+                      geoFilters.add(expr);
+                  } else {
+                      temporalFilters.add(expr);
+                  }
+              }
+              final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
+              final String expectedString =
+              "{ "
+              + "\"$and\" : [{"
+                + "\"location\" : {"
+                  + "\"$geoWithin\" : {"
+                    + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
+                  + "},"
+                + "}}, {"
+                + "\"instant\" : {"
+                  + "\"$gt\" : {"
+                    + "\"$date\" : \"2015-12-30T12:00:00.000Z\""
+                  + "}"
+                + "}"
+              + "}]"
+            + "}";
+              final DBObject expected = (DBObject) JSON.parse(expectedString);
+              assertEqualMongo(expected, actual);
+    }
+
+    @Test
+    public void equalsInstantAfterInterval_GeoTemporalTwoEach() throws Exception {
+        final String query =
+                "PREFIX time: <http://www.w3.org/2006/time#> \n"
+              + "PREFIX tempo: <tag:rya-rdf.org,2015:temporal#> \n"
+              + "PREFIX geo: <http://www.opengis.net/ont/geosparql#>"
+              + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>"
+              + "SELECT ?event ?time ?point ?wkt "
+              + "WHERE { "
+                + "  ?event time:atTime ?time . "
+                + "  ?point geo:asWKT ?wkt . "
+                + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-3 -2, -3 2, 1 2, 1 -2, -3 -2))\"^^geo:wktLiteral)) "
+                + "  FILTER(geof:sfEquals(?wkt, \"POLYGON((-4 -3, -4 3, 2 3, 2 -3, -4 -3))\"^^geo:wktLiteral)) "
+                + "  FILTER(tempo:hasEndInterval(?time, \"[1969-12-31T19:00:00-05:00,1969-12-31T19:00:01-05:00]\")) . "
+                + "  FILTER(tempo:beforeInterval(?time, \"[1969-12-31T19:00:00-05:00,1969-12-31T19:00:01-05:00]\")) . "
+              + "}";
+              final List<IndexingExpr> geoFilters = new ArrayList<>();
+              final List<IndexingExpr> temporalFilters = new ArrayList<>();
+              final List<StatementPattern> sps = getSps(query);
+              final List<FunctionCall> filters = getFilters(query);
+              for(final FunctionCall filter : filters) {
+                  final URI filterURI = new URIImpl(filter.getURI());
+                  final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(filterURI, filter.getArgs());
+                  final IndexingExpr expr = new IndexingExpr(filterURI, sps.get(0), extractArguments(objVar.getName(), filter));
+                  if(IndexingFunctionRegistry.getFunctionType(filterURI) == FUNCTION_TYPE.GEO) {
+                      geoFilters.add(expr);
+                  } else {
+                      temporalFilters.add(expr);
+                  }
+              }
+              final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
+              final String expectedString =
+              "{ "
+              + "\"$and\" : [{"
+                + "\"$and\" : [{"
+                  + "\"location\" : [ [ -4.0 , -3.0] , [ -4.0 , 3.0] , [ 2.0 , 3.0] , [ 2.0 , -3.0] , [ -4.0 , -3.0]]"
+                  + "}, {"
+                  + "\"location\" : {"
+                    + "\"$geoWithin\" : {"
+                      + "\"$polygon\" : [ [ -3.0 , -2.0] , [ -3.0 , 2.0] , [ 1.0 , 2.0] , [ 1.0 , -2.0] , [ -3.0 , -2.0]]"
+                    + "}"
+                  + "}"
+                + "}]"
+              + "},{"
+                + "\"$and\" : [{"
+                  + "\"instant\" : {"
+                    + "\"$lt\" : {"
+                      + "\"$date\" : \"1970-01-01T00:00:00.000Z\""
+                    + "},"
+                    + "}"
+                  + "}, {"
+                    + "\"instant\" : {"
+                      + "\"$date\" : \"1970-01-01T00:00:01.000Z\""
+                    + "}"
+                  + "}]"
+                + "}"
+              + "]"
+            + "}";
+              final DBObject expected = (DBObject) JSON.parse(expectedString);
+              assertEqualMongo(expected, actual);
+    }
+
+    @Test
+    public void equalsInstantAfterInterval_GeoTemporalSingleGeoTwoTemporal() throws Exception {
+        final String query =
+                "PREFIX time: <http://www.w3.org/2006/time#> \n"
+              + "PREFIX tempo: <tag:rya-rdf.org,2015:temporal#> \n"
+              + "PREFIX geo: <http://www.opengis.net/ont/geosparql#>"
+              + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>"
+              + "SELECT ?event ?time ?point ?wkt "
+              + "WHERE { "
+                + "  ?event time:atTime ?time . "
+                + "  ?point geo:asWKT ?wkt . "
+                + "  FILTER(geof:sfEquals(?wkt, \"POLYGON((-4 -3, -4 3, 2 3, 2 -3, -4 -3))\"^^geo:wktLiteral)) ."
+                + "  FILTER(tempo:hasBeginningInterval(?time, \"[1969-12-31T19:00:00-05:00,1969-12-31T19:00:01-05:00]\")) . "
+                + "  FILTER(tempo:afterInterval(?time, \"[1969-12-31T19:00:00-05:00,1969-12-31T19:00:01-05:00]\"))"
+              + "}";
+        final List<IndexingExpr> geoFilters = new ArrayList<>();
+        final List<IndexingExpr> temporalFilters = new ArrayList<>();
+        final List<StatementPattern> sps = getSps(query);
+        final List<FunctionCall> filters = getFilters(query);
+        for(final FunctionCall filter : filters) {
+            final URI filterURI = new URIImpl(filter.getURI());
+            final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(filterURI, filter.getArgs());
+            final IndexingExpr expr = new IndexingExpr(filterURI, sps.get(0), extractArguments(objVar.getName(), filter));
+            if(IndexingFunctionRegistry.getFunctionType(filterURI) == FUNCTION_TYPE.GEO) {
+                geoFilters.add(expr);
+             } else {
+                temporalFilters.add(expr);
+             }
+        }
+        final DBObject actual = adapter.getFilterQuery(geoFilters, temporalFilters);
+        final String expectedString =
+              "{ "
+              + "\"$and\" : [{"
+                  + "\"location\" : [ [ -4.0 , -3.0] , [ -4.0 , 3.0] , [ 2.0 , 3.0] , [ 2.0 , -3.0] , [ -4.0 , -3.0]]"
+                + "},{"
+                + "\"$and\" : [{"
+                  + "\"instant\" : {"
+                    + "\"$gt\" : {"
+                      + "\"$date\" : \"1970-01-01T00:00:01.000Z\""
+                    + "},"
+                    + "}"
+                  + "}, {"
+                    + "\"instant\" : {"
+                      + "\"$date\" : \"1970-01-01T00:00:00.000Z\""
+                    + "}"
+                  + "}]"
                 + "}"
               + "]"
             + "}";
@@ -314,52 +384,81 @@ public class GeoTemporalMongoDBStorageStrategyTest extends GeoTemporalTestBase {
         assertEqualMongo(expected, actual);
     }
 
-    /*
-     * PRECONDITION CHECKS
-     */
+    @Test
+    public void serializeTest() {
+        final ValueFactory vf = new ValueFactoryImpl();
+        final Resource subject = vf.createURI("foo:subj");
+        final Resource context = vf.createURI("foo:context");
 
-    @Test(expected=GeoTemporalIndexException.class)
-    public void preconditionInstant_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.CONTAINS, TemporalPolicy.INTERVAL_AFTER);
+        //GEO
+        URI predicate = GeoConstants.GEO_AS_WKT;
+        Value object = vf.createLiteral("Point(-77.03524 38.889468)", GeoConstants.XMLSCHEMA_OGC_WKT);
+
+        Statement statement = new ContextStatementImpl(subject, predicate, object, context);
+        DBObject actual = adapter.serialize(RdfToRyaConversions.convertStatement(statement));
+        String expectedString =
+                "{"
+                  +"_id : -852305321, "
+                  +"location : [ [ -77.03524 , 38.889468]]"
+              + "}";
+        DBObject expected = (DBObject) JSON.parse(expectedString);
+        assertEqualMongo(expected, actual);
+
+        //TIME INSTANT
+        predicate = new URIImpl("Property:event:time");
+        object = vf.createLiteral("2015-12-30T12:00:00Z");
+        statement = new ContextStatementImpl(subject, predicate, object, context);
+        actual = adapter.serialize(RdfToRyaConversions.convertStatement(statement));
+        expectedString =
+                "{"
+                  +"_id : -852305321, "
+                  +"time: {"
+                    + "instant : {"
+                      +"\"$date\" : \"2015-12-30T12:00:00.000Z\""
+                    + "}"
+                + "}"
+              + "}";
+        expected = (DBObject) JSON.parse(expectedString);
+        assertEqualMongo(expected, actual);
+
+        //TIME INTERVAL
+        predicate = new URIImpl("Property:circa");
+        object = vf.createLiteral("[1969-12-31T19:00:00-05:00,1969-12-31T19:00:01-05:00]");
+        statement = new ContextStatementImpl(subject, predicate, object, context);
+        actual = adapter.serialize(RdfToRyaConversions.convertStatement(statement));
+        expectedString =
+                "{"
+                +"_id : -852305321, "
+                +"time: {"
+                  + "start : {"
+                    +"\"$date\" : \"1970-01-01T00:00:00.000Z\""
+                  + "},"
+                  + "end : {"
+                    +"\"$date\" : \"1970-01-01T00:00:01.000Z\""
+                  + "}"
+              + "}"
+            + "}";
+        expected = (DBObject) JSON.parse(expectedString);
+        assertEqualMongo(expected, actual);
     }
 
-    @Test(expected=GeoTemporalIndexException.class)
-    public void preconditionInterval_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INTERVAL, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.CONTAINS, TemporalPolicy.INSTANT_AFTER_INSTANT);
-    }
-
-    /*
-     * UNSUPPORTED FUNCTIONS
-     */
-    @Test(expected=UnsupportedOperationException.class)
-    public void unsupportedCONTAINS_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.CONTAINS, TemporalPolicy.INSTANT_AFTER_INSTANT);
-    }
-
-    @Test(expected=UnsupportedOperationException.class)
-    public void unsupportedCROSSES_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.CROSSES, TemporalPolicy.INSTANT_AFTER_INSTANT);
-    }
-
-    @Test(expected=UnsupportedOperationException.class)
-    public void unsupportedDISJOINT_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.DISJOINT, TemporalPolicy.INSTANT_AFTER_INSTANT);
-    }
-
-    @Test(expected=UnsupportedOperationException.class)
-    public void unsupportedOVERLAPS_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.OVERLAPS, TemporalPolicy.INSTANT_AFTER_INSTANT);
-    }
-
-    @Test(expected=UnsupportedOperationException.class)
-    public void unsupportedTOUCHES_test() throws Exception {
-        final Event geoTime = new Event(POLYGON, TEST_INSTANT, SUBJECT);
-        adapter.getQuery(geoTime, GeoPolicy.TOUCHES, TemporalPolicy.INSTANT_AFTER_INSTANT);
+    private Value[] extractArguments(final String matchName, final FunctionCall call) {
+        final Value args[] = new Value[call.getArgs().size() - 1];
+        int argI = 0;
+        for (int i = 0; i != call.getArgs().size(); ++i) {
+            final ValueExpr arg = call.getArgs().get(i);
+            if (argI == i && arg instanceof Var && matchName.equals(((Var)arg).getName())) {
+                continue;
+            }
+            if (arg instanceof ValueConstant) {
+                args[argI] = ((ValueConstant)arg).getValue();
+            } else if (arg instanceof Var && ((Var)arg).hasValue()) {
+                args[argI] = ((Var)arg).getValue();
+            } else {
+                throw new IllegalArgumentException("Query error: Found " + arg + ", expected a Literal, BNode or URI");
+            }
+            ++argI;
+        }
+        return args;
     }
 }

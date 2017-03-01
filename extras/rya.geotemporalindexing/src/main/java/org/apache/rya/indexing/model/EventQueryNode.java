@@ -45,6 +45,8 @@ import org.openrdf.query.algebra.Var;
 import org.openrdf.query.algebra.evaluation.iterator.CollectionIteration;
 import org.openrdf.query.impl.MapBindingSet;
 
+import com.vividsolutions.jts.geom.Geometry;
+
 import info.aduna.iteration.CloseableIteration;
 import info.aduna.iteration.EmptyIteration;
 
@@ -154,37 +156,39 @@ public class EventQueryNode extends ExternalTupleSet {
         try {
             final Optional<Event> optEvent;
             final String subj;
-            final RyaURI subjURI;
+            final Optional<RyaURI> subjURI;
             if(subjectIsConstant) {
                 subj = subjectConstant.get();
-                subjURI = new RyaURI(subj);
+                subjURI = Optional.of(new RyaURI(subj));
             } else {
-                subj = subjectVar.get();
-                if(bindings.getBindingNames().contains(subj)) {
-                    final Binding binding = bindings.getBinding(subj);
-                    subjURI = new RyaURI(binding.getValue().toString());
-                } else {
-                    return new EmptyIteration<BindingSet, QueryEvaluationException>();
-                }
+                subjURI = Optional.empty();
             }
 
-            optEvent = eventStore.get(subjURI, geoFilters, temporalFilters);
+            optEvent = eventStore.get(subjURI, Optional.of(geoFilters), Optional.of(temporalFilters));
 
             if(optEvent.isPresent()) {
                 final Event event = optEvent.get();
-                final Value geoValue = ValueFactoryImpl.getInstance().createLiteral(event.getGeometry().toText());
-                final Var geoObj = geoPattern.getObjectVar();
-                resultSet.addBinding(geoObj.getName(), geoValue);
+
+                if(event.getGeometry().isPresent()) {
+                    final Geometry geo = event.getGeometry().get();
+                    final Value geoValue = ValueFactoryImpl.getInstance().createLiteral(geo.toText());
+                    final Var geoObj = geoPattern.getObjectVar();
+                    resultSet.addBinding(geoObj.getName(), geoValue);
+                }
 
                 final Value temporalValue;
-                if(event.isInstant()) {
-                    temporalValue = ValueFactoryImpl.getInstance().createLiteral(event.getInstant().getAsDateTime().toString(TemporalInstantRfc3339.FORMATTER));
+                if(event.isInstant() && event.getInstant().isPresent()) {
+                    temporalValue = ValueFactoryImpl.getInstance().createLiteral(event.getInstant().get().getAsDateTime().toString(TemporalInstantRfc3339.FORMATTER));
+                } else if(event.getInterval().isPresent()) {
+                    temporalValue = ValueFactoryImpl.getInstance().createLiteral(event.getInterval().get().getAsPair());
                 } else {
-                    temporalValue = ValueFactoryImpl.getInstance().createLiteral(event.getInterval().getAsPair());
+                    temporalValue = null;
                 }
-                final Var temporalObj = temporalPattern.getObjectVar();
-                resultSet.addBinding(temporalObj.getName(), temporalValue);
 
+                if(temporalValue != null) {
+                    final Var temporalObj = temporalPattern.getObjectVar();
+                    resultSet.addBinding(temporalObj.getName(), temporalValue);
+                }
             } else {
                 return new EmptyIteration<BindingSet, QueryEvaluationException>();
             }

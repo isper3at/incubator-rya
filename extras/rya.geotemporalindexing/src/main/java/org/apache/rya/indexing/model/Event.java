@@ -20,6 +20,9 @@ package org.apache.rya.indexing.model;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
+import java.util.Optional;
+
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.indexing.GeoTemporalIndexer;
 import org.apache.rya.indexing.TemporalInstant;
@@ -36,9 +39,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * {@link TemporalInterval}, and a triple Subject.
  */
 public class Event {
-    private final Geometry geometry;
-    private final TemporalInstant instant;
-    private final TemporalInterval interval;
+    private final Optional<Geometry> geometry;
+    private final Optional<TemporalInstant> instant;
+    private final Optional<TemporalInterval> interval;
     private final RyaURI subject;
 
     private final boolean isInstant;
@@ -50,11 +53,13 @@ public class Event {
      * @param subject - The Subject that both statements must have when querying.
      */
     private Event(final Geometry geo, final TemporalInstant instant, final RyaURI subject) {
-        this.instant = requireNonNull(instant);
         this.subject = requireNonNull(subject);
-        geometry = requireNonNull(geo);
+
+        //these fields are nullable since they are filled field by field.
+        this.instant = Optional.ofNullable(instant);
+        geometry = Optional.ofNullable(geo);
         isInstant = true;
-        interval = null;
+        interval = Optional.empty();
     }
 
     /**
@@ -64,11 +69,13 @@ public class Event {
      * @param subject - The Subject that both statements must have when querying.
      */
     private Event(final Geometry geo, final TemporalInterval interval, final RyaURI subject) {
-        this.interval = requireNonNull(interval);
         this.subject = requireNonNull(subject);
-        geometry = requireNonNull(geo);
+
+        //these fields are nullable since they are filled field by field.
+        this.interval = Optional.ofNullable(interval);
+        geometry = Optional.ofNullable(geo);
         isInstant = false;
-        instant = null;
+        instant = Optional.empty();
     }
 
     /**
@@ -81,21 +88,21 @@ public class Event {
     /**
      * @return The {@link Geometry} to use when querying.
      */
-    public Geometry getGeometry() {
+    public Optional<Geometry> getGeometry() {
         return geometry;
     }
 
     /**
      * @return The {@link TemporalInstant} to use when querying.
      */
-    public TemporalInstant getInstant() {
+    public Optional<TemporalInstant> getInstant() {
         return instant;
     }
 
     /**
      * @return The {@link TemporalInterval} to use when querying.
      */
-    public TemporalInterval getInterval() {
+    public Optional<TemporalInterval> getInterval() {
         return interval;
     }
 
@@ -106,14 +113,43 @@ public class Event {
         return subject;
     }
 
+    @Override
+    public int hashCode() {
+        if(isInstant) {
+            return Objects.hash(subject, geometry, instant);
+        } else {
+            return Objects.hash(subject, geometry, interval);
+        }
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if(this == o) {
+            return true;
+        }
+        if(o instanceof Event) {
+            final Event event = (Event) o;
+            return Objects.equals(subject, event.subject) &&
+                    Objects.equals(isInstant, event.isInstant) &&
+                    (isInstant ? Objects.equals(instant, event.instant) : Objects.equals(interval, event.interval));
+        }
+        return false;
+    }
+
     public static Builder builder(final Event event) {
         final Builder builder = new Builder()
-            .setSubject(event.getSubject())
-            .setGeometry(event.getGeometry());
+            .setSubject(event.getSubject());
+        if(event.getGeometry().isPresent()) {
+            builder.setGeometry(event.getGeometry().get());
+        }
         if(event.isInstant()) {
-            builder.setTemporalInstant(event.getInstant());
+            if(event.getInstant().isPresent()) {
+                builder.setTemporalInstant(event.getInstant().get());
+            }
         } else {
-            builder.setTemporalInterval(event.getInterval());
+            if(event.getInterval().isPresent()) {
+                builder.setTemporalInterval(event.getInterval().get());
+            }
         }
         return builder;
     }

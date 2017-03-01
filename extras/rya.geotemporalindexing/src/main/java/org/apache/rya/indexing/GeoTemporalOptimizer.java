@@ -57,7 +57,7 @@ public class GeoTemporalOptimizer extends AbstractExternalSetOptimizer<EventQuer
     }
 
     @Override
-    protected ExternalSetProvider<EventQueryNode> getProvider(final QuerySegment<EventQueryNode> segment) {
+    protected ExternalSetProvider<EventQueryNode> getProvider() {
         return provider;
     }
 

@@ -30,12 +30,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaURI;
+import org.apache.rya.api.resolver.RyaToRdfConversions;
 import org.apache.rya.indexing.GeoConstants;
 import org.apache.rya.indexing.GeoTemporalIndexer;
 import org.apache.rya.indexing.TemporalInstant;
 import org.apache.rya.indexing.TemporalInstantRfc3339;
 import org.apache.rya.indexing.TemporalInterval;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
+import org.apache.rya.indexing.accumulo.geo.GeoParseUtils;
 import org.apache.rya.indexing.model.Event;
 import org.apache.rya.indexing.mongodb.AbstractMongoIndexer;
 import org.apache.rya.indexing.mongodb.IndexingException;
@@ -44,13 +46,32 @@ import org.apache.rya.indexing.storage.mongo.MongoEventStorage;
 import org.apache.rya.mongodb.MongoConnectorFactory;
 import org.apache.rya.mongodb.MongoDBRdfConfiguration;
 import org.joda.time.DateTime;
+import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
 
 /**
- * TODO: doc
+ * Indexer that stores 2 separate statements as one 'Event' entity.
+ * <p>
+ * The statements are required to have the same subject, one must be
+ * a Geo based statement and the other a temporal based statement.
+ * <p>
+ * This indexer is later used when querying for geo/temporal statements
+ * in the format of:
+ * <pre>
+ * {@code
+ * QUERY PARAMS
+ *   ?SomeSubject geo:predicate ?Location
+ *   ?SomeSubject time:predicate ?Time
+ *   Filter(?Location, geoFunction())
+ *   Filter(?Time, temporalFunction())
+ * }
+ *
+ * The number of filters is not strict, but there must be at least one
+ * query pattern for geo and one for temporal as well as at least one
+ * filter for each type.
  */
 public class MongoGeoTemporalIndexer extends AbstractMongoIndexer<GeoTemporalMongoDBStorageStrategy> implements GeoTemporalIndexer {
     private static final Logger LOG = Logger.getLogger(MongoGeoTemporalIndexer.class);
@@ -72,6 +93,7 @@ public class MongoGeoTemporalIndexer extends AbstractMongoIndexer<GeoTemporalMon
         requireNonNull(conf);
         events.set(null);
         events.set(getEventStorage(conf));
+        super.conf = conf;
         configuration.set(new MongoDBRdfConfiguration(conf));
     }
 
@@ -86,11 +108,63 @@ public class MongoGeoTemporalIndexer extends AbstractMongoIndexer<GeoTemporalMon
         }
     }
 
+    @Override
+    public void deleteStatement(final RyaStatement statement) throws IOException {
+        requireNonNull(statement);
+        final RyaURI subject = statement.getSubject();
+        try {
+            final EventStorage eventStore = events.get();
+            checkState(events != null, "Must set this indexers configuration before storing statements.");
+
+            new EventUpdater(eventStore).update(subject, old -> {
+                final Event.Builder updated;
+                if(!old.isPresent()) {
+                    return Optional.empty();
+                } else {
+                    updated = Event.builder(old.get());
+                }
+
+                final Event currentEvent = updated.build();
+                final URI pred = statement.getObject().getDataType();
+                if((pred.equals(GeoConstants.GEO_AS_WKT) || pred.equals(GeoConstants.GEO_AS_GML) ||
+                   pred.equals(GeoConstants.XMLSCHEMA_OGC_WKT) || pred.equals(GeoConstants.XMLSCHEMA_OGC_GML))
+                   && currentEvent.getGeometry().isPresent()) {
+                    //is geo and needs to be removed.
+                    try {
+                        if(currentEvent.getGeometry().get().equals(GeoParseUtils.getGeometry(RyaToRdfConversions.convertStatement(statement)))) {
+                            updated.setGeometry(null);
+                        }
+                    } catch (final Exception e) {
+                        LOG.debug("Unable to parse the stored geometry.");
+                    }
+                } else {
+                    //is time
+                    final String dateTime = statement.getObject().getData();
+                    final Matcher matcher = TemporalInstantRfc3339.PATTERN.matcher(dateTime);
+                    if (matcher.find()) {
+                        final TemporalInterval interval = TemporalInstantRfc3339.parseInterval(dateTime);
+                        if(currentEvent.getInterval().get().equals(interval)) {
+                            updated.setTemporalInterval(null);
+                        }
+                    } else {
+                        final TemporalInstant instant = new TemporalInstantRfc3339(DateTime.parse(dateTime));
+                        if(currentEvent.getInstant().get().equals(instant)) {
+                            updated.setTemporalInstant(null);
+                        }
+                    }
+                }
+                return Optional.of(updated.build());
+            });
+        } catch (final IndexingException e) {
+            throw new IOException("Failed to update the Entity index.", e);
+        }
+    }
+
     private void updateEvent(final RyaURI subject, final RyaStatement statement) throws IndexingException, ParseException {
         final EventStorage eventStore = events.get();
         checkState(events != null, "Must set this indexers configuration before storing statements.");
 
-        new MongoGeoTemporalUpdater(eventStore).update(subject, old -> {
+        new EventUpdater(eventStore).update(subject, old -> {
             final Event.Builder updated;
             if(!old.isPresent()) {
                 updated = Event.builder()
@@ -99,18 +173,14 @@ public class MongoGeoTemporalIndexer extends AbstractMongoIndexer<GeoTemporalMon
                 updated = Event.builder(old.get());
             }
 
-            final RyaURI pred = statement.getPredicate();
-            if(pred.equals(GeoConstants.GEO_AS_WKT) || pred.equals(GeoConstants.GEO_AS_GML)) {
+            final URI pred = statement.getObject().getDataType();
+            if(pred.equals(GeoConstants.GEO_AS_WKT) || pred.equals(GeoConstants.GEO_AS_GML) ||
+               pred.equals(GeoConstants.XMLSCHEMA_OGC_WKT) || pred.equals(GeoConstants.XMLSCHEMA_OGC_GML)) {
                 //is geo
                 try {
-
-                    /*
-                     * TODO: use the GML reader.
-                     */
-
-                final WKTReader reader = new WKTReader();
-                final Geometry geometry = reader.read(statement.getObject().getData());
-                updated.setGeometry(geometry);
+                    final Statement geoStatement = RyaToRdfConversions.convertStatement(statement);
+                    final Geometry geometry = GeoParseUtils.getGeometry(geoStatement);
+                    updated.setGeometry(geometry);
                 } catch (final ParseException e) {
                     LOG.error(e.getMessage(), e);
                 }

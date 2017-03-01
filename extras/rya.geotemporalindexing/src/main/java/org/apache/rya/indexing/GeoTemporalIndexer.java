@@ -69,14 +69,45 @@ public interface GeoTemporalIndexer extends RyaSecondaryIndexer {
     }
 
     String TEMPORAL_NS = "tag:rya-rdf.org,2015:temporal#";
+    /**
+     * All of the filter functions that can be used in a temporal based query.
+     * <p>
+     */
     public enum TemporalPolicy {
+        /**
+         * The provided instant in time equals the instant the event took place.
+         */
         INSTANT_EQUALS_INSTANT(true, new URIImpl(TEMPORAL_NS+"equals")),
+
+        /**
+         * The provided instant in time was before when the event took place.
+         */
         INSTANT_BEFORE_INSTANT(true, new URIImpl(TEMPORAL_NS+"before")),
+
+        /**
+         * The provided instant in time was after when the event took place.
+         */
         INSTANT_AFTER_INSTANT(true, new URIImpl(TEMPORAL_NS+"after")),
+
+        /**
+         * The provided instant in time was before a time period.
+         */
         INSTANT_BEFORE_INTERVAL(false, new URIImpl(TEMPORAL_NS+"beforeInterval")),
+
+        /**
+         * The provided instant in time took place within a set of time.
+         */
         INSTANT_IN_INTERVAL(false, new URIImpl(TEMPORAL_NS+"insideInterval")),
+
+        /**
+         * The provided instant in time took place after a time period.
+         */
         INSTANT_AFTER_INTERVAL(false, new URIImpl(TEMPORAL_NS+"afterInterval")),
-        INSTANT_START_INTERVAL(false, new URIImpl(TEMPORAL_NS+"hasBeginingInterval")),
+
+        /**
+         * The provided instant in time equals the instant the event took place.
+         */
+        INSTANT_START_INTERVAL(false, new URIImpl(TEMPORAL_NS+"hasBeginningInterval")),
         INSTANT_END_INTERVAL(false, new URIImpl(TEMPORAL_NS+"hasEndInterval")),
         INTERVAL_EQUALS(false, new URIImpl(TEMPORAL_NS+"intervalEquals")),
         INTERVAL_BEFORE(false, new URIImpl(TEMPORAL_NS+"intervalBefore")),

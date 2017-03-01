@@ -102,6 +102,7 @@ public class GeoEnabledFilterFunctionOptimizer implements QueryOptimizer, Config
     private synchronized void init() {
         if (!init) {
             if (ConfigUtils.getUseMongo(conf)) {
+
                 geoIndexer = new MongoGeoIndexer();
                 geoIndexer.setConf(conf);
                 freeTextIndexer = new MongoFreeTextIndexer();
@@ -109,6 +110,9 @@ public class GeoEnabledFilterFunctionOptimizer implements QueryOptimizer, Config
                 temporalIndexer = new MongoTemporalIndexer();
                 temporalIndexer.setConf(conf);
             } else {
+                /*
+                 * TODO: add AccumuloGeoTemporalIndexer()
+                 */
                 geoIndexer = new GeoMesaGeoIndexer();
                 geoIndexer.setConf(conf);
                 freeTextIndexer = new AccumuloFreeTextIndexer();

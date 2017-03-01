@@ -19,32 +19,28 @@
 package org.apache.rya.indexing;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.rya.indexing.external.matching.QuerySegment;
 import org.apache.rya.indexing.model.EventQueryNode;
+import org.apache.rya.indexing.storage.EventStorage;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ValueFactoryImpl;
-import org.openrdf.query.algebra.FunctionCall;
-import org.openrdf.query.algebra.QueryModelNode;
-import org.openrdf.query.algebra.StatementPattern;
-import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
-import org.openrdf.query.parser.sparql.SPARQLParser;
 
-public class GeoTemporalProviderTest {
+public class GeoTemporalProviderTest extends GeoTemporalTestBase {
     private static final String URI_PROPERTY_AT_TIME = "Property:atTime";
     private GeoTemporalIndexSetProvider provider;
-
+    private EventStorage events;
     @Before
     public void setup() {
-        provider = new GeoTemporalIndexSetProvider();
+        events = mock(EventStorage.class);
+        provider = new GeoTemporalIndexSetProvider(events);
     }
 
     /*
@@ -221,37 +217,5 @@ public class GeoTemporalProviderTest {
         final QuerySegment<EventQueryNode> node = getQueryNode(query);
         final List<EventQueryNode> nodes = provider.getExternalSets(node);
         assertEquals(1, nodes.size());
-    }
-
-    private static QuerySegment<EventQueryNode> getQueryNode(final String query) throws Exception {
-        final List<QueryModelNode> exprs = getNodes(query);
-        final QuerySegment<EventQueryNode> node = Mockito.mock(QuerySegment.class);
-        //provider only cares about Ordered nodes.
-        Mockito.when(node.getOrderedNodes()).thenReturn(exprs);
-        return node;
-    }
-
-    private static List<QueryModelNode> getNodes(final String sparql) throws Exception {
-        final NodeCollector collector = new NodeCollector();
-        new SPARQLParser().parseQuery(sparql, null).getTupleExpr().visit(collector);
-        return collector.getTupleExpr();
-    }
-
-    private static class NodeCollector extends QueryModelVisitorBase<RuntimeException> {
-        private final List<QueryModelNode> stPatterns = new ArrayList<QueryModelNode>();
-
-        public List<QueryModelNode> getTupleExpr() {
-            return stPatterns;
-        }
-
-        @Override
-        public void meet(final FunctionCall node) {
-            stPatterns.add(node);
-        }
-
-        @Override
-        public void meet(final StatementPattern node) {
-            stPatterns.add(node);
-        }
     }
 }
