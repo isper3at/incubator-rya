@@ -16,12 +16,17 @@ l * Licensed to the Apache Software Foundation (ASF) under one
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.indexing;
+package org.apache.rya.indexing.mongo;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.rya.api.resolver.RdfToRyaConversions;
+import org.apache.rya.indexing.GeoConstants;
+import org.apache.rya.indexing.GeoTemporalIndexer;
+import org.apache.rya.indexing.GeoTemporalTestBase;
+import org.apache.rya.indexing.IndexingExpr;
+import org.apache.rya.indexing.IndexingFunctionRegistry;
 import org.apache.rya.indexing.GeoTemporalIndexer.GeoPolicy;
 import org.apache.rya.indexing.GeoTemporalIndexer.TemporalPolicy;
 import org.apache.rya.indexing.IndexingFunctionRegistry.FUNCTION_TYPE;

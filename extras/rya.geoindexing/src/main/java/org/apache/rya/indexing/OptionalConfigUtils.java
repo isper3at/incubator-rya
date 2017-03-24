@@ -46,6 +46,7 @@ public class OptionalConfigUtils extends ConfigUtils {
     public static final String GEO_NUM_PARTITIONS = "sc.geo.numPartitions";
 
     public static final String USE_GEO = "sc.use_geo";
+    public static final String USE_GEOTEMPORAL = "sc.use_geotemporal";
     public static final String USE_FREETEXT = "sc.use_freetext";
     public static final String USE_TEMPORAL = "sc.use_temporal";
     public static final String USE_ENTITY = "sc.use_entity";
@@ -65,6 +66,10 @@ public class OptionalConfigUtils extends ConfigUtils {
 
     public static boolean getUseGeo(final Configuration conf) {
         return conf.getBoolean(USE_GEO, false);
+    }
+
+    public static boolean getUseGeoTemporal(final Configuration conf) {
+        return conf.getBoolean(USE_GEOTEMPORAL, false);
     }
 
     /**

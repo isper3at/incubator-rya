@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.rya.indexing;
+package org.apache.rya.indexing.mongo;
 
 import static org.junit.Assert.assertEquals;
 
 import org.apache.rya.api.domain.RyaURI;
+import org.apache.rya.indexing.TemporalInstant;
+import org.apache.rya.indexing.TemporalInstantRfc3339;
 import org.apache.rya.indexing.entity.storage.mongo.DocumentConverter.DocumentConverterException;
 import org.apache.rya.indexing.model.Event;
 import org.apache.rya.indexing.storage.mongo.EventDocumentConverter;
