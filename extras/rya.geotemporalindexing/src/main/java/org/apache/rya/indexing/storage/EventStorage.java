@@ -29,7 +29,7 @@ import org.apache.rya.indexing.mongodb.update.RyaObjectStorage;
 
 public interface EventStorage extends RyaObjectStorage<Event> {
     /**
-     * Get {@link Event}s from the storage by its subject.
+     * Search for {@link Event}s from the storage by its subject.
      * Will query based on present parameters.
      *
      * @param subject - The subject key to find events.
@@ -38,7 +38,7 @@ public interface EventStorage extends RyaObjectStorage<Event> {
      * @return The {@link Event}, if one exists for the subject.
      * @throws ObjectStorageException A problem occurred while fetching the Entity from the storage.
      */
-    public Optional<Event> get(final Optional<RyaURI> subject, Optional<Collection<IndexingExpr>> geoFilters, Optional<Collection<IndexingExpr>> temporalFilters) throws ObjectStorageException;
+    public Collection<Event> search(final Optional<RyaURI> subject, Optional<Collection<IndexingExpr>> geoFilters, Optional<Collection<IndexingExpr>> temporalFilters) throws ObjectStorageException;
 
     /**
      * Indicates a problem while interacting with an {@link EventStorage}.

@@ -25,32 +25,33 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.indexing.IndexingExpr;
 import org.apache.rya.indexing.TemporalInstantRfc3339;
-import org.apache.rya.indexing.external.tupleSet.ExternalTupleSet;
 import org.apache.rya.indexing.mongodb.update.RyaObjectStorage.ObjectStorageException;
 import org.apache.rya.indexing.storage.EventStorage;
+import org.apache.rya.rdftriplestore.evaluation.ExternalBatchingIterator;
 import org.openrdf.model.Value;
 import org.openrdf.model.impl.ValueFactoryImpl;
-import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.algebra.FunctionCall;
 import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.algebra.Var;
+import org.openrdf.query.algebra.evaluation.impl.ExternalSet;
 import org.openrdf.query.algebra.evaluation.iterator.CollectionIteration;
 import org.openrdf.query.impl.MapBindingSet;
 
 import com.vividsolutions.jts.geom.Geometry;
 
 import info.aduna.iteration.CloseableIteration;
-import info.aduna.iteration.EmptyIteration;
 
-public class EventQueryNode extends ExternalTupleSet {
+public class EventQueryNode extends ExternalSet implements ExternalBatchingIterator {
+    private final Collection<FunctionCall> usedFilters;
     private final Collection<IndexingExpr> geoFilters;
     private final Collection<IndexingExpr> temporalFilters;
 
@@ -71,6 +72,7 @@ public class EventQueryNode extends ExternalTupleSet {
 
     /**
      * Constructs an instance of {@link EventQueryNode}.
+     * @param usedFilters
      *
      * @param type - The type of {@link Event} this node matches. (not null)
      * @param patterns - The query StatementPatterns that are solved using an
@@ -78,12 +80,13 @@ public class EventQueryNode extends ExternalTupleSet {
      * @param entities - The {@link EventStorage} that will be searched to match
      *   {@link BindingSet}s when evaluating a query. (not null)
      */
-    public EventQueryNode(final EventStorage eventStore, final StatementPattern geoPattern, final StatementPattern temporalPattern, final Collection<IndexingExpr> geoFilters, final Collection<IndexingExpr> temporalFilters) throws IllegalStateException {
+    public EventQueryNode(final EventStorage eventStore, final StatementPattern geoPattern, final StatementPattern temporalPattern, final Collection<IndexingExpr> geoFilters, final Collection<IndexingExpr> temporalFilters, final Collection<FunctionCall> usedFilters) throws IllegalStateException {
         this.geoPattern = requireNonNull(geoPattern);
         this.temporalPattern = requireNonNull(temporalPattern);
         this.geoFilters = requireNonNull(geoFilters);
         this.temporalFilters = requireNonNull(temporalFilters);
         this.eventStore = requireNonNull(eventStore);
+        this.usedFilters = requireNonNull(usedFilters);
         bindingNames = new HashSet<>();
 
         // Subject based preconditions.
@@ -152,23 +155,21 @@ public class EventQueryNode extends ExternalTupleSet {
 
     @Override
     public CloseableIteration<BindingSet, QueryEvaluationException> evaluate(final BindingSet bindings) throws QueryEvaluationException {
-        final MapBindingSet resultSet = new MapBindingSet();
+        final List<BindingSet> list = new ArrayList<>();
         try {
-            final Optional<Event> optEvent;
+            final Collection<Event> searchEvents;
             final String subj;
-            final Optional<RyaURI> subjURI;
+            // If the subject needs to be filled in, check if the subject variable is in the binding set.
             if(subjectIsConstant) {
+                // if it is, fetch that value and then fetch the entity for the subject.
                 subj = subjectConstant.get();
-                subjURI = Optional.of(new RyaURI(subj));
+                searchEvents = eventStore.search(Optional.of(new RyaURI(subj)), Optional.of(geoFilters), Optional.of(temporalFilters));
             } else {
-                subjURI = Optional.empty();
+                searchEvents = eventStore.search(Optional.empty(), Optional.of(geoFilters), Optional.of(temporalFilters));
             }
 
-            optEvent = eventStore.get(subjURI, Optional.of(geoFilters), Optional.of(temporalFilters));
-
-            if(optEvent.isPresent()) {
-                final Event event = optEvent.get();
-
+            for(final Event event : searchEvents) {
+                final MapBindingSet resultSet = new MapBindingSet();
                 if(event.getGeometry().isPresent()) {
                     final Geometry geo = event.getGeometry().get();
                     final Value geoValue = ValueFactoryImpl.getInstance().createLiteral(geo.toText());
@@ -189,20 +190,14 @@ public class EventQueryNode extends ExternalTupleSet {
                     final Var temporalObj = temporalPattern.getObjectVar();
                     resultSet.addBinding(temporalObj.getName(), temporalValue);
                 }
-            } else {
-                return new EmptyIteration<BindingSet, QueryEvaluationException>();
+                list.add(resultSet);
             }
         } catch (final ObjectStorageException e) {
             throw new QueryEvaluationException("Failed to evaluate the binding set", e);
         }
-        bindings.forEach(new Consumer<Binding>() {
-            @Override
-            public void accept(final Binding binding) {
-                resultSet.addBinding(binding);
-            }
-        });
-        final List<BindingSet> list = new ArrayList<>();
-        list.add(resultSet);
+        if(bindings.size() != 0) {
+            list.add(bindings);
+        }
         return new CollectionIteration<>(list);
     }
 
@@ -212,6 +207,10 @@ public class EventQueryNode extends ExternalTupleSet {
 
     public Collection<IndexingExpr> getTemporalFilters() {
         return temporalFilters;
+    }
+
+    public Collection<FunctionCall> getFilters() {
+        return usedFilters;
     }
 
     public Collection<StatementPattern> getPatterns() {
@@ -224,19 +223,61 @@ public class EventQueryNode extends ExternalTupleSet {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(subjectIsConstant,
+                subjectVar,
+                geoFilters,
+                temporalFilters,
+                geoPattern,
+                temporalPattern,
+                bindingNames,
+                eventStore);
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if(other instanceof EventQueryNode) {
+            final EventQueryNode otherNode = (EventQueryNode)other;
+
+            return  Objects.equals(subjectIsConstant, otherNode.subjectIsConstant) &&
+                    Objects.equals(subjectVar, otherNode.subjectVar) &&
+                    Objects.equals(geoFilters, otherNode.geoFilters) &&
+                    Objects.equals(geoPattern, otherNode.geoPattern) &&
+                    Objects.equals(temporalFilters, otherNode.temporalFilters) &&
+                    Objects.equals(temporalPattern, otherNode.temporalPattern) &&
+                    Objects.equals(bindingNames, otherNode.bindingNames) &&
+                    Objects.equals(subjectConstant, otherNode.subjectConstant);
+        }
+        return false;
+    }
+
+    @Override
+    public EventQueryNode clone() {
+        return new EventQueryNode(eventStore, geoPattern, temporalPattern, geoFilters, temporalFilters, usedFilters);
+    }
+
+    @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("Geo Pattern: " + geoPattern.toString());
-        sb.append("--Geo Filters--");
+        sb.append("\n--Geo Filters--\n");
         for(final IndexingExpr filter : geoFilters) {
             sb.append(filter.toString());
+            sb.append("\n");
         }
-        sb.append("-------------------");
+        sb.append("\n-------------------\n");
         sb.append("Temporal Pattern: " + temporalPattern.toString());
-        sb.append("--Temporal Filters--");
+        sb.append("\n--Temporal Filters--\n");
         for(final IndexingExpr filter : temporalFilters) {
             sb.append(filter.toString());
+            sb.append("\n");
         }
         return sb.toString();
+    }
+
+    @Override
+    public CloseableIteration<BindingSet, QueryEvaluationException> evaluate(final Collection<BindingSet> bindingset)
+            throws QueryEvaluationException {
+        return null;
     }
 }

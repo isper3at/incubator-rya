@@ -217,6 +217,7 @@ public class MongoGeoTemporalIndexer extends AbstractMongoIndexer<GeoTemporalMon
             mongoClient = MongoConnectorFactory.getMongoClient(conf);
         }
         final String ryaInstanceName = mongoConf.getMongoDBName();
-        return new MongoEventStorage(mongoClient, ryaInstanceName);
+        events.set(new MongoEventStorage(mongoClient, ryaInstanceName));
+        return events.get();
     }
 }

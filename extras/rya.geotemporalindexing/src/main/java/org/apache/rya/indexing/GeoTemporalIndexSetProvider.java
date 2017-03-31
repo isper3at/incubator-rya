@@ -60,9 +60,12 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
 
     //filters that have not been constrained by statement patterns into indexing expressions yet.
     private Multimap<Var, FunctionCall> unmatchedFilters;
+    //filters that have been used, to be used by the matcher later.
+    private Multimap<Var, FunctionCall> matchedFilters;
 
     //organzied by object var.  Used to find matches between unmatch filters and patterns
     private Map<Var, StatementPattern> objectPatterns;
+
 
     private static URI filterURI;
 
@@ -77,6 +80,7 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
         filterMap = HashMultimap.create();
         patternMap = HashMultimap.create();
         unmatchedFilters = HashMultimap.create();
+        matchedFilters = HashMultimap.create();
 
         objectPatterns = new HashMap<>();
         //discover entities
@@ -99,6 +103,7 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
 
     private EventQueryNode getGeoTemporalNode(final Var subj) {
         final Collection<StatementPattern> patterns = patternMap.get(subj);
+        final Collection<FunctionCall> usedFilters = new ArrayList<>();
         Optional<StatementPattern> geoPattern = Optional.empty();
         Optional<StatementPattern> temporalPattern = Optional.empty();
         Optional<Collection<IndexingExpr>> geoFilters = Optional.empty();
@@ -107,15 +112,21 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
         //should only be 2 patterns.
         for(final StatementPattern sp : patterns) {
             final Var obj = sp.getObjectVar();
+
+            ///filter map does not have -const-
+
+
             if(filterMap.containsKey(obj)) {
                 final Collection<IndexingExpr> filters = filterMap.get(obj);
                 final IndexingFunctionRegistry.FUNCTION_TYPE type = ensureSameType(filters);
                 if(type != null && type == FUNCTION_TYPE.GEO) {
                     geoPattern = Optional.of(sp);
                     geoFilters = Optional.of(filters);
+                    usedFilters.addAll(matchedFilters.get(obj));
                 } else if(type != null && type == FUNCTION_TYPE.TEMPORAL) {
                     temporalPattern = Optional.of(sp);
                     temporalFilters = Optional.of(filters);
+                    usedFilters.addAll(matchedFilters.get(obj));
                 } else {
                     return null;
                 }
@@ -125,7 +136,7 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
         }
 
         if(geoFilters.isPresent() && temporalFilters.isPresent() && geoPattern.isPresent() && temporalPattern.isPresent()) {
-            return new EventQueryNode(eventStorage, geoPattern.get(), temporalPattern.get(), geoFilters.get(), temporalFilters.get());
+            return new EventQueryNode(eventStorage, geoPattern.get(), temporalPattern.get(), geoFilters.get(), temporalFilters.get(), usedFilters);
         } else {
             return null;
         }
@@ -176,6 +187,7 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
             final Collection<FunctionCall> calls = unmatchedFilters.removeAll(objVar);
             for(final FunctionCall call : calls) {
                 addFilter(call);
+                matchedFilters.put(objVar, call);
             }
         }
     }
@@ -220,12 +232,14 @@ public class GeoTemporalIndexSetProvider implements ExternalSetProvider<EventQue
     private class FilterVisitor extends QueryModelVisitorBase<Exception> {
         @Override
         public void meet(final FunctionCall call) throws Exception {
+
             filterURI = new URIImpl(call.getURI());
             final FUNCTION_TYPE type = IndexingFunctionRegistry.getFunctionType(filterURI);
             if(type == FUNCTION_TYPE.GEO || type == FUNCTION_TYPE.TEMPORAL) {
                 final Var objVar = IndexingFunctionRegistry.getResultVarFromFunctionCall(filterURI, call.getArgs());
                 if(objectPatterns.containsKey(objVar)) {
                     filterMap.put(objVar, new IndexingExpr(filterURI, objectPatterns.get(objVar), extractArguments(objVar.getName(), call)));
+                    matchedFilters.put(objVar, call);
                 } else {
                     unmatchedFilters.put(objVar, call);
                 }

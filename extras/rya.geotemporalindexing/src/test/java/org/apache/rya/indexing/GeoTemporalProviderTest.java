@@ -110,8 +110,6 @@ public class GeoTemporalProviderTest extends GeoTemporalTestBase {
     @Test
     public void twoPatternsNoFilter_test() throws Exception {
         final ValueFactory vf = new ValueFactoryImpl();
-        final Value geo = vf.createLiteral("Point(0 0)", GeoConstants.XMLSCHEMA_OGC_WKT);
-        final Value temp = vf.createLiteral(new TemporalInstantRfc3339(2015, 12, 30, 12, 00, 0).toString());
         final URI tempPred = vf.createURI(URI_PROPERTY_AT_TIME);
         final String query =
             "PREFIX geo: <http://www.opengis.net/ont/geosparql#>" +

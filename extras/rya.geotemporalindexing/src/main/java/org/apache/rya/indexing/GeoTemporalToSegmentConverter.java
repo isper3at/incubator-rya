@@ -44,6 +44,7 @@ public class GeoTemporalToSegmentConverter implements ExternalSetConverter<Event
     public QuerySegment<EventQueryNode> setToSegment(final EventQueryNode set) {
         Preconditions.checkNotNull(set);
         final Set<QueryModelNode> matched = new HashSet<>(set.getPatterns());
+        matched.addAll(set.getFilters());
         final List<QueryModelNode> unmatched = new ArrayList<>(set.getPatterns());
         return new JoinSegment<EventQueryNode>(matched, unmatched, new HashMap<ValueExpr, Filter>());
     }

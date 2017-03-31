@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -46,6 +47,7 @@ import com.mongodb.ErrorCategory;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 
 public class MongoEventStorage implements EventStorage {
@@ -118,7 +120,7 @@ public class MongoEventStorage implements EventStorage {
     }
 
     @Override
-    public Optional<Event> get(final Optional<RyaURI> subject, final Optional<Collection<IndexingExpr>> geoFilters, final Optional<Collection<IndexingExpr>> temporalFilters) throws EventStorageException {
+    public Collection<Event> search(final Optional<RyaURI> subject, final Optional<Collection<IndexingExpr>> geoFilters, final Optional<Collection<IndexingExpr>> temporalFilters) throws EventStorageException {
         requireNonNull(subject);
 
         try {
@@ -131,15 +133,17 @@ public class MongoEventStorage implements EventStorage {
             if(subject.isPresent()) {
                 builder.append(EventDocumentConverter.SUBJECT, subject.get().getData());
             }
-            final Document document = mongo.getDatabase(ryaInstanceName)
+            final MongoCursor<Document> results = mongo.getDatabase(ryaInstanceName)
                 .getCollection(COLLECTION_NAME)
                 .find( BsonDocument.parse(builder.get().toString()) )
-                .first();
+                .iterator();
 
-            return document == null ?
-                    Optional.empty() :
-                    Optional.of( EVENT_CONVERTER.fromDocument(document) );
-
+            final List<Event> events = new ArrayList<>();
+            final EventDocumentConverter adapter = new EventDocumentConverter();
+            while(results.hasNext()) {
+                events.add(adapter.fromDocument(results.next()));
+            }
+            return events;
         } catch(final MongoException | DocumentConverterException | GeoTemporalIndexException e) {
             throw new EventStorageException("Could not get the Event.", e);
         }
