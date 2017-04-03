@@ -28,6 +28,8 @@ import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
 import org.apache.rya.api.instance.RyaDetails;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.apache.rya.indexing.accumulo.geo.GeoMesaGeoIndexer;
+import org.apache.rya.indexing.geotemporal.GeoTemporalOptimizer;
+import org.apache.rya.indexing.geotemporal.mongo.MongoGeoTemporalIndexer;
 import org.apache.rya.indexing.mongodb.geo.MongoGeoIndexer;
 import org.openrdf.model.URI;
 
@@ -88,11 +90,14 @@ public class OptionalConfigUtils extends ConfigUtils {
 
         boolean useFilterIndex = false;
         ConfigUtils.setIndexers(conf);
-        for (final String index : conf.getStrings(AccumuloRdfConfiguration.CONF_ADDITIONAL_INDEXERS)){
-            indexList.add(index);
-        }
-        for (final String optimizer : conf.getStrings(RdfCloudTripleStoreConfiguration.CONF_OPTIMIZERS)){
-            optimizers.add(optimizer);
+        final String[] existingIndexers = conf.getStrings(AccumuloRdfConfiguration.CONF_ADDITIONAL_INDEXERS);
+        if(existingIndexers != null ) {
+            for (final String index : existingIndexers) {
+                indexList.add(index);
+            }
+            for (final String optimizer : conf.getStrings(RdfCloudTripleStoreConfiguration.CONF_OPTIMIZERS)){
+                optimizers.add(optimizer);
+            }
         }
 
         final GeoIndexerType geoIndexerType = getGeoIndexerType(conf);
@@ -106,6 +111,11 @@ public class OptionalConfigUtils extends ConfigUtils {
                     indexList.add(geoIndexerType.getGeoIndexerClass().getName());
                 }
                 useFilterIndex = true;
+            }
+
+            if (getUseGeoTemporal(conf)) {
+                indexList.add(MongoGeoTemporalIndexer.class.getName());
+                optimizers.add(GeoTemporalOptimizer.class.getName());
             }
         } else {
             if (getUseGeo(conf)) {

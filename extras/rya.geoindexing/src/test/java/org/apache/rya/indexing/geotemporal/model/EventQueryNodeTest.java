@@ -29,13 +29,11 @@ import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.indexing.IndexingExpr;
 import org.apache.rya.indexing.IndexingFunctionRegistry;
 import org.apache.rya.indexing.IndexingFunctionRegistry.FUNCTION_TYPE;
-import org.apache.rya.indexing.geotemporal.GeoTemporalTestBase;
-import org.apache.rya.indexing.geotemporal.model.Event;
-import org.apache.rya.indexing.geotemporal.model.EventQueryNode;
-import org.apache.rya.indexing.geotemporal.mongo.MongoEventStorage;
-import org.apache.rya.indexing.geotemporal.storage.EventStorage;
 import org.apache.rya.indexing.TemporalInstant;
 import org.apache.rya.indexing.TemporalInstantRfc3339;
+import org.apache.rya.indexing.geotemporal.GeoTemporalTestBase;
+import org.apache.rya.indexing.geotemporal.mongo.MongoEventStorage;
+import org.apache.rya.indexing.geotemporal.storage.EventStorage;
 import org.apache.rya.mongodb.MockMongoFactory;
 import org.junit.Test;
 import org.openrdf.model.URI;
@@ -202,57 +200,6 @@ public class EventQueryNodeTest extends GeoTemporalTestBase {
         assertEquals(expected1, actual.get(0));
         assertEquals(expected2, actual.get(1));
         assertEquals(2, actual.size());
-    }
-
-    @Test
-    public void evaluate_constantObject() throws Exception {
-        final MongoClient client = MockMongoFactory.newFactory().newMongoClient();
-        final EventStorage storage = new MongoEventStorage(client, "testDB");
-        RyaURI subject = new RyaURI("urn:event-1111");
-        Geometry geo = GF.createPoint(new Coordinate(1, 1));
-        final TemporalInstant temp = new TemporalInstantRfc3339(2015, 12, 30, 12, 00, 0);
-        final Event event = Event.builder()
-            .setSubject(subject)
-            .setGeometry(geo)
-            .setTemporalInstant(temp)
-            .build();
-
-        subject = new RyaURI("urn:event-2222");
-        geo = GF.createPoint(new Coordinate(-1, -1));
-        final Event otherEvent = Event.builder()
-            .setSubject(subject)
-            .setGeometry(geo)
-            .setTemporalInstant(temp)
-            .build();
-
-        storage.create(event);
-        storage.create(otherEvent);
-
-        final String query =
-                "PREFIX time: <http://www.w3.org/2006/time#> \n"
-              + "PREFIX tempo: <tag:rya-rdf.org,2015:temporal#> \n"
-              + "PREFIX geo: <http://www.opengis.net/ont/geosparql#>"
-              + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>"
-              + "SELECT ?event ?time ?point ?wkt "
-              + "WHERE { "
-                + "  ?event time:atTime ?time . "
-                + "  ?event geo:asWKT \"POINT (1 1)\" . "
-                + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-3 -2, -3 2, 1 2, 1 -2, -3 -2))\"^^geo:wktLiteral)) "
-                + "  FILTER(tempo:equals(?time, \"2015-12-30T12:00:00Z\")) "
-              + "}";
-
-        final EventQueryNode node = buildNode(storage, query);
-        final CloseableIteration<BindingSet, QueryEvaluationException> rez = node.evaluate(new MapBindingSet());
-        final MapBindingSet expected = new MapBindingSet();
-        expected.addBinding("-const-POINT (1 1)", VF.createLiteral("POINT (1 1)"));
-        expected.addBinding("time", VF.createLiteral("2015-12-30T07:00:00-05:00"));
-        int count = 0;
-        assertTrue(rez.hasNext());
-        while(rez.hasNext()) {
-            assertEquals(expected, rez.next());
-            count++;
-        }
-        assertEquals(1, count);
     }
 
     private EventQueryNode buildNode(final EventStorage store, final String query) throws Exception {

@@ -31,9 +31,9 @@ import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.indexing.GeoConstants;
 import org.apache.rya.indexing.GeoRyaSailFactory;
+import org.apache.rya.indexing.OptionalConfigUtils;
 import org.apache.rya.indexing.TemporalInstantRfc3339;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
-import org.apache.rya.indexing.geotemporal.GeoTemporalOptimizer;
 import org.apache.rya.indexing.geotemporal.model.Event;
 import org.apache.rya.indexing.geotemporal.mongo.MongoGeoTemporalIndexer;
 import org.apache.rya.indexing.geotemporal.storage.EventStorage;
@@ -58,8 +58,6 @@ import com.mongodb.MongoClient;
 import de.flapdoodle.embed.mongo.distribution.Version;
 
 public class MongoGeoTemporalIndexIT {
-    private static final String URI_PROPERTY_EVENT_TIME = "Property:event:time";
-    private static final String URI_PROPERTY_CIRCA = "Property:circa";
     private static final String URI_PROPERTY_AT_TIME = "Property:atTime";
 
     private static final ValueFactory VF = ValueFactoryImpl.getInstance();
@@ -76,16 +74,11 @@ public class MongoGeoTemporalIndexIT {
         conf.set(MongoDBRdfConfiguration.MONGO_DB_NAME, "test");
         conf.set(MongoDBRdfConfiguration.MONGO_COLLECTION_PREFIX, "rya");
         conf.set(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX, "rya");
-        conf.setBoolean(ConfigUtils.USE_MONGO, true);
-        conf.setMongoClient(mongoClient);
         conf.set(MongoDBRdfConfiguration.MONGO_INSTANCE_PORT, Integer.toString(port));
+        conf.setBoolean(ConfigUtils.USE_MONGO, true);
+        conf.setBoolean(OptionalConfigUtils.USE_GEOTEMPORAL, true);
+        conf.setMongoClient(mongoClient);
         conf.setTablePrefix("isthisused_");
-        conf.setAdditionalIndexers(MongoGeoTemporalIndexer.class);
-        /*conf.setStrings(ConfigUtils.TEMPORAL_PREDICATES_LIST, ""
-                + URI_PROPERTY_AT_TIME + ","
-                + URI_PROPERTY_CIRCA + ","
-                + URI_PROPERTY_EVENT_TIME);*/
-        conf.set(RdfCloudTripleStoreConfiguration.CONF_OPTIMIZERS, GeoTemporalOptimizer.class.getName());
 
         final Sail sail = GeoRyaSailFactory.getInstance(conf);
         conn = new SailRepository(sail).getConnection();
@@ -98,11 +91,11 @@ public class MongoGeoTemporalIndexIT {
     }
 
     @Test
-    public void ensureInEntityStore_Test() throws Exception {
+    public void ensureInEventStore_Test() throws Exception {
         addStatements();
 
         final EventStorage events = indexer.getEventStorage(conf);
-        final RyaURI subject = new RyaURI("urn:event");
+        final RyaURI subject = new RyaURI("urn:event1");
         final Optional<Event> event = events.get(subject);
         assertTrue(event.isPresent());
     }
