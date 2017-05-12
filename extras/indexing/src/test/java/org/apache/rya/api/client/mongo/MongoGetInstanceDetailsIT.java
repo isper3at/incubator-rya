@@ -79,12 +79,12 @@ public class MongoGetInstanceDetailsIT extends MongoITBase {
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
 
                 // Entity Centric Index is not supported, so it flips to false.
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(false) )
+                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
 
                 // PCJJ Index is not supported, so it flips to false.
                 .setPCJIndexDetails(
                         PCJIndexDetails.builder()
-                        .setEnabled(false))
+                        .setEnabled(true))
 
                 .setProspectorDetails( new ProspectorDetails(Optional.<Date>absent()) )
                 .setJoinSelectivityDetails( new JoinSelectivityDetails(Optional.<Date>absent()) )
@@ -119,10 +119,10 @@ public class MongoGetInstanceDetailsIT extends MongoITBase {
                 java.util.Optional.of(conf.getMongoPassword().toCharArray()) :
                     java.util.Optional.empty();
 
-        return new MongoConnectionDetails(
-                conf.getMongoHostname(),
-                Integer.parseInt(conf.getMongoPort()),
-                java.util.Optional.ofNullable(conf.getMongoUser()),
-                password);
+                return new MongoConnectionDetails(
+                        conf.getMongoHostname(),
+                        Integer.parseInt(conf.getMongoPort()),
+                        java.util.Optional.ofNullable(conf.getMongoUser()),
+                        password);
     }
 }

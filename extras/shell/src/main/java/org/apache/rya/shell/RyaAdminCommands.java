@@ -104,11 +104,11 @@ public class RyaAdminCommands implements CommandMarker {
         INSTALL_CMD})
     public boolean areStorageCommandsAvailable() {
         switch(state.getShellState().getConnectionState()) {
-            case CONNECTED_TO_STORAGE:
-            case CONNECTED_TO_INSTANCE:
-                return true;
-            default:
-                return false;
+        case CONNECTED_TO_STORAGE:
+        case CONNECTED_TO_INSTANCE:
+            return true;
+        default:
+            return false;
         }
     }
 
@@ -166,11 +166,34 @@ public class RyaAdminCommands implements CommandMarker {
      */
     @CliAvailabilityIndicator({
         CREATE_PCJ_CMD,
-        DELETE_PCJ_CMD,
+        DELETE_PCJ_CMD})
+    public boolean arePCJCommandsAvailable() {
+        // The PCJ commands are only available if the Shell is connected to an instance of Rya
+        // that is new enough to use the RyaDetailsRepository and is configured to maintain PCJs.
+        final ShellState shellState = state.getShellState();
+        if(shellState.getConnectionState() == ConnectionState.CONNECTED_TO_INSTANCE) {
+            final GetInstanceDetails getInstanceDetails = shellState.getConnectedCommands().get().getGetInstanceDetails();
+            final String ryaInstanceName = state.getShellState().getRyaInstanceName().get();
+            try {
+                final Optional<RyaDetails> instanceDetails = getInstanceDetails.getDetails( ryaInstanceName );
+                if(instanceDetails.isPresent()) {
+                    return instanceDetails.get().getPCJIndexDetails().isEnabled();
+                }
+            } catch (final RyaClientException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Enables commands that are available when the Shell is connected to a Rya Instance that supports PCJ Indexing.
+     */
+    @CliAvailabilityIndicator({
         CREATE_PERIODIC_PCJ_CMD,
         DELETE_PERIODIC_PCJ_CMD,
         LIST_INCREMENTAL_QUERIES})
-    public boolean arePCJCommandsAvailable() {
+    public boolean arePeriodicPCJCommandsAvailable() {
         // The PCJ commands are only available if the Shell is connected to an instance of Rya
         // that is new enough to use the RyaDetailsRepository and is configured to maintain PCJs.
         final ShellState shellState = state.getShellState();
@@ -267,8 +290,8 @@ public class RyaAdminCommands implements CommandMarker {
             final boolean enableFreeTextIndex,
 
             // TODO RYA-215
-//            @CliOption(key = {"enableGeospatialIndex"}, mandatory = false, help = "Use Geospatial Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
-//            final boolean enableGeospatialIndex,
+            //            @CliOption(key = {"enableGeospatialIndex"}, mandatory = false, help = "Use Geospatial Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
+            //            final boolean enableGeospatialIndex,
 
             @CliOption(key = {"enableTemporalIndex"}, mandatory = false, help = "Use Temporal Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
             final boolean enableTemporalIndex,
@@ -289,7 +312,7 @@ public class RyaAdminCommands implements CommandMarker {
                     .setEnableEntityCentricIndex(enableEntityCentricIndex)
                     .setEnableFreeTextIndex(enableFreeTextIndex)
                     // TODO RYA-215
-//                    .setEnableGeoIndex(enableGeospatialIndex)
+                    //                    .setEnableGeoIndex(enableGeospatialIndex)
                     .setEnableTemporalIndex(enableTemporalIndex)
                     .setEnablePcjIndex(enablePcjIndex)
                     .setFluoPcjAppName(fluoPcjAppName)
@@ -320,11 +343,14 @@ public class RyaAdminCommands implements CommandMarker {
             final boolean enableFreeTextIndex,
 
             // TODO RYA-215
-//            @CliOption(key = {"enableGeospatialIndex"}, mandatory = false, help = "Use Geospatial Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
-//            final boolean enableGeospatialIndex,
+            //            @CliOption(key = {"enableGeospatialIndex"}, mandatory = false, help = "Use Geospatial Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
+            //            final boolean enableGeospatialIndex,
 
             @CliOption(key = {"enableTemporalIndex"}, mandatory = false, help = "Use Temporal Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
-            final boolean enableTemporalIndex) {
+            final boolean enableTemporalIndex,
+
+            @CliOption(key = {"enablePcjIndex"}, mandatory = false, help = "Use Precomputed Join (PCJ) Indexing.", unspecifiedDefaultValue = "false", specifiedDefaultValue = "true")
+            final boolean enablePcjIndex) {
 
         // Fetch the commands that are connected to the store.
         final RyaClient commands = state.getShellState().getConnectedCommands().get();
@@ -333,8 +359,9 @@ public class RyaAdminCommands implements CommandMarker {
             final InstallConfiguration installConfig = InstallConfiguration.builder()
                     .setEnableFreeTextIndex(enableFreeTextIndex)
                     // TODO RYA-215
-//                    .setEnableGeoIndex(enableGeospatialIndex)
+                    //                    .setEnableGeoIndex(enableGeospatialIndex)
                     .setEnableTemporalIndex(enableTemporalIndex)
+                    .setEnablePcjIndex(enablePcjIndex)
                     .build();
 
             // Verify the configuration is what the user actually wants to do.

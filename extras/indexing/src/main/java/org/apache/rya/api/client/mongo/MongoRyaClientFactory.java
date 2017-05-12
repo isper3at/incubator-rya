@@ -55,12 +55,12 @@ public class MongoRyaClientFactory {
 
         return new RyaClient(
                 new MongoInstall(connectionDetails, adminClient, instanceExists),
+                Optional.of(new MongoCreatePCJ(connectionDetails, instanceExists)),
+                Optional.of(new MongoDeletePCJ(connectionDetails, instanceExists)),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
+                Optional.of(new MongoBatchUpdatePCJ(connectionDetails, instanceExists, adminClient)),
                 new MongoGetInstanceDetails(adminClient, instanceExists),
                 instanceExists,
                 new MongoListInstances(adminClient),
