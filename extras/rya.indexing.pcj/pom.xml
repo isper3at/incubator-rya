@@ -44,6 +44,10 @@ under the License.
             <groupId>org.apache.rya</groupId>
             <artifactId>accumulo.rya</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.rya</groupId>
+            <artifactId>mongodb.rya</artifactId>
+        </dependency>
         
         <!-- Accumulo support dependencies. -->
         <dependency>
@@ -56,7 +60,7 @@ under the License.
             <groupId>org.apache.fluo</groupId>
             <artifactId>fluo-api</artifactId>
         </dependency>
-        
+
         <!-- Misc dependencies -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -75,6 +79,10 @@ under the License.
             <artifactId>accumulo-minicluster</artifactId>
             <version>${accumulo.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.flapdoodle.embed</groupId>
+            <artifactId>de.flapdoodle.embed.mongo</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.rya</groupId>
