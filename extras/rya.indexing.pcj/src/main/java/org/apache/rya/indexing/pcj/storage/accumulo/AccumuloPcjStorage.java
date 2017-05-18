@@ -108,7 +108,8 @@ public class AccumuloPcjStorage extends AbstractPcjStorage {
     }
 
     @Override
-    public void addResults(final String pcjId, final Collection<VisibilityBindingSet> results) throws PCJStorageException {
+    public void addResults(final String pcjId, final Collection<VisibilityBindingSet> results)
+            throws PCJStorageException {
         requireNonNull(pcjId);
         requireNonNull(results);
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
