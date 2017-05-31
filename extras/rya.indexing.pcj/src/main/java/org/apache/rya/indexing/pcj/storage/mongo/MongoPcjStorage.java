@@ -43,25 +43,29 @@ import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
- * An Accumulo backed implementation of {@link PrecomputedJoinStorage}.
+ * A mongo backed implementation of {@link PrecomputedJoinStorage}.
  */
 @DefaultAnnotation(NonNull.class)
 public class MongoPcjStorage extends AbstractPcjStorage {
     private static final String PCJ_COLLECTION_NAME = "pcjs";
 
     private final MongoClient client;
-    private final MongoPcjDocuments pcjTables;
+    private final MongoPcjDocuments pcjDocs;
+    private final Authorizations userAuths;
+
     /**
      * Constructs an instance of {@link MongoPcjStorage}.
      *
      * @param client - The {@link MongoClient} that will be used to connect to Mongodb. (not null)
      * @param ryaInstanceName - The name of the RYA instance that will be accessed. (not null)
+     * @param userAuths - The Authorizations of the current user.
      */
-    public MongoPcjStorage(final MongoClient client, final String ryaInstanceName) {
+    public MongoPcjStorage(final MongoClient client, final String ryaInstanceName, final Authorizations userAuths) {
         super(new MongoRyaInstanceDetailsRepository(requireNonNull(client), requireNonNull(ryaInstanceName)),
                 ryaInstanceName);
         this.client = client;
-        pcjTables = new MongoPcjDocuments(client, ryaInstanceName);
+        pcjDocs = new MongoPcjDocuments(client, ryaInstanceName);
+        this.userAuths = userAuths;
     }
 
     @Override
@@ -84,7 +88,7 @@ public class MongoPcjStorage extends AbstractPcjStorage {
 
         // Create the objectID of the document to house the PCJ results.
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
-        pcjTables.createPcj(pcjTableName, varOrders, sparql);
+        pcjDocs.createPcj(pcjTableName, varOrders, sparql);
 
         // Add access to the PCJ table to all users who are authorized for this
         // instance of Rya.
@@ -96,7 +100,7 @@ public class MongoPcjStorage extends AbstractPcjStorage {
     public PcjMetadata getPcjMetadata(final String pcjId) throws PCJStorageException {
         requireNonNull(pcjId);
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
-        return pcjTables.getPcjMetadata(pcjTableName);
+        return pcjDocs.getPcjMetadata(pcjTableName);
     }
 
     @Override
@@ -105,26 +109,23 @@ public class MongoPcjStorage extends AbstractPcjStorage {
         requireNonNull(pcjId);
         requireNonNull(results);
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
-        pcjTables.addResults(pcjTableName, results);
+        pcjDocs.addResults(pcjTableName, results);
     }
 
 
     @Override
     public CloseableIterator<BindingSet> listResults(final String pcjId) throws PCJStorageException {
         requireNonNull(pcjId);
-        // Fetch my authorizations.
-        final Authorizations myAuths;// find a way to fetch auths.
-
         // Scan the PCJ table.
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
-        return pcjTables.listResults(pcjTableName, myAuths);
+        return pcjDocs.listResults(pcjTableName, userAuths);
     }
 
     @Override
     public void purge(final String pcjId) throws PCJStorageException {
         requireNonNull(pcjId);
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
-        pcjTables.purgePcjTable(pcjTableName);
+        pcjDocs.purgePcjTable(pcjTableName);
     }
 
     @Override
@@ -147,12 +148,11 @@ public class MongoPcjStorage extends AbstractPcjStorage {
 
         // Delete the table that hold's the PCJ's results.
         final String pcjTableName = pcjTableNameFactory.makeTableName(ryaInstanceName, pcjId);
-        pcjTables.dropPcjTable(pcjTableName);
+        pcjDocs.dropPcjTable(pcjTableName);
     }
 
     @Override
     public void close() throws PCJStorageException {
-        // ideally this shouldn't be called and the clien should be closed via
         // shutdown hook.
         client.close();
     }

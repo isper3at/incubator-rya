@@ -63,7 +63,7 @@ public class MongoPcjDocuments {
     /**
      * Creates a new PCJ based on the provided metadata.  The initial pcj results will be empty.
      * @param pcjName - The unique name of the PCJ.
-     * @param varOrders - The {@link VariableOrder}s. 
+     * @param varOrders - The {@link VariableOrder}s.
      * @param sparql - The query the pcj is assigned to.
      */
     public void createPcj(final String pcjName, final Set<VariableOrder> varOrders, final String sparql) {
@@ -117,6 +117,7 @@ public class MongoPcjDocuments {
         // since lookup by ID, there should only be one.
         final Document doc = rez.first();
         final List<Bson> docBindingSets = (List<Bson>) doc.get(PCJ_RESULTS_FIELD);
+        final Iterator<Bson> varOrderIter = ((List<Bson>) doc.get(VAR_ORDER_FIELD)).iterator();
         final Iterator<Bson> iter = docBindingSets.iterator();
         final ClosableIterator<BindingSet> bindingSets;
         return new CloseableIterator<BindingSet>() {
@@ -129,7 +130,9 @@ public class MongoPcjDocuments {
 
             @Override
             public BindingSet next() {
-                return ADAPTER.convert(iter.next(), varOrder);
+                final String bs = iter.next().toString();
+                final VariableOrder varOrder = new VariableOrder(varOrderIter.next().toString());
+                return ADAPTER.convert(bs, varOrder);
             }
 
             @Override
