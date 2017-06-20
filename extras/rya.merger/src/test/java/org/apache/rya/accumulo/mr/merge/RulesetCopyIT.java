@@ -31,10 +31,23 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
+import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.accumulo.AccumuloRyaDAO;
+import org.apache.rya.accumulo.mr.MRUtils;
+import org.apache.rya.accumulo.mr.merge.common.InstanceType;
+import org.apache.rya.accumulo.mr.merge.driver.AccumuloDualInstanceDriver;
+import org.apache.rya.accumulo.mr.merge.util.AccumuloRyaUtils;
+import org.apache.rya.accumulo.mr.merge.util.TestUtils;
+import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
+import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaType;
+import org.apache.rya.api.domain.RyaURI;
+import org.apache.rya.api.persist.RyaDAOException;
+import org.apache.rya.api.resolver.RyaToRdfConversions;
+import org.apache.rya.indexing.accumulo.ConfigUtils;
+import org.apache.rya.sail.config.RyaSailFactory;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openrdf.model.Namespace;
 import org.openrdf.model.Statement;
@@ -56,21 +69,6 @@ import org.openrdf.sail.Sail;
 
 import info.aduna.iteration.CloseableIteration;
 import junit.framework.Assert;
-import org.apache.rya.accumulo.AccumuloRdfConfiguration;
-import org.apache.rya.accumulo.AccumuloRyaDAO;
-import org.apache.rya.accumulo.mr.MRUtils;
-import org.apache.rya.accumulo.mr.merge.common.InstanceType;
-import org.apache.rya.accumulo.mr.merge.driver.AccumuloDualInstanceDriver;
-import org.apache.rya.accumulo.mr.merge.util.AccumuloRyaUtils;
-import org.apache.rya.accumulo.mr.merge.util.TestUtils;
-import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
-import org.apache.rya.api.domain.RyaStatement;
-import org.apache.rya.api.domain.RyaType;
-import org.apache.rya.api.domain.RyaURI;
-import org.apache.rya.api.persist.RyaDAOException;
-import org.apache.rya.api.resolver.RyaToRdfConversions;
-import org.apache.rya.indexing.accumulo.ConfigUtils;
-import org.apache.rya.sail.config.RyaSailFactory;
 
 public class RulesetCopyIT {
     private static final Logger log = Logger.getLogger(RulesetCopyIT.class);
@@ -142,18 +140,14 @@ public class RulesetCopyIT {
         return new RyaType(type, lit);
     }
 
-    @BeforeClass
-    public static void setUpPerClass() throws Exception {
-        accumuloDualInstanceDriver = new AccumuloDualInstanceDriver(IS_MOCK, true, true, false, false);
-        accumuloDualInstanceDriver.setUpInstances();
-    }
-
     @Before
     public void setUpPerTest() throws Exception {
+        accumuloDualInstanceDriver = new AccumuloDualInstanceDriver(IS_MOCK, true, true, false, false);
+        accumuloDualInstanceDriver.setUpInstances();
         parentConfig = accumuloDualInstanceDriver.getParentConfig();
         childConfig = accumuloDualInstanceDriver.getChildConfig();
-        accumuloDualInstanceDriver.setUpTables();
         accumuloDualInstanceDriver.setUpConfigs();
+        accumuloDualInstanceDriver.setUpTables();
         accumuloDualInstanceDriver.setUpDaos();
         parentDao = accumuloDualInstanceDriver.getParentDao();
     }
@@ -161,12 +155,6 @@ public class RulesetCopyIT {
     @After
     public void tearDownPerTest() throws Exception {
         log.info("tearDownPerTest(): tearing down now.");
-        accumuloDualInstanceDriver.tearDownDaos();
-        accumuloDualInstanceDriver.tearDownTables();
-    }
-
-    @AfterClass
-    public static void tearDownPerClass() throws Exception {
         if (rulesetTool != null) {
             rulesetTool.shutdown();
         }
@@ -272,7 +260,6 @@ public class RulesetCopyIT {
         try {
             final Sail extSail = RyaSailFactory.getInstance(conf);
             repository = new SailRepository(extSail);
-            repository.initialize();
             conn = repository.getConnection();
             final ResultHandler handler = new ResultHandler();
             final TupleQuery tq = conn.prepareTupleQuery(QueryLanguage.SPARQL, query);

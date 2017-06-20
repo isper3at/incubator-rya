@@ -34,12 +34,12 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.accumulo.AccumuloRyaDAO;
 import org.apache.rya.accumulo.mr.merge.util.AccumuloInstanceDriver;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.persist.RyaDAOException;
+
 import twitter4j.Logger;
 
 /**
@@ -102,10 +102,10 @@ public class AccumuloDualInstanceDriver {
      */
     public void setUp() throws Exception {
         log.info("Setting up parent and child drivers.");
+        setUpConfigs();
         setUpInstances();
         setUpTables();
         setUpDaos();
-        setUpConfigs();
     }
 
     /**

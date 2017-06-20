@@ -42,17 +42,17 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
-
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.accumulo.AccumuloRyaDAO;
 import org.apache.rya.accumulo.mr.MRUtils;
 import org.apache.rya.accumulo.mr.merge.MergeTool;
 import org.apache.rya.api.RdfCloudTripleStoreConstants;
 import org.apache.rya.api.persist.RyaDAOException;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
+
 import twitter4j.Logger;
 
 /**
@@ -151,10 +151,10 @@ public class AccumuloInstanceDriver {
      * @throws Exception
      */
     public void setUp() throws Exception {
+        setUpConfig();
         setUpInstance();
         setUpTables();
         setUpDao();
-        setUpConfig();
     }
 
     /**
