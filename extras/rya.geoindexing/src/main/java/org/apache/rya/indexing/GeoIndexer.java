@@ -28,6 +28,7 @@ import com.vividsolutions.jts.geom.Geometry;
 
 import info.aduna.iteration.CloseableIteration;
 import org.apache.rya.api.persist.index.RyaSecondaryIndexer;
+import org.apache.rya.indexing.accumulo.geo.GeoTupleSet.GeoSearchFunctionFactory.NearQuery;
 
 /**
  * A repository to store, index, and retrieve {@link Statement}s based on geospatial features.
@@ -182,4 +183,21 @@ public interface GeoIndexer extends RyaSecondaryIndexer {
 	 * @return
 	 */
 	public abstract CloseableIteration<Statement, QueryEvaluationException> queryOverlaps(Geometry query, StatementConstraints contraints);
+	
+    /**
+     * Returns statements that contain a geometry that is near the queried {@link Geometry} and meet the {@link StatementConstraints}.
+     *
+     * <p>
+     * From Wikipedia (http://en.wikipedia.org/wiki/DE-9IM):
+     * <ul>
+     * <li>a crosses b, they have some but not all interior points in common (and the dimension of the intersection is less than that of at
+     * least one of them).
+     * </ul>
+     *
+     *
+     * @param query the queried geometry, with Optional min and max distance fields.
+     * @param contraints the {@link StatementConstraints}
+     * @return
+     */
+    public abstract CloseableIteration<Statement, QueryEvaluationException> queryNear(NearQuery query, StatementConstraints contraints);
 }

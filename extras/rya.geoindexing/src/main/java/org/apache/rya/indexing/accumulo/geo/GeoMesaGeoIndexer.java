@@ -412,6 +412,11 @@ public class GeoMesaGeoIndexer extends AbstractAccumuloIndexer implements GeoInd
     }
 
     @Override
+    public CloseableIteration<Statement, QueryEvaluationException> queryNear(final String query, final StatementConstraints contraints) {
+        throw new UnsupportedOperationException("Near queries are not supported in Accumulo.");
+    }
+
+    @Override
     public Set<URI> getIndexablePredicates() {
         return validPredicates;
     }
