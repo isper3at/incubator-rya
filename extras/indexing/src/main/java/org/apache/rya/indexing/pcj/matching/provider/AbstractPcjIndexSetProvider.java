@@ -40,7 +40,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Abstraction of {@link ExternalSetProvider} that provides {@link ExternalTupleSet}s.
- * Implementations of this use either user specified configuration information or user a specified
+ * Implementations of this use either a user specified configuration information or user a specified
  * List of ExternalTupleSets to populate an internal cache of ExternalTupleSets.  If a configuration
  * is provided, the provider connects to an instance of RyaDetails and populates the cache with
  * PCJs registered in RyaDetails.
@@ -57,8 +57,7 @@ public abstract class AbstractPcjIndexSetProvider implements ExternalSetProvider
      * @param conf - The {@link Configuration} used to connect to {@link RyaDetails}.
      */
     public AbstractPcjIndexSetProvider(final Configuration conf) {
-        requireNonNull(conf);
-        this.conf = conf;
+        this.conf = requireNonNull(conf);
     }
 
     /**

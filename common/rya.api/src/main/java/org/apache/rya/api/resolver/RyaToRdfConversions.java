@@ -40,7 +40,11 @@ import org.openrdf.model.vocabulary.XMLSchema;
  */
 public class RyaToRdfConversions {
 
-    public static URI convertURI(RyaType value) {
+    public static URI convertURI(RyaURI uri) {
+        return new URIImpl(uri.getData());
+    }
+    
+    private static URI convertURI(RyaType value) {
         return new URIImpl(value.getData());
     }
 

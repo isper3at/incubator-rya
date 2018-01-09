@@ -18,6 +18,7 @@
  */
 package org.apache.rya.api.client.mongo;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
@@ -27,7 +28,6 @@ import java.util.List;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.rya.api.client.BatchUpdatePCJ;
-import org.apache.rya.api.client.CreatePCJ;
 import org.apache.rya.api.client.InstanceDoesNotExistException;
 import org.apache.rya.api.client.InstanceExists;
 import org.apache.rya.api.client.PCJDoesNotExistException;
@@ -67,11 +67,15 @@ import org.openrdf.sail.SailException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.mongodb.MongoClient;
 
 /**
- * A Mongo implementation of {@link CreatePCJ}.
+ * A Mongo implementation of {@link MongoBatchUpdatePCJ}.
+ * <p>
+ * <b>Note:</b>
+ * <p>
+ * Using this batch updater can create data leaks since the Sail layer does not
+ * support {@link VisibilityBindingSet}s. 
  */
 public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
     private static final Logger log = LoggerFactory.getLogger(MongoBatchUpdatePCJ.class);
@@ -101,7 +105,7 @@ public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
         requireNonNull(ryaInstanceName);
         requireNonNull(pcjId);
 
-        Preconditions.checkState(instanceExists.exists(ryaInstanceName), "The instance: " + ryaInstanceName + " does not exist.");
+        checkState(instanceExists.exists(ryaInstanceName), "The instance: " + ryaInstanceName + " does not exist.");
 
         verifyPCJState(ryaInstanceName, pcjId, mongoClient);
         updatePCJResults(ryaInstanceName, pcjId, mongoClient);
@@ -160,14 +164,9 @@ public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
             tupleQuery.evaluate(new TupleQueryResultHandlerBase() {
                 @Override
                 public void handleSolution(final BindingSet bindingSet) throws TupleQueryResultHandlerException {
-                    final VisibilityBindingSet result;
-                    if(bindingSet instanceof VisibilityBindingSet) {
-                        result = (VisibilityBindingSet) bindingSet;
-                    } else {
-                        //TODO warn that visibilities are being lost.  do we want to exit?
-                        log.warn("some message");
-                        result = new VisibilityBindingSet(bindingSet, "");
-                    }
+                    final VisibilityBindingSet result = new VisibilityBindingSet(bindingSet, "");
+                    log.warn("Visibility information on the binding set is lost during a batch update."
+                    		+ "  This can create data leaks.");
                     batch.add(result);
 
                     if(batch.size() == 1000) {

@@ -162,13 +162,13 @@ public class MongoInstall implements Install {
                 // Secondary Index Values
                 // FIXME RYA-215 .setGeoIndexDetails(new GeoIndexDetails(installConfig.isGeoIndexEnabled()))
                 .setTemporalIndexDetails(new TemporalIndexDetails(installConfig.isTemporalIndexEnabled()))
-                .setFreeTextDetails(new FreeTextIndexDetails(installConfig.isFreeTextIndexEnabled()))//
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(installConfig.isEntityCentrixIndexEnabled()))
+                .setFreeTextDetails(new FreeTextIndexDetails(installConfig.isFreeTextIndexEnabled()))
+                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(false))
                 .setPCJIndexDetails(pcjDetailsBuilder)
 
                 // Statistics values.
-                .setProspectorDetails(new ProspectorDetails(Optional.<Date> absent()))//
-                .setJoinSelectivityDetails(new JoinSelectivityDetails(Optional.<Date> absent()))//
+                .setProspectorDetails(new ProspectorDetails(Optional.<Date> absent()))
+                .setJoinSelectivityDetails(new JoinSelectivityDetails(Optional.<Date> absent()))
                 .build();
 
         // Initialize the table.
@@ -199,8 +199,9 @@ public class MongoInstall implements Install {
             log.warn("The install configuration says to enable Entity Centric indexing, but Mongo RYA does not support " +
                     "that feature. Ignoring this configuration.");
         }
+
         //TODO mongo now has an entity index, just needs CLI support.
-        conf.setBoolean(ConfigUtils.USE_ENTITY, false);//ryaDetails.getEntityCentricIndexDetails().isEnabled());
+        conf.setBoolean(ConfigUtils.USE_ENTITY, false);
 
         // FIXME RYA-215 We haven't enabled geo indexing in the console yet.
         //conf.set(OptionalConfigUtils.USE_GEO, "" + details.getGeoIndexDetails().isEnabled() );
