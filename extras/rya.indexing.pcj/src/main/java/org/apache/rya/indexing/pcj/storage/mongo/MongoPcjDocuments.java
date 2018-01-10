@@ -153,7 +153,6 @@ public class MongoPcjDocuments {
     /**
      * Creates a new PCJ based on the provided metadata.  The initial pcj results will be empty.
      * @param pcjName - The unique name of the PCJ.
-     * @param varOrders - The {@link VariableOrder}s.
      * @param sparql - The query the pcj is assigned to.
      * @throws @throws PCJStorageException - Thrown when the sparql query is malformed.
      */
@@ -166,26 +165,27 @@ public class MongoPcjDocuments {
      * Rya for historic matches.
      * <p>
      * If any portion of this operation fails along the way, the partially
-     * create PCJ table will be left in Accumulo.
+     * create PCJ table will be left in Mongo.
      *
      * @param ryaConn - Connects to the Rya that will be scanned. (not null)
-     * @param pcjTableName - The name of the PCJ table that will be created. (not null)
+     * @param pcjName - The name of the PCJ table that will be created. (not null)
      * @param sparql - The SPARQL query whose results will be loaded into the table. (not null)
      * @throws PCJStorageException The PCJ table could not be create or the
      *     values from Rya were not able to be loaded into it.
      */
     public void createAndPopulatePcj(
             final RepositoryConnection ryaConn,
-            final String pcjTableName,
+            final String pcjName,
             final String sparql) throws PCJStorageException {
-        checkNotNull(pcjTableName);
+        checkNotNull(ryaConn);
+        checkNotNull(pcjName);
         checkNotNull(sparql);
 
         // Create the PCJ document in Mongo.
-        createPcj(pcjTableName, sparql);
+        createPcj(pcjName, sparql);
 
         // Load historic matches from Rya into the PCJ table.
-        populatePcj(pcjTableName, ryaConn);
+        populatePcj(pcjName, ryaConn);
     }
 
     /**
@@ -212,7 +212,7 @@ public class MongoPcjDocuments {
         for(final List<String> vars : varOrders) {
             varOrder.add(new VariableOrder(vars));
         }
-        //MongoDB does not need to use VarOrders
+
         return new PcjMetadata(sparql, cardinality, varOrder);
     }
 
@@ -222,6 +222,9 @@ public class MongoPcjDocuments {
      * @param results - The binding set results.
      */
     public void addResults(final String pcjName, final Collection<VisibilityBindingSet> results) {
+        checkNotNull(pcjName);
+        checkNotNull(results);
+
         final List<Document> pcjDocs = new ArrayList<>();
         for (final VisibilityBindingSet vbs : results) {
             // each binding gets it's own doc.
@@ -264,23 +267,28 @@ public class MongoPcjDocuments {
     }
 
     /**
-     * Scan Rya for results that solve the PCJ's query and store them in the PCJ document.
+     * Scan Rya for results that solve the PCJ's query and store them in the PCJ
+     * document.
      * <p>
      * This method assumes the PCJ document has already been created.
      *
-     * @param pcjTableName - The name of the PCJ table that will receive the results. (not null)
-     * @param ryaConn - A connection to the Rya store that will be queried to find results. (not null)
-     * @throws PCJStorageException If results could not be written to the PCJ table,
-     *   the PCJ table does not exist, or the query that is being execute
-     *   was malformed.
+     * @param pcjName
+     *            - The name of the PCJ table that will receive the results. (not
+     *            null)
+     * @param ryaConn
+     *            - A connection to the Rya store that will be queried to find
+     *            results. (not null)
+     * @throws PCJStorageException
+     *             If results could not be written to the PCJ table, the PCJ table
+     *             does not exist, or the query that is being execute was malformed.
      */
-    public void populatePcj(final String pcjTableName, final RepositoryConnection ryaConn) throws PCJStorageException {
-        checkNotNull(pcjTableName);
+    public void populatePcj(final String pcjName, final RepositoryConnection ryaConn) throws PCJStorageException {
+        checkNotNull(pcjName);
         checkNotNull(ryaConn);
 
         try {
             // Fetch the query that needs to be executed from the PCJ table.
-            final PcjMetadata pcjMetadata = getPcjMetadata(pcjTableName);
+            final PcjMetadata pcjMetadata = getPcjMetadata(pcjName);
             final String sparql = pcjMetadata.getSparql();
 
             // Query Rya for results to the SPARQL query.
@@ -292,19 +300,19 @@ public class MongoPcjDocuments {
             while(results.hasNext()) {
                 final VisibilityBindingSet bs = new VisibilityBindingSet(results.next());
                 batch.add( bs );
-                System.out.println(bs.toString());
                 if(batch.size() == 1000) {
-                    addResults(pcjTableName, batch);
+                    addResults(pcjName, batch);
                     batch.clear();
                 }
             }
 
             if(!batch.isEmpty()) {
-                addResults(pcjTableName, batch);
+                addResults(pcjName, batch);
             }
 
         } catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
-            throw new PCJStorageException("Could not populate a PCJ document with Rya results for the pcj named: " + pcjTableName, e);
+            throw new PCJStorageException(
+                    "Could not populate a PCJ document with Rya results for the pcj named: " + pcjName, e);
         }
     }
 
@@ -346,12 +354,15 @@ public class MongoPcjDocuments {
     /**
      * Retrieves the stored {@link BindingSet} results for the provided pcjName.
      *
-     * @param pcjName - The pcj to retrieve results for.
-     * @param authorizations - The authorizations of the user to restrict results.
-     * @param bindingset - The collection of {@link BindingSet}s to restrict results.
-     * <p>
-     * Note: the result restrictions from {@link BindingSet}s are an OR over ANDS in that:
-     * <code>
+     * @param pcjName
+     *            - The pcj to retrieve results for.
+     * @param authorizations
+     *            - The authorizations of the user to restrict results.
+     * @param restrictionBindings
+     *            - The collection of {@link BindingSet}s to restrict results.
+     *            <p>
+     *            Note: the result restrictions from {@link BindingSet}s are an OR
+     *            over ANDS in that: <code>
      *  [
      *     bindingset: binding AND binding AND binding,
      *     OR
@@ -365,16 +376,17 @@ public class MongoPcjDocuments {
      * </code>
      * @return
      */
-    public CloseableIterator<BindingSet> getResults(final String pcjName, final Authorizations authorizations, final Collection<BindingSet> bindingset) {
+    public CloseableIterator<BindingSet> getResults(final String pcjName, final Authorizations authorizations,
+            final Collection<BindingSet> restrictionBindings) {
         // empty bindings return all results.
-        if (bindingset.size() == 1 && bindingset.iterator().next().size() == 0) {
+        if (restrictionBindings.size() == 1 && restrictionBindings.iterator().next().size() == 0) {
             return listResults(pcjName);
         }
 
         final Document query = new Document(PCJ_NAME, pcjName);
         final Document bindingSetDoc = new Document();
         final List<Document> bindingSetList = new ArrayList<>();
-        bindingset.forEach(bindingSet -> {
+        restrictionBindings.forEach(bindingSet -> {
             final Document bindingDoc = new Document();
             final List<Document> bindings = new ArrayList<>();
             bindingSet.forEach(binding -> {

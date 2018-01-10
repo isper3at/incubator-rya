@@ -70,8 +70,8 @@ public class MongoPCJIndexIT extends MongoITBase {
                 .setEnablePcjIndex(true)
                 .build());
         ryaClient.getLoadStatements().loadStatements(conf.getRyaInstanceName(), getStatements());
-        final String pcjId = ryaClient.getCreatePCJ().get().createPCJ(conf.getRyaInstanceName(), pcjQuery);
-        ryaClient.getBatchUpdatePCJ().get().batchUpdate(conf.getRyaInstanceName(), pcjId);
+        final String pcjId = ryaClient.getCreatePCJ().createPCJ(conf.getRyaInstanceName(), pcjQuery);
+        ryaClient.getBatchUpdatePCJ().batchUpdate(conf.getRyaInstanceName(), pcjId);
 
         //purge contents of rya triples collection
         getMongoClient().getDatabase(conf.getRyaInstanceName()).getCollection(conf.getTriplesCollectionName()).drop();
@@ -148,8 +148,8 @@ public class MongoPCJIndexIT extends MongoITBase {
                 .setEnablePcjIndex(true)
                 .build());
         ryaClient.getLoadStatements().loadStatements(conf.getRyaInstanceName(), getStatements());
-        final String pcjId = ryaClient.getCreatePCJ().get().createPCJ(conf.getRyaInstanceName(), pcjQuery);
-        ryaClient.getBatchUpdatePCJ().get().batchUpdate(conf.getRyaInstanceName(), pcjId);
+        final String pcjId = ryaClient.getCreatePCJ().createPCJ(conf.getRyaInstanceName(), pcjQuery);
+        ryaClient.getBatchUpdatePCJ().batchUpdate(conf.getRyaInstanceName(), pcjId);
 
         System.out.println("Triples: " + getMongoClient().getDatabase(conf.getRyaInstanceName()).getCollection(conf.getTriplesCollectionName()).count());
         System.out.println("PCJS: " + getMongoClient().getDatabase(conf.getRyaInstanceName()).getCollection("pcjs").count());

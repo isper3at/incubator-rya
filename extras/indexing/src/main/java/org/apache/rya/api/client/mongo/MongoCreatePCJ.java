@@ -28,8 +28,6 @@ import org.apache.rya.api.client.InstanceExists;
 import org.apache.rya.api.client.RyaClientException;
 import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.PCJStorageException;
 import org.apache.rya.indexing.pcj.storage.mongo.MongoPcjStorage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 import com.mongodb.MongoClient;
@@ -38,26 +36,20 @@ import com.mongodb.MongoClient;
  * A Mongo implementation of {@link CreatePCJ}.
  */
 public class MongoCreatePCJ implements CreatePCJ {
-    private static final Logger log = LoggerFactory.getLogger(MongoCreatePCJ.class);
-
-    private final MongoConnectionDetails connectionDetails;
     private final InstanceExists instanceExists;
     private final MongoClient mongoClient;
 
     /**
      * Constructs an instance of {@link MongoCreatePCJ}.
      *
-     * @param connectionDetails - Details to connect to the server. (not null)
-     * @param instanceExists - The interactor used to check if a Rya instance exists. (not null)
      * @param mongoClient - The {@link MongoClient} used to create a new PCJ. (not null)
+     * @param instanceExists - The interactor used to check if a Rya instance exists. (not null)
      */
     public MongoCreatePCJ(
-            final MongoConnectionDetails connectionDetails,
-            final MongoInstanceExists instanceExists,
-            final MongoClient mongoClient) {
-        this.connectionDetails = requireNonNull(connectionDetails);
-        this.instanceExists = requireNonNull(instanceExists);
+            final MongoClient mongoClient,
+            final MongoInstanceExists instanceExists) {
         this.mongoClient = requireNonNull(mongoClient);
+        this.instanceExists = requireNonNull(instanceExists);
     }
 
     @Override

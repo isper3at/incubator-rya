@@ -48,7 +48,7 @@ public class MongoCreatePCJIT extends MongoITBase {
     public void instanceDoesNotExist() throws Exception {
         final RyaClient ryaClient = MongoRyaClientFactory.build(getConnectionDetails(), getMongoClient());
         // Skip the install step to create error causing situation.
-        ryaClient.getCreatePCJ().get().createPCJ(conf.getRyaInstanceName(), "");
+        ryaClient.getCreatePCJ().createPCJ(conf.getRyaInstanceName(), "");
     }
 
     @Test
@@ -56,7 +56,7 @@ public class MongoCreatePCJIT extends MongoITBase {
         final MongoConnectionDetails connectionDetails = getConnectionDetails();
         final RyaClient ryaClient = MongoRyaClientFactory.build(connectionDetails, getMongoClient());
         // Initialize the commands that will be used by this test.
-        final CreatePCJ createPCJ = ryaClient.getCreatePCJ().get();
+        final CreatePCJ createPCJ = ryaClient.getCreatePCJ();
         final Install installRya = ryaClient.getInstall();
         final InstallConfiguration installConf = InstallConfiguration.builder()
                 .setEnablePcjIndex(true)
@@ -108,7 +108,7 @@ public class MongoCreatePCJIT extends MongoITBase {
         final MongoConnectionDetails connectionDetails = getConnectionDetails();
         final RyaClient ryaClient = MongoRyaClientFactory.build(connectionDetails, getMongoClient());
         // Initialize the commands that will be used by this test.
-        final CreatePCJ createPCJ = ryaClient.getCreatePCJ().get();
+        final CreatePCJ createPCJ = ryaClient.getCreatePCJ();
         final Install installRya = ryaClient.getInstall();
         final InstallConfiguration installConf = InstallConfiguration.builder()
                 .setEnablePcjIndex(true)

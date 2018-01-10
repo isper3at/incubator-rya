@@ -84,7 +84,7 @@ public class RyaAdminCommandsTest {
         when(mockCreatePCJ.createPCJ( eq(instanceName), eq(sparql), eq(strategies) ) ).thenReturn( pcjId );
 
         final RyaClient mockCommands = mock(RyaClient.class);
-        when(mockCommands.getCreatePCJ()).thenReturn( java.util.Optional.of(mockCreatePCJ) );
+        when(mockCommands.getCreatePCJ()).thenReturn(mockCreatePCJ);
 
         final SharedShellState state = new SharedShellState();
         state.connectedToAccumulo(mock(AccumuloConnectionDetails.class), mockCommands);
@@ -153,7 +153,7 @@ public class RyaAdminCommandsTest {
         final DeletePCJ mockDeletePCJ = mock(DeletePCJ.class);
 
         final RyaClient mockCommands = mock(RyaClient.class);
-        when(mockCommands.getDeletePCJ()).thenReturn( java.util.Optional.of(mockDeletePCJ) );
+        when(mockCommands.getDeletePCJ()).thenReturn(mockDeletePCJ);
 
         final SharedShellState state = new SharedShellState();
         state.connectedToAccumulo(mock(AccumuloConnectionDetails.class), mockCommands);

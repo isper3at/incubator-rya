@@ -104,11 +104,11 @@ public class RyaAdminCommands implements CommandMarker {
         INSTALL_CMD})
     public boolean areStorageCommandsAvailable() {
         switch(state.getShellState().getConnectionState()) {
-        case CONNECTED_TO_STORAGE:
-        case CONNECTED_TO_INSTANCE:
-            return true;
-        default:
-            return false;
+            case CONNECTED_TO_STORAGE:
+            case CONNECTED_TO_INSTANCE:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -428,7 +428,7 @@ public class RyaAdminCommands implements CommandMarker {
             final Optional<String> sparql = sparqlPrompt.getSparql();
             if (sparql.isPresent()) {
                 // Execute the command.
-                final String pcjId = commands.getCreatePCJ().get().createPCJ(ryaInstance, sparql.get(), strategies);
+                final String pcjId = commands.getCreatePCJ().createPCJ(ryaInstance, sparql.get(), strategies);
                 // Return a message that indicates the ID of the newly created ID.
                 return String.format("The PCJ has been created. Its ID is '%s'.", pcjId);
             } else {
@@ -452,7 +452,7 @@ public class RyaAdminCommands implements CommandMarker {
 
         try {
             // Execute the command.
-            commands.getDeletePCJ().get().deletePCJ(ryaInstance, pcjId);
+            commands.getDeletePCJ().deletePCJ(ryaInstance, pcjId);
             return "The PCJ has been deleted.";
 
         } catch (final InstanceDoesNotExistException e) {

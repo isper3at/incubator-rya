@@ -43,7 +43,7 @@ public class MongoDeletePCJIT extends MongoITBase {
     public void instanceDoesNotExist() throws Exception {
         final RyaClient ryaClient = MongoRyaClientFactory.build(getConnectionDetails(), getMongoClient());
         // Skip the install step to create error causing situation.
-        ryaClient.getDeletePCJ().get().deletePCJ(conf.getRyaInstanceName(), "doesn't matter, should fail before the pcjID is needed");
+        ryaClient.getDeletePCJ().deletePCJ(conf.getRyaInstanceName(), "doesn't matter, should fail before the pcjID is needed");
     }
 
     @Test
@@ -51,7 +51,7 @@ public class MongoDeletePCJIT extends MongoITBase {
         final MongoConnectionDetails connectionDetails = getConnectionDetails();
         final RyaClient ryaClient = MongoRyaClientFactory.build(connectionDetails, getMongoClient());
         // Initialize the commands that will be used by this test.
-        final CreatePCJ createPCJ = ryaClient.getCreatePCJ().get();
+        final CreatePCJ createPCJ = ryaClient.getCreatePCJ();
         final Install installRya = ryaClient.getInstall();
         final InstallConfiguration installConf = InstallConfiguration.builder()
                 .setEnablePcjIndex(true)
@@ -68,7 +68,7 @@ public class MongoDeletePCJIT extends MongoITBase {
                         "}";
         final String pcjId = createPCJ.createPCJ(conf.getRyaInstanceName(), sparql);
 
-        final DeletePCJ deletePCJ = ryaClient.getDeletePCJ().get();
+        final DeletePCJ deletePCJ = ryaClient.getDeletePCJ();
         deletePCJ.deletePCJ(conf.getRyaInstanceName(), pcjId);
 
         // Verify the RyaDetails were updated to include the new PCJ.

@@ -95,7 +95,7 @@ public class MongoBatchUpdatePCJIT extends MongoITBase {
             final String pcjId = pcjStorage.createPcj(sparql);
 
             // Run the test.
-            ryaClient.getBatchUpdatePCJ().get().batchUpdate(conf.getRyaInstanceName(), pcjId);
+            ryaClient.getBatchUpdatePCJ().batchUpdate(conf.getRyaInstanceName(), pcjId);
 
             // Verify the correct results were loaded into the PCJ table.
             final Set<BindingSet> expectedResults = new HashSet<>();

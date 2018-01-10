@@ -81,8 +81,8 @@ public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
     private static final Logger log = LoggerFactory.getLogger(MongoBatchUpdatePCJ.class);
 
     private final MongoConnectionDetails connectionDetails;
-    private final InstanceExists instanceExists;
     private final MongoClient mongoClient;
+    private final InstanceExists instanceExists;
 
     /**
      * Constructs an instance of {@link MongoBatchUpdatePCJ}.
@@ -93,11 +93,11 @@ public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
      */
     public MongoBatchUpdatePCJ(
             final MongoConnectionDetails connectionDetails,
-            final MongoInstanceExists instanceExists,
-            final MongoClient mongoClient) {
+            final MongoClient mongoClient,
+            final MongoInstanceExists instanceExists) {
         this.connectionDetails = requireNonNull(connectionDetails);
-        this.instanceExists = requireNonNull(instanceExists);
         this.mongoClient = requireNonNull(mongoClient);
+        this.instanceExists = requireNonNull(instanceExists);
     }
 
     @Override

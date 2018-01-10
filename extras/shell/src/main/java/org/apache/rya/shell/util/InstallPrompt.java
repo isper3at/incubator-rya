@@ -91,14 +91,14 @@ public interface InstallPrompt {
             checkState(storageType.isPresent(), "The shell must be connected to a storage to use the install prompt.");
 
             switch(sharedShellState.getShellState().getStorageType().get()) {
-            case ACCUMULO:
-                return promptAccumuloConfig(instanceName);
+                case ACCUMULO:
+                    return promptAccumuloConfig(instanceName);
 
-            case MONGO:
-                return promptMongoConfig(instanceName);
+                case MONGO:
+                    return promptMongoConfig(instanceName);
 
-            default:
-                throw new IllegalStateException("Unsupported storage type: " + storageType.get());
+                default:
+                    throw new IllegalStateException("Unsupported storage type: " + storageType.get());
             }
         }
 

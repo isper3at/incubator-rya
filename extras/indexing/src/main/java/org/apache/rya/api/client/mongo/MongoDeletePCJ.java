@@ -33,24 +33,20 @@ import com.mongodb.MongoClient;
  * A Mongo implementation of {@link DeletePCJ}.
  */
 public class MongoDeletePCJ implements DeletePCJ {
-    private final MongoConnectionDetails connectionDetails;
     private final InstanceExists instanceExists;
     private final MongoClient mongoClient;
 
     /**
      * Constructs an instance of {@link MongoDeletePCJ}.
      *
-     * @param connectionDetails - Details to connect to the server. (not null)
-     * @param instanceExists - The interactor used to check if a Rya instance exists. (not null)
      * @param mongoClient - The {@link MongoClient} to use to delete a PCJ. (not null) 
+     * @param instanceExists - The interactor used to check if a Rya instance exists. (not null)
      */
     public MongoDeletePCJ(
-            final MongoConnectionDetails connectionDetails,
-            final MongoInstanceExists instanceExists, 
-            final MongoClient mongoClient) {
-        this.connectionDetails = requireNonNull(connectionDetails);
-        this.instanceExists = requireNonNull(instanceExists);
+            final MongoClient mongoClient,
+            final MongoInstanceExists instanceExists) { 
         this.mongoClient = requireNonNull(mongoClient);
+        this.instanceExists = requireNonNull(instanceExists);
     }
 
     @Override
