@@ -41,7 +41,7 @@ import org.junit.Test;
  */
 public class MongoInstallIT extends MongoITBase {
 
-	@Test
+    @Test
     public void install() throws DuplicateInstanceNameException, RyaClientException {
         // Install an instance of Rya.
         final String ryaInstance = conf.getMongoDBName();
@@ -141,10 +141,10 @@ public class MongoInstallIT extends MongoITBase {
                 Optional.of(conf.getMongoPassword().toCharArray()) :
                     Optional.empty();
 
-        return new MongoConnectionDetails(
-                conf.getMongoHostname(),
-                Integer.parseInt(conf.getMongoPort()),
-                Optional.ofNullable(conf.getMongoUser()),
-                password);
+                return new MongoConnectionDetails(
+                        conf.getMongoHostname(),
+                        Integer.parseInt(conf.getMongoPort()),
+                        Optional.ofNullable(conf.getMongoUser()),
+                        password);
     }
 }

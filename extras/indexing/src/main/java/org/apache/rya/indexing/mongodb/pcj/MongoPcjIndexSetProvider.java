@@ -18,8 +18,6 @@
  */
 package org.apache.rya.indexing.mongodb.pcj;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.List;
 import java.util.Map;
 
@@ -63,51 +61,50 @@ public class MongoPcjIndexSetProvider extends AbstractPcjIndexSetProvider {
 
     @Override
     protected List<ExternalTupleSet> getIndices() throws PcjIndexSetException {
-        requireNonNull(conf);
         try {
+            //TODO use the PCJ collection.
             final StatefulMongoDBRdfConfiguration mongoConf = (StatefulMongoDBRdfConfiguration) conf;
             final MongoClient client = mongoConf.getMongoClient();
             final MongoPcjDocuments pcjDocs = new MongoPcjDocuments(client, mongoConf.getRyaInstanceName());
-            List<String> tables = null;
+            List<String> documents = null;
 
-            tables = mongoConf.getPcjTables();
-            // this maps associates pcj table name with pcj sparql query
-            final Map<String, String> indexTables = Maps.newLinkedHashMap();
+            documents = mongoConf.getPcjTables();
+            // this maps associates pcj document name with pcj sparql query
+            final Map<String, String> indexDocuments = Maps.newLinkedHashMap();
 
             try(final PrecomputedJoinStorage storage = new MongoPcjStorage(client, mongoConf.getRyaInstanceName())) {
 
-                final boolean tablesProvided = tables != null && !tables.isEmpty();
+                final boolean docsProvided = documents != null && !documents.isEmpty();
 
-                if (tablesProvided) {
+                if (docsProvided) {
                     // if tables provided, associate table name with sparql
-                    for (final String table : tables) {
-                        indexTables.put(table, storage.getPcjMetadata(table).getSparql());
+                    for (final String doc : documents) {
+                        indexDocuments.put(doc, storage.getPcjMetadata(doc).getSparql());
                     }
                 } else if (hasRyaDetails()) {
-                    // If this is a newer install of Rya, and it has PCJ Details,
-                    // then
+                    // If this is a newer install of Rya, and it has PCJ Details, then
                     // use those.
                     final List<String> ids = storage.listPcjs();
                     for (final String id : ids) {
-                        indexTables.put(id, storage.getPcjMetadata(id).getSparql());
+                        indexDocuments.put(id, storage.getPcjMetadata(id).getSparql());
                     }
                 } else {
                     // Otherwise figure it out by getting document IDs.
-                    tables = pcjDocs.listPcjDocuments();
-                    for (final String table : tables) {
+                    documents = pcjDocs.listPcjDocuments();
+                    for (final String table : documents) {
                         if (table.startsWith("INDEX")) {
-                            indexTables.put(table, pcjDocs.getPcjMetadata(table).getSparql());
+                            indexDocuments.put(table, pcjDocs.getPcjMetadata(table).getSparql());
                         }
                     }
                 }
             }
 
             final List<ExternalTupleSet> index = Lists.newArrayList();
-            if (indexTables.isEmpty()) {
+            if (indexDocuments.isEmpty()) {
                 log.info("No Index found");
             } else {
-                for (final String table : indexTables.keySet()) {
-                    final String indexSparqlString = indexTables.get(table);
+                for (final String table : indexDocuments.keySet()) {
+                    final String indexSparqlString = indexDocuments.get(table);
                     index.add(new MongoPcjQueryNode(indexSparqlString, table, pcjDocs));
                 }
             }

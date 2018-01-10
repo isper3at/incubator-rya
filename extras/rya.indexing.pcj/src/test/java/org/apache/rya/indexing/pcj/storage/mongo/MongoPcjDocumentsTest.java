@@ -40,12 +40,12 @@ public class MongoPcjDocumentsTest extends MongoITBase {
     public void pcjToMetadata() throws Exception {
         final MongoPcjDocuments docConverter = new MongoPcjDocuments(getMongoClient(), conf.getRyaInstanceName());
         final String sparql = "SELECT * WHERE { ?a <http://isA> ?b }";
-        final Document actual = docConverter.getMetadataDocument("pcjTest", sparql);
+        final Document actual = docConverter.makeMetadataDocument("pcjTest", sparql);
         final Document expected = new Document()
                 .append(MongoPcjDocuments.CARDINALITY_FIELD, 0)
                 .append(MongoPcjDocuments.PCJ_ID, "pcjTest_METADATA")
                 .append(MongoPcjDocuments.SPARQL_FIELD, sparql)
-                .append(MongoPcjDocuments.VAR_ORDER_ID, Sets.newHashSet(new VariableOrder("a", "b"), new VariableOrder("b", "a")));
+                .append(MongoPcjDocuments.VAR_ORDER_FIELD, Sets.newHashSet(new VariableOrder("a", "b"), new VariableOrder("b", "a")));
         assertEquals(expected, actual);
     }
 

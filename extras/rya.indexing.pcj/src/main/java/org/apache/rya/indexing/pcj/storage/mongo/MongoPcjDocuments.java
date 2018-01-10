@@ -66,25 +66,26 @@ import com.mongodb.util.JSON;
  * <code>
  * ----- PCJ Metadata Doc -----
  * {
- *   _id: [table_name]_METADATA,
+ *   _id: [pcj_name]_METADATA,
  *   sparql: [sparql query to match results],
+ *   varOrders: [varOrder1, VarOrder2, ..., VarOrdern]
  *   cardinality: [number of results]
  * }
  *
  * ----- PCJ Results Doc -----
  * {
- *   pcjName: [table_name],
- *   auths: [auths]
+ *   pcjName: [pcj_name],
+ *   visibilities: [visibilities]
  *   [binding_var1]: {
  *     uri: [type_uri],
- *     value: value
+ *     value: [value]
  *   }
  *   .
  *   .
  *   .
  *   [binding_varn]: {
  *     uri: [type_uri],
- *     value: value
+ *     value: [value]
  *   }
  * }
  * </code>
@@ -97,12 +98,12 @@ public class MongoPcjDocuments {
     public static final String CARDINALITY_FIELD = "cardinality";
     public static final String SPARQL_FIELD = "sparql";
     public static final String PCJ_ID = "_id";
-    public static final String VAR_ORDER_ID = "varOrders";
+    public static final String VAR_ORDER_FIELD = "varOrders";
 
     // pcj results fields
     private static final String BINDING_VALUE = "value";
-    private static final String BINDING_TYPE = "uri";
-    private static final String AUTHS_FIELD = "auths";
+    private static final String BINDING_TYPE = "rdfType";
+    private static final String VISIBILITIES_FIELD = "visibilities";
     private static final String PCJ_NAME = "pcjName";
 
     private final MongoCollection<Document> pcjCollection;
@@ -119,7 +120,7 @@ public class MongoPcjDocuments {
         pcjCollection = client.getDatabase(ryaInstanceName).getCollection(PCJ_COLLECTION_NAME);
     }
 
-    private String getMetadataID(final String pcjName) {
+    private String makeMetadataID(final String pcjName) {
         return pcjName + "_METADATA";
     }
 
@@ -130,7 +131,7 @@ public class MongoPcjDocuments {
      * @return The document built around the provided metadata.
      * @throws PCJStorageException - Thrown when the sparql query is malformed.
      */
-    public Document getMetadataDocument(final String pcjName, final String sparql) throws PCJStorageException {
+    public Document makeMetadataDocument(final String pcjName, final String sparql) throws PCJStorageException {
         requireNonNull(pcjName);
         requireNonNull(sparql);
 
@@ -142,10 +143,10 @@ public class MongoPcjDocuments {
         }
 
         return new Document()
-                .append(PCJ_ID, getMetadataID(pcjName))
+                .append(PCJ_ID, makeMetadataID(pcjName))
                 .append(SPARQL_FIELD, sparql)
                 .append(CARDINALITY_FIELD, 0)
-                .append(VAR_ORDER_ID, varOrders);
+                .append(VAR_ORDER_FIELD, varOrders);
 
     }
 
@@ -157,7 +158,7 @@ public class MongoPcjDocuments {
      * @throws @throws PCJStorageException - Thrown when the sparql query is malformed.
      */
     public void createPcj(final String pcjName, final String sparql) throws PCJStorageException {
-        pcjCollection.insertOne(getMetadataDocument(pcjName, sparql));
+        pcjCollection.insertOne(makeMetadataDocument(pcjName, sparql));
     }
 
     /**
@@ -198,7 +199,7 @@ public class MongoPcjDocuments {
         requireNonNull(pcjName);
 
         // since query by ID, there will only be one.
-        final Document result = pcjCollection.find(new Document(PCJ_ID, getMetadataID(pcjName))).first();
+        final Document result = pcjCollection.find(new Document(PCJ_ID, makeMetadataID(pcjName))).first();
 
         if(result == null) {
             throw new PCJStorageException("The PCJ: " + pcjName + " does not exist.");
@@ -206,7 +207,7 @@ public class MongoPcjDocuments {
 
         final String sparql = result.getString(SPARQL_FIELD);
         final int cardinality = result.getInteger(CARDINALITY_FIELD, 0);
-        final List<List<String>> varOrders= (List<List<String>>) result.get(VAR_ORDER_ID);
+        final List<List<String>> varOrders= (List<List<String>>) result.get(VAR_ORDER_FIELD);
         final Set<VariableOrder> varOrder = new HashSet<>();
         for(final List<String> vars : varOrders) {
             varOrder.add(new VariableOrder(vars));
@@ -233,14 +234,14 @@ public class MongoPcjDocuments {
                         .append(BINDING_VALUE, type.getData())
                         );
             });
-            bindingDoc.append(AUTHS_FIELD, vbs.getVisibility());
+            bindingDoc.append(VISIBILITIES_FIELD, vbs.getVisibility());
             pcjDocs.add(bindingDoc);
         }
         pcjCollection.insertMany(pcjDocs);
 
         // update cardinality in the metadata doc.
         final int appendCardinality = pcjDocs.size();
-        final Bson query = new Document(PCJ_ID, getMetadataID(pcjName));
+        final Bson query = new Document(PCJ_ID, makeMetadataID(pcjName));
         final Bson update = new Document("$inc", new Document(CARDINALITY_FIELD, appendCardinality));
         pcjCollection.updateOne(query, update);
     }
@@ -257,7 +258,7 @@ public class MongoPcjDocuments {
         pcjCollection.deleteMany(filter);
 
         // reset cardinality
-        final Bson query = new Document(PCJ_ID, getMetadataID(pcjName));
+        final Bson query = new Document(PCJ_ID, makeMetadataID(pcjName));
         final Bson update = new Document("$set", new Document(CARDINALITY_FIELD, 0));
         pcjCollection.updateOne(query, update);
     }
@@ -405,7 +406,7 @@ public class MongoPcjDocuments {
                 final Document bs = resultsIter.next();
                 final MapBindingSet binding = new MapBindingSet();
                 for (final String key : bs.keySet()) {
-                    if (key.equals(AUTHS_FIELD)) {
+                    if (key.equals(VISIBILITIES_FIELD)) {
                         // has auths, is a visibility binding set.
                     } else if (!key.equals("_id") && !key.equals(PCJ_NAME)) {
                         // is the binding value.
@@ -433,6 +434,6 @@ public class MongoPcjDocuments {
      */
     public void dropPcjTable(final String pcjName) {
         purgePcjs(pcjName);
-        pcjCollection.deleteOne(new Document(PCJ_ID, getMetadataID(pcjName)));
+        pcjCollection.deleteOne(new Document(PCJ_ID, makeMetadataID(pcjName)));
     }
 }
