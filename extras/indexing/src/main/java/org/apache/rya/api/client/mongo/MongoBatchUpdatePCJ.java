@@ -41,11 +41,11 @@ import org.apache.rya.api.instance.RyaDetailsRepository.RyaDetailsRepositoryExce
 import org.apache.rya.api.instance.RyaDetailsUpdater;
 import org.apache.rya.api.instance.RyaDetailsUpdater.RyaDetailsMutator;
 import org.apache.rya.api.instance.RyaDetailsUpdater.RyaDetailsMutator.CouldNotApplyMutationException;
+import org.apache.rya.api.model.VisibilityBindingSet;
 import org.apache.rya.api.persist.RyaDAOException;
 import org.apache.rya.indexing.pcj.storage.PcjMetadata;
 import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage;
 import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.PCJStorageException;
-import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
 import org.apache.rya.indexing.pcj.storage.mongo.MongoPcjStorage;
 import org.apache.rya.mongodb.MongoDBRdfConfiguration;
 import org.apache.rya.mongodb.instance.MongoRyaInstanceDetailsRepository;
@@ -75,7 +75,7 @@ import com.mongodb.MongoClient;
  * <b>Note:</b>
  * <p>
  * Using this batch updater can create data leaks since the Sail layer does not
- * support {@link VisibilityBindingSet}s. 
+ * support {@link VisibilityBindingSet}s.
  */
 public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
     private static final Logger log = LoggerFactory.getLogger(MongoBatchUpdatePCJ.class);
@@ -166,7 +166,7 @@ public class MongoBatchUpdatePCJ implements BatchUpdatePCJ {
                 public void handleSolution(final BindingSet bindingSet) throws TupleQueryResultHandlerException {
                     final VisibilityBindingSet result = new VisibilityBindingSet(bindingSet, "");
                     log.warn("Visibility information on the binding set is lost during a batch update."
-                    		+ "  This can create data leaks.");
+                            + "  This can create data leaks.");
                     batch.add(result);
 
                     if(batch.size() == 1000) {

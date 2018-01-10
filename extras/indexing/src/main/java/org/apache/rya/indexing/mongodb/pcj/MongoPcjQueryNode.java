@@ -28,12 +28,12 @@ import java.util.HashSet;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
+import org.apache.rya.api.utils.CloseableIterator;
 import org.apache.rya.api.utils.IteratorWrapper;
 import org.apache.rya.indexing.external.tupleSet.ExternalTupleSet;
 import org.apache.rya.indexing.external.tupleSet.ParsedQueryUtil;
 import org.apache.rya.indexing.pcj.matching.PCJOptimizerUtilities;
 import org.apache.rya.indexing.pcj.storage.PcjException;
-import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
 import org.apache.rya.indexing.pcj.storage.mongo.MongoPcjDocuments;
 import org.apache.rya.mongodb.StatefulMongoDBRdfConfiguration;
 import org.apache.rya.rdftriplestore.evaluation.ExternalBatchingIterator;
@@ -73,7 +73,7 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
      * @throws MalformedQueryException - The SPARQL query needs to contain a projection.
      */
     public MongoPcjQueryNode(final String sparql, final String pcjName, final MongoPcjDocuments pcjDocs) throws MalformedQueryException {
-    	checkArgument(!Strings.isNullOrEmpty(sparql));
+        checkArgument(!Strings.isNullOrEmpty(sparql));
         checkArgument(!Strings.isNullOrEmpty(pcjName));
         this.pcjDocs = checkNotNull(pcjDocs);
         this.pcjName = pcjName;
@@ -96,11 +96,11 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
      * @param pcjName - name of an existing PCJ. (not empty or null)
      */
     public MongoPcjQueryNode(final Configuration conf, final String pcjName) {
-    	checkNotNull(conf);
-    	checkArgument(conf instanceof StatefulMongoDBRdfConfiguration, 
-    			"The configuration must be a StatefulMongoDBRdfConfiguration, found: " + conf.getClass().getSimpleName());
-    	checkArgument(!Strings.isNullOrEmpty(pcjName));
-    	final StatefulMongoDBRdfConfiguration statefulConf = (StatefulMongoDBRdfConfiguration) conf;
+        checkNotNull(conf);
+        checkArgument(conf instanceof StatefulMongoDBRdfConfiguration,
+                "The configuration must be a StatefulMongoDBRdfConfiguration, found: " + conf.getClass().getSimpleName());
+        checkArgument(!Strings.isNullOrEmpty(pcjName));
+        final StatefulMongoDBRdfConfiguration statefulConf = (StatefulMongoDBRdfConfiguration) conf;
         pcjDocs = new MongoPcjDocuments(statefulConf.getMongoClient(), statefulConf.getRyaInstanceName());
         this.pcjName = pcjName;
     }
@@ -141,7 +141,7 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
 
             @Override
             public BindingSet next() throws QueryEvaluationException {
-            	final BindingSet bs = iter.next();
+                final BindingSet bs = iter.next();
                 return bs;
             }
 
@@ -160,9 +160,9 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
             }
         };
     }
-    
+
     @Override
     public String getSignature() {
-    	return "(Mongo PcjQueryNode) " + Joiner.on(", ").join(super.getTupleExpr().getProjectionElemList().getElements()).replaceAll("\\s+", " ");
+        return "(Mongo PcjQueryNode) " + Joiner.on(", ").join(super.getTupleExpr().getProjectionElemList().getElements()).replaceAll("\\s+", " ");
     }
 }

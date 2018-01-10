@@ -28,11 +28,11 @@ import java.util.Set;
 import org.apache.rya.api.client.Install.InstallConfiguration;
 import org.apache.rya.api.client.RyaClient;
 import org.apache.rya.api.client.accumulo.AccumuloBatchUpdatePCJ;
+import org.apache.rya.api.utils.CloseableIterator;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType;
 import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig.PrecomputedJoinUpdaterType;
 import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage;
-import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
 import org.apache.rya.indexing.pcj.storage.mongo.MongoPcjStorage;
 import org.apache.rya.mongodb.MongoDBRdfConfiguration;
 import org.apache.rya.mongodb.MongoITBase;
@@ -66,7 +66,7 @@ public class MongoBatchUpdatePCJIT extends MongoITBase {
         ryaClient.getInstall().install(conf.getRyaInstanceName(), InstallConfiguration.builder()
                 .setEnablePcjIndex(true)
                 .build());
-        
+
         // Load some statements into the Rya instance.
         final ValueFactory vf = ValueFactoryImpl.getInstance();
         final Collection<Statement> statements = new ArrayList<>();
@@ -78,7 +78,7 @@ public class MongoBatchUpdatePCJIT extends MongoITBase {
         statements.add(vf.createStatement(vf.createURI("urn:Frank"), vf.createURI("urn:likes"), vf.createURI("urn:icecream")));
         statements.add(vf.createStatement(vf.createURI("urn:George"), vf.createURI("urn:likes"), vf.createURI("urn:icecream")));
         statements.add(vf.createStatement(vf.createURI("urn:Hillary"), vf.createURI("urn:likes"), vf.createURI("urn:icecream")));
-        
+
         statements.add(vf.createStatement(vf.createURI("urn:Alice"), vf.createURI("urn:hasEyeColor"), vf.createURI("urn:blue")));
         statements.add(vf.createStatement(vf.createURI("urn:Bob"), vf.createURI("urn:hasEyeColor"), vf.createURI("urn:blue")));
         statements.add(vf.createStatement(vf.createURI("urn:Charlie"), vf.createURI("urn:hasEyeColor"), vf.createURI("urn:blue")));
