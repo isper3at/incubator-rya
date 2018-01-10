@@ -74,7 +74,7 @@ import com.mongodb.util.JSON;
  *
  * ----- PCJ Results Doc -----
  * {
- *   pcjName: [pcj_name],
+ *   pcjId: [pcj_name],
  *   visibilities: [visibilities]
  *   [binding_var1]: {
  *     uri: [type_uri],
@@ -104,7 +104,7 @@ public class MongoPcjDocuments {
     private static final String BINDING_VALUE = "value";
     private static final String BINDING_TYPE = "rdfType";
     private static final String VISIBILITIES_FIELD = "visibilities";
-    private static final String PCJ_NAME = "pcjName";
+    private static final String PCJ_NAME = "pcjId";
 
     private final MongoCollection<Document> pcjCollection;
     private static final PcjVarOrderFactory pcjVarOrderFactory = new ShiftVarOrderFactory();
@@ -120,19 +120,23 @@ public class MongoPcjDocuments {
         pcjCollection = client.getDatabase(ryaInstanceName).getCollection(PCJ_COLLECTION_NAME);
     }
 
-    private String makeMetadataID(final String pcjName) {
-        return pcjName + "_METADATA";
+    private String makeMetadataID(final String pcjId) {
+        return pcjId + "_METADATA";
     }
 
     /**
      * Creates a {@link Document} containing the metadata defining the PCj.
-     * @param pcjName - The name of the PCJ. (not null)
-     * @param sparql - The sparql query the PCJ will use.
+     * 
+     * @param pcjId
+     *            - The name of the PCJ. (not null)
+     * @param sparql
+     *            - The sparql query the PCJ will use.
      * @return The document built around the provided metadata.
-     * @throws PCJStorageException - Thrown when the sparql query is malformed.
+     * @throws PCJStorageException
+     *             - Thrown when the sparql query is malformed.
      */
-    public Document makeMetadataDocument(final String pcjName, final String sparql) throws PCJStorageException {
-        requireNonNull(pcjName);
+    public Document makeMetadataDocument(final String pcjId, final String sparql) throws PCJStorageException {
+        requireNonNull(pcjId);
         requireNonNull(sparql);
 
         final Set<VariableOrder> varOrders;
@@ -143,7 +147,7 @@ public class MongoPcjDocuments {
         }
 
         return new Document()
-                .append(PCJ_ID, makeMetadataID(pcjName))
+                .append(PCJ_ID, makeMetadataID(pcjId))
                 .append(SPARQL_FIELD, sparql)
                 .append(CARDINALITY_FIELD, 0)
                 .append(VAR_ORDER_FIELD, varOrders);
@@ -151,13 +155,18 @@ public class MongoPcjDocuments {
     }
 
     /**
-     * Creates a new PCJ based on the provided metadata.  The initial pcj results will be empty.
-     * @param pcjName - The unique name of the PCJ.
-     * @param sparql - The query the pcj is assigned to.
-     * @throws @throws PCJStorageException - Thrown when the sparql query is malformed.
+     * Creates a new PCJ based on the provided metadata. The initial pcj results
+     * will be empty.
+     * 
+     * @param pcjId
+     *            - The unique name of the PCJ.
+     * @param sparql
+     *            - The query the pcj is assigned to.
+     * @throws @throws
+     *             PCJStorageException - Thrown when the sparql query is malformed.
      */
-    public void createPcj(final String pcjName, final String sparql) throws PCJStorageException {
-        pcjCollection.insertOne(makeMetadataDocument(pcjName, sparql));
+    public void createPcj(final String pcjId, final String sparql) throws PCJStorageException {
+        pcjCollection.insertOne(makeMetadataDocument(pcjId, sparql));
     }
 
     /**
@@ -168,41 +177,41 @@ public class MongoPcjDocuments {
      * create PCJ table will be left in Mongo.
      *
      * @param ryaConn - Connects to the Rya that will be scanned. (not null)
-     * @param pcjName - The name of the PCJ table that will be created. (not null)
+     * @param pcjId - The name of the PCJ table that will be created. (not null)
      * @param sparql - The SPARQL query whose results will be loaded into the table. (not null)
      * @throws PCJStorageException The PCJ table could not be create or the
      *     values from Rya were not able to be loaded into it.
      */
     public void createAndPopulatePcj(
             final RepositoryConnection ryaConn,
-            final String pcjName,
+            final String pcjId,
             final String sparql) throws PCJStorageException {
         checkNotNull(ryaConn);
-        checkNotNull(pcjName);
+        checkNotNull(pcjId);
         checkNotNull(sparql);
 
         // Create the PCJ document in Mongo.
-        createPcj(pcjName, sparql);
+        createPcj(pcjId, sparql);
 
         // Load historic matches from Rya into the PCJ table.
-        populatePcj(pcjName, ryaConn);
+        populatePcj(pcjId, ryaConn);
     }
 
     /**
      * Gets the {@link PcjMetadata} from a provided PCJ name.
      *
-     * @param pcjName - The PCJ to get from MongoDB. (not null)
+     * @param pcjId - The PCJ to get from MongoDB. (not null)
      * @return - The {@link PcjMetadata} of the Pcj specified.
      * @throws PCJStorageException The PCJ Table does not exist.
      */
-    public PcjMetadata getPcjMetadata(final String pcjName) throws PCJStorageException {
-        requireNonNull(pcjName);
+    public PcjMetadata getPcjMetadata(final String pcjId) throws PCJStorageException {
+        requireNonNull(pcjId);
 
         // since query by ID, there will only be one.
-        final Document result = pcjCollection.find(new Document(PCJ_ID, makeMetadataID(pcjName))).first();
+        final Document result = pcjCollection.find(new Document(PCJ_ID, makeMetadataID(pcjId))).first();
 
         if(result == null) {
-            throw new PCJStorageException("The PCJ: " + pcjName + " does not exist.");
+            throw new PCJStorageException("The PCJ: " + pcjId + " does not exist.");
         }
 
         final String sparql = result.getString(SPARQL_FIELD);
@@ -218,17 +227,20 @@ public class MongoPcjDocuments {
 
     /**
      * Adds binding set results to a specific PCJ.
-     * @param pcjName - The PCJ to add the results to.
-     * @param results - The binding set results.
+     * 
+     * @param pcjId
+     *            - The PCJ to add the results to.
+     * @param results
+     *            - The binding set results.
      */
-    public void addResults(final String pcjName, final Collection<VisibilityBindingSet> results) {
-        checkNotNull(pcjName);
+    public void addResults(final String pcjId, final Collection<VisibilityBindingSet> results) {
+        checkNotNull(pcjId);
         checkNotNull(results);
 
         final List<Document> pcjDocs = new ArrayList<>();
         for (final VisibilityBindingSet vbs : results) {
             // each binding gets it's own doc.
-            final Document bindingDoc = new Document(PCJ_NAME, pcjName);
+            final Document bindingDoc = new Document(PCJ_NAME, pcjId);
             vbs.forEach(binding -> {
                 final RyaType type = RdfToRyaConversions.convertValue(binding.getValue());
                 bindingDoc.append(binding.getName(),
@@ -244,24 +256,26 @@ public class MongoPcjDocuments {
 
         // update cardinality in the metadata doc.
         final int appendCardinality = pcjDocs.size();
-        final Bson query = new Document(PCJ_ID, makeMetadataID(pcjName));
+        final Bson query = new Document(PCJ_ID, makeMetadataID(pcjId));
         final Bson update = new Document("$inc", new Document(CARDINALITY_FIELD, appendCardinality));
         pcjCollection.updateOne(query, update);
     }
 
     /**
      * Purges all results from the PCJ document with the provided name.
-     * @param pcjName - The name of the PCJ document to purge. (not null)
+     * 
+     * @param pcjId
+     *            - The name of the PCJ document to purge. (not null)
      */
-    public void purgePcjs(final String pcjName) {
-        requireNonNull(pcjName);
+    public void purgePcjs(final String pcjId) {
+        requireNonNull(pcjId);
 
         // remove every doc for the pcj, except the metadata
-        final Bson filter = new Document(PCJ_NAME, pcjName);
+        final Bson filter = new Document(PCJ_NAME, pcjId);
         pcjCollection.deleteMany(filter);
 
         // reset cardinality
-        final Bson query = new Document(PCJ_ID, makeMetadataID(pcjName));
+        final Bson query = new Document(PCJ_ID, makeMetadataID(pcjId));
         final Bson update = new Document("$set", new Document(CARDINALITY_FIELD, 0));
         pcjCollection.updateOne(query, update);
     }
@@ -272,7 +286,7 @@ public class MongoPcjDocuments {
      * <p>
      * This method assumes the PCJ document has already been created.
      *
-     * @param pcjName
+     * @param pcjId
      *            - The name of the PCJ table that will receive the results. (not
      *            null)
      * @param ryaConn
@@ -282,13 +296,13 @@ public class MongoPcjDocuments {
      *             If results could not be written to the PCJ table, the PCJ table
      *             does not exist, or the query that is being execute was malformed.
      */
-    public void populatePcj(final String pcjName, final RepositoryConnection ryaConn) throws PCJStorageException {
-        checkNotNull(pcjName);
+    public void populatePcj(final String pcjId, final RepositoryConnection ryaConn) throws PCJStorageException {
+        checkNotNull(pcjId);
         checkNotNull(ryaConn);
 
         try {
             // Fetch the query that needs to be executed from the PCJ table.
-            final PcjMetadata pcjMetadata = getPcjMetadata(pcjName);
+            final PcjMetadata pcjMetadata = getPcjMetadata(pcjId);
             final String sparql = pcjMetadata.getSparql();
 
             // Query Rya for results to the SPARQL query.
@@ -301,18 +315,18 @@ public class MongoPcjDocuments {
                 final VisibilityBindingSet bs = new VisibilityBindingSet(results.next());
                 batch.add( bs );
                 if(batch.size() == 1000) {
-                    addResults(pcjName, batch);
+                    addResults(pcjId, batch);
                     batch.clear();
                 }
             }
 
             if(!batch.isEmpty()) {
-                addResults(pcjName, batch);
+                addResults(pcjId, batch);
             }
 
         } catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
             throw new PCJStorageException(
-                    "Could not populate a PCJ document with Rya results for the pcj named: " + pcjName, e);
+                    "Could not populate a PCJ document with Rya results for the pcj named: " + pcjId, e);
         }
     }
 
@@ -324,7 +338,7 @@ public class MongoPcjDocuments {
      *   instance of Rya.
      */
     public List<String> listPcjDocuments() {
-        final List<String> pcjNames = new ArrayList<>();
+        final List<String> pcjIds = new ArrayList<>();
 
         //This Bson string reads as:
         //{} - no search criteria: find all
@@ -332,29 +346,30 @@ public class MongoPcjDocuments {
         final FindIterable<Document> rez = pcjCollection.find((Bson) JSON.parse("{ }, { " + PCJ_ID + ": 1 , _id: 0}"));
         final Iterator<Document> iter = rez.iterator();
         while(iter.hasNext()) {
-            pcjNames.add(iter.next().get(PCJ_ID).toString().replace("_METADATA", ""));
+            pcjIds.add(iter.next().get(PCJ_ID).toString().replace("_METADATA", ""));
         }
 
-        return pcjNames;
+        return pcjIds;
     }
 
     /**
      * Returns all of the results of a PCJ.
      *
-     * @param pcjName - The PCJ to get the results for. (not null)
+     * @param pcjId
+     *            - The PCJ to get the results for. (not null)
      * @return The authorized PCJ results.
      */
-    public CloseableIterator<BindingSet> listResults(final String pcjName) {
-        requireNonNull(pcjName);
+    public CloseableIterator<BindingSet> listResults(final String pcjId) {
+        requireNonNull(pcjId);
 
-        // get all results based on pcjName
-        return queryForBindings(new Document(PCJ_NAME, pcjName));
+        // get all results based on pcjId
+        return queryForBindings(new Document(PCJ_NAME, pcjId));
     }
 
     /**
-     * Retrieves the stored {@link BindingSet} results for the provided pcjName.
+     * Retrieves the stored {@link BindingSet} results for the provided pcjId.
      *
-     * @param pcjName
+     * @param pcjId
      *            - The pcj to retrieve results for.
      * @param authorizations
      *            - The authorizations of the user to restrict results.
@@ -376,14 +391,14 @@ public class MongoPcjDocuments {
      * </code>
      * @return
      */
-    public CloseableIterator<BindingSet> getResults(final String pcjName, final Authorizations authorizations,
+    public CloseableIterator<BindingSet> getResults(final String pcjId, final Authorizations authorizations,
             final Collection<BindingSet> restrictionBindings) {
         // empty bindings return all results.
         if (restrictionBindings.size() == 1 && restrictionBindings.iterator().next().size() == 0) {
-            return listResults(pcjName);
+            return listResults(pcjId);
         }
 
-        final Document query = new Document(PCJ_NAME, pcjName);
+        final Document query = new Document(PCJ_NAME, pcjId);
         final Document bindingSetDoc = new Document();
         final List<Document> bindingSetList = new ArrayList<>();
         restrictionBindings.forEach(bindingSet -> {
@@ -439,13 +454,13 @@ public class MongoPcjDocuments {
     }
 
     /**
-     * Drops a pcj based on the PCJ name. Removing the entire document from
-     * Mongo.
+     * Drops a pcj based on the PCJ name. Removing the entire document from Mongo.
      *
-     * @param pcjName - The identifier for the PCJ to remove.
+     * @param pcjId
+     *            - The identifier for the PCJ to remove.
      */
-    public void dropPcjTable(final String pcjName) {
-        purgePcjs(pcjName);
-        pcjCollection.deleteOne(new Document(PCJ_ID, makeMetadataID(pcjName)));
+    public void dropPcjTable(final String pcjId) {
+        purgePcjs(pcjId);
+        pcjCollection.deleteOne(new Document(PCJ_ID, makeMetadataID(pcjId)));
     }
 }

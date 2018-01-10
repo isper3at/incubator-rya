@@ -60,23 +60,23 @@ import info.aduna.iteration.CloseableIteration;
 @DefaultAnnotation(NonNull.class)
 public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatchingIterator {
     private static final Logger log = Logger.getLogger(MongoPcjQueryNode.class);
-    private final String pcjName;
+    private final String pcjId;
     private final MongoPcjDocuments pcjDocs;
 
     /**
      * Creates a new {@link MongoPcjQueryNode}.
      *
      * @param sparql - sparql query whose results will be stored in PCJ document. (not empty of null)
-     * @param pcjName - name of an existing PCJ. (not empty or null)
+     * @param pcjId - name of an existing PCJ. (not empty or null)
      * @param pcjDocs - {@link MongoPcjDocuments} used to maintain PCJs in mongo. (not null)
      *
      * @throws MalformedQueryException - The SPARQL query needs to contain a projection.
      */
-    public MongoPcjQueryNode(final String sparql, final String pcjName, final MongoPcjDocuments pcjDocs) throws MalformedQueryException {
+    public MongoPcjQueryNode(final String sparql, final String pcjId, final MongoPcjDocuments pcjDocs) throws MalformedQueryException {
         checkArgument(!Strings.isNullOrEmpty(sparql));
-        checkArgument(!Strings.isNullOrEmpty(pcjName));
+        checkArgument(!Strings.isNullOrEmpty(pcjId));
         this.pcjDocs = checkNotNull(pcjDocs);
-        this.pcjName = pcjName;
+        this.pcjId = pcjId;
         final SPARQLParser sp = new SPARQLParser();
         final ParsedTupleQuery pq = (ParsedTupleQuery) sp.parseQuery(sparql, null);
         final TupleExpr te = pq.getTupleExpr();
@@ -93,16 +93,16 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
      * Creates a new {@link MongoPcjQueryNode}.
      *
      * @param conf - configuration to use to connect to mongo. (not null)
-     * @param pcjName - name of an existing PCJ. (not empty or null)
+     * @param pcjId - name of an existing PCJ. (not empty or null)
      */
-    public MongoPcjQueryNode(final Configuration conf, final String pcjName) {
+    public MongoPcjQueryNode(final Configuration conf, final String pcjId) {
         checkNotNull(conf);
         checkArgument(conf instanceof StatefulMongoDBRdfConfiguration,
                 "The configuration must be a StatefulMongoDBRdfConfiguration, found: " + conf.getClass().getSimpleName());
-        checkArgument(!Strings.isNullOrEmpty(pcjName));
+        checkArgument(!Strings.isNullOrEmpty(pcjId));
         final StatefulMongoDBRdfConfiguration statefulConf = (StatefulMongoDBRdfConfiguration) conf;
         pcjDocs = new MongoPcjDocuments(statefulConf.getMongoClient(), statefulConf.getRyaInstanceName());
-        this.pcjName = pcjName;
+        this.pcjId = checkNotNull(pcjId);
     }
 
     /**
@@ -112,7 +112,7 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
     public double cardinality() {
         double cardinality = 0;
         try {
-            cardinality = pcjDocs.getPcjMetadata(pcjName).getCardinality();
+            cardinality = pcjDocs.getPcjMetadata(pcjId).getCardinality();
         } catch (final PcjException e) {
             log.error("The PCJ has not been created, so has no cardinality.", e);
         }
@@ -132,7 +132,7 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
         if (bindingset.isEmpty()) {
             return new IteratorWrapper<BindingSet, QueryEvaluationException>(new HashSet<BindingSet>().iterator());
         }
-        final CloseableIterator<BindingSet> iter = pcjDocs.getResults(pcjName, new Authorizations(), bindingset);
+        final CloseableIterator<BindingSet> iter = pcjDocs.getResults(pcjId, new Authorizations(), bindingset);
         return new CloseableIteration<BindingSet, QueryEvaluationException>() {
             @Override
             public boolean hasNext() throws QueryEvaluationException {

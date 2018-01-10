@@ -62,7 +62,6 @@ public class MongoPcjIndexSetProvider extends AbstractPcjIndexSetProvider {
     @Override
     protected List<ExternalTupleSet> getIndices() throws PcjIndexSetException {
         try {
-            //TODO use the PCJ collection.
             final StatefulMongoDBRdfConfiguration mongoConf = (StatefulMongoDBRdfConfiguration) conf;
             final MongoClient client = mongoConf.getMongoClient();
             final MongoPcjDocuments pcjDocs = new MongoPcjDocuments(client, mongoConf.getRyaInstanceName());
@@ -85,15 +84,15 @@ public class MongoPcjIndexSetProvider extends AbstractPcjIndexSetProvider {
                     // If this is a newer install of Rya, and it has PCJ Details, then
                     // use those.
                     final List<String> ids = storage.listPcjs();
-                    for (final String id : ids) {
-                        indexDocuments.put(id, storage.getPcjMetadata(id).getSparql());
+                    for (final String pcjId : ids) {
+                        indexDocuments.put(pcjId, storage.getPcjMetadata(pcjId).getSparql());
                     }
                 } else {
                     // Otherwise figure it out by getting document IDs.
                     documents = pcjDocs.listPcjDocuments();
-                    for (final String table : documents) {
-                        if (table.startsWith("INDEX")) {
-                            indexDocuments.put(table, pcjDocs.getPcjMetadata(table).getSparql());
+                    for (final String pcjId : documents) {
+                        if (pcjId.startsWith("INDEX")) {
+                            indexDocuments.put(pcjId, pcjDocs.getPcjMetadata(pcjId).getSparql());
                         }
                     }
                 }
@@ -103,9 +102,9 @@ public class MongoPcjIndexSetProvider extends AbstractPcjIndexSetProvider {
             if (indexDocuments.isEmpty()) {
                 log.info("No Index found");
             } else {
-                for (final String table : indexDocuments.keySet()) {
-                    final String indexSparqlString = indexDocuments.get(table);
-                    index.add(new MongoPcjQueryNode(indexSparqlString, table, pcjDocs));
+                for (final String pcjID : indexDocuments.keySet()) {
+                    final String indexSparqlString = indexDocuments.get(pcjID);
+                    index.add(new MongoPcjQueryNode(indexSparqlString, pcjID, pcjDocs));
                 }
             }
             return index;

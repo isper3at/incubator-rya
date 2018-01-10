@@ -45,7 +45,7 @@ public class RyaDetailsFormatter {
      * @param details - The object to format. (not null)
      * @return A pretty render of the object.
      */
-    public String format(StorageType storageType, final RyaDetails details) {
+    public String format(final StorageType storageType, final RyaDetails details) {
         requireNonNull(details);
 
         final StringBuilder report = new StringBuilder();
@@ -97,14 +97,18 @@ public class RyaDetailsFormatter {
                 }
             }
 
-            report.append("Statistics:\n");
-            report.append("  Prospector:\n");
-            final String prospectorLastUpdateTime = format(details.getProspectorDetails().getLastUpdated(), "unavailable");
-            report.append("    Last Update Time: ").append( prospectorLastUpdateTime).append("\n");
+            if (storageType == StorageType.ACCUMULO) {
+                report.append("Statistics:\n");
+                report.append("  Prospector:\n");
+                final String prospectorLastUpdateTime = format(details.getProspectorDetails().getLastUpdated(),
+                        "unavailable");
+                report.append("    Last Update Time: ").append(prospectorLastUpdateTime).append("\n");
 
-            report.append("  Join Selectivity:\n");
-            final String jsLastUpdateTime = format(details.getJoinSelectivityDetails().getLastUpdated(), "unavailable");
-            report.append("    Last Updated Time: ").append( jsLastUpdateTime ).append("\n");
+                report.append("  Join Selectivity:\n");
+                final String jsLastUpdateTime = format(details.getJoinSelectivityDetails().getLastUpdated(),
+                        "unavailable");
+                report.append("    Last Updated Time: ").append(jsLastUpdateTime).append("\n");
+            }
         }
 
         return report.toString();
