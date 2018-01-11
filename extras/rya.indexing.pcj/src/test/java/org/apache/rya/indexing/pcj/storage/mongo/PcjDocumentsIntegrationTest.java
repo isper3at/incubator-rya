@@ -440,7 +440,7 @@ public class PcjDocumentsIntegrationTest extends MongoITBase {
         assertEquals(expectedMetadata, metadata);
 
         // Drop it.
-        pcjs.dropPcjTable(pcjTableName);
+        pcjs.dropPcj(pcjTableName);
 
         // Show the metadata is no longer present.
         metadata = pcjs.getPcjMetadata(pcjTableName);

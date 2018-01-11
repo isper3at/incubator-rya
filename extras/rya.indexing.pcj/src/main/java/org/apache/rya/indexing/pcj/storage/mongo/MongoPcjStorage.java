@@ -150,7 +150,7 @@ public class MongoPcjStorage implements PrecomputedJoinStorage {
         }
 
         // Delete the table that hold's the PCJ's results.
-        pcjDocs.dropPcjTable(pcjId);
+        pcjDocs.dropPcj(pcjId);
     }
 
     @Override

@@ -43,7 +43,7 @@ public class MongoPcjDocumentsTest extends MongoITBase {
         final Document actual = docConverter.makeMetadataDocument("pcjTest", sparql);
         final Document expected = new Document()
                 .append(MongoPcjDocuments.CARDINALITY_FIELD, 0)
-                .append(MongoPcjDocuments.PCJ_ID, "pcjTest_METADATA")
+                .append(MongoPcjDocuments.PCJ_METADATA_ID, "pcjTest_METADATA")
                 .append(MongoPcjDocuments.SPARQL_FIELD, sparql)
                 .append(MongoPcjDocuments.VAR_ORDER_FIELD, Sets.newHashSet(new VariableOrder("a", "b"), new VariableOrder("b", "a")));
         assertEquals(expected, actual);
