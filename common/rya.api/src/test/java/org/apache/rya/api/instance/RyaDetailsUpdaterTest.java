@@ -28,7 +28,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails.TypeDetails;
 import org.apache.rya.api.instance.RyaDetails.FreeTextIndexDetails;
 import org.apache.rya.api.instance.RyaDetails.JoinSelectivityDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
@@ -55,7 +57,15 @@ public class RyaDetailsUpdaterTest {
                 .setRyaInstanceName("instanceName")
                 .setRyaVersion("0.0.0.0")
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:name"))
+                                    .build())
+                            .build()
+                )
               //RYA-215                .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setPCJIndexDetails(
@@ -92,7 +102,15 @@ public class RyaDetailsUpdaterTest {
                 .setRyaInstanceName("instanceName")
                 .setRyaVersion("0.0.0.0")
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:name"))
+                                    .build())
+                            .build()
+                )
               //RYA-215                .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setPCJIndexDetails(

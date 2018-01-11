@@ -20,7 +20,12 @@ package org.apache.rya.shell.util;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Set;
+
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails.TypeDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails.PCJDetails;
 import org.apache.rya.shell.SharedShellState.StorageType;
@@ -28,6 +33,7 @@ import org.apache.rya.shell.SharedShellState.StorageType;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -60,9 +66,30 @@ public class RyaDetailsFormatter {
 
         report.append("Secondary Indicies:\n");
 
-        if(storageType == StorageType.ACCUMULO) {
-            report.append("  Entity Centric Index:\n");
-            report.append("    Enabled: ").append( details.getEntityCentricIndexDetails().isEnabled() ).append("\n");
+        final EntityCentricIndexDetails entityDetails = details.getEntityCentricIndexDetails();
+        report.append("  Entity Centric Index:\n");
+        report.append("    Enabled: ").append( entityDetails.isEnabled() ).append("\n");
+        if(storageType == StorageType.MONGO) {
+            report.append("  Types:\n");
+            final Set<TypeDetails> types = entityDetails.getTypes();
+            if(types.size() == 0) {
+                report.append("    No Types have been added yet.\n");
+            } else {
+                for(final TypeDetails type : types) {
+                    report.append("      ID: ").append(type.getId().getData()).append("\n");
+
+                    final ImmutableSet<RyaURI> props = type.getProperties();
+                    if(props.size() == 0) {
+                        //this should never happen, a property-less type is invalid.
+                        report.append("      No properties have been added.\n");
+                    } else {
+                        report.append("      Properties: \n");
+                        for(final RyaURI prop : props) {
+                            report.append("        ").append(prop.getData()).append("\n");
+                        }
+                    }
+                }
+            }
         }
 
       //RYA-215        report.append("  Geospatial Index:\n");

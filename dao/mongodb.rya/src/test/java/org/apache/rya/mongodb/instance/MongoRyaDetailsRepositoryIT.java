@@ -25,8 +25,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails;
 import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails.TypeDetails;
 import org.apache.rya.api.instance.RyaDetails.FreeTextIndexDetails;
 import org.apache.rya.api.instance.RyaDetails.JoinSelectivityDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
@@ -66,7 +68,18 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName(instanceName)
                 .setRyaVersion("1.2.3.4")
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -106,7 +119,18 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName(instanceName)
                 .setRyaVersion("1.2.3.4")
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -153,7 +177,18 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName(instanceName)
                 .setRyaVersion("1.2.3.4")
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -200,7 +235,18 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName(instanceName)
                 .setRyaVersion("1.2.3.4")
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -227,7 +273,11 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
 
         // Create a new state for the details.
         final RyaDetails updated = new RyaDetails.Builder( details )
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(false) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(false)
+                            .build()
+                )
                 .build();
 
         // Execute the update.
@@ -246,7 +296,18 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName(instanceName)
                 .setRyaVersion("1.2.3.4")
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -278,7 +339,11 @@ public class MongoRyaDetailsRepositoryIT extends MongoITBase {
                 .build();
 
         final RyaDetails updated = new RyaDetails.Builder( details )
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(false) )
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(false)
+                            .build()
+                )
                 .build();
 
         // Try to execute the update where the old state is not the currently stored state.

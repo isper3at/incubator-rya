@@ -24,8 +24,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails;
 import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails.TypeDetails;
 import org.apache.rya.api.instance.RyaDetails.FreeTextIndexDetails;
 import org.apache.rya.api.instance.RyaDetails.JoinSelectivityDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
@@ -52,7 +54,16 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * {
  *   "instanceName": &lt;string&gt;,
  *   "version": &lt;string&gt;?,
- *   "entityCentricDetails": &lt;boolean&gt;,
+ *   "entityCentricDetails": {
+ *       "enabled": &lt;boolean&gt;,
+ *       "types": [{
+ *           "id": &lt;uri&gt;,
+ *           "properties": [
+ *               &lt;uri&gt;,...
+ *           ]
+ *         },...,{}
+ *       ]
+ *   },
  *   "geoDetails": &lt;boolean&gt;,
  *   "pcjDetails": {
  *       "enabled": &lt;boolean&gt;,
@@ -76,8 +87,16 @@ public class MongoDetailsAdapter {
     public static final String INSTANCE_KEY = "instanceName";
     public static final String VERSION_KEY = "version";
 
+    //entity indexer keys
     public static final String ENTITY_DETAILS_KEY = "entityCentricDetails";
+    public static final String ENTITY_ENABLED_KEY = "enabled";
+    public static final String ENTITY_TYPES_KEY = "types";
+    public static final String ENTITY_TYPE_ID_KEY = "id";
+    public static final String ENTITY_TYPE_PROPERTIES_KEY = "properties";
+
     public static final String GEO_DETAILS_KEY = "geoDetails";
+
+    //PCJ indexer keys
     public static final String PCJ_DETAILS_KEY = "pcjDetails";
     public static final String PCJ_ENABLED_KEY = "enabled";
     public static final String PCJ_FLUO_KEY = "fluoName";
@@ -85,6 +104,7 @@ public class MongoDetailsAdapter {
     public static final String PCJ_ID_KEY = "id";
     public static final String PCJ_UPDATE_STRAT_KEY = "updateStrategy";
     public static final String PCJ_LAST_UPDATE_KEY = "lastUpdate";
+
     public static final String TEMPORAL_DETAILS_KEY = "temporalDetails";
     public static final String FREETEXT_DETAILS_KEY = "freeTextDetails";
 
@@ -101,7 +121,7 @@ public class MongoDetailsAdapter {
         final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start()
                 .add(INSTANCE_KEY, details.getRyaInstanceName())
                 .add(VERSION_KEY, details.getRyaVersion())
-                .add(ENTITY_DETAILS_KEY, details.getEntityCentricIndexDetails().isEnabled())
+                .add(ENTITY_DETAILS_KEY, toDBObject(details.getEntityCentricIndexDetails()))
                 //RYA-215            .add(GEO_DETAILS_KEY, details.getGeoIndexDetails().isEnabled())
                 .add(PCJ_DETAILS_KEY, toDBObject(details.getPCJIndexDetails()))
                 .add(TEMPORAL_DETAILS_KEY, details.getTemporalIndexDetails().isEnabled())
@@ -113,6 +133,42 @@ public class MongoDetailsAdapter {
             builder.add(JOIN_SELECTIVITY_DETAILS_KEY, details.getJoinSelectivityDetails().getLastUpdated().get());
         }
         return (BasicDBObject) builder.get();
+    }
+
+    private static DBObject toDBObject(final EntityCentricIndexDetails entityIndexDetails) {
+        requireNonNull(entityIndexDetails);
+
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+
+        // Is Enabled
+        builder.add(ENTITY_ENABLED_KEY, entityIndexDetails.isEnabled());
+
+        // Add the Type objects.
+        final List<DBObject> entityTyesList = new ArrayList<>();
+        for(final TypeDetails typeDetails : entityIndexDetails.getTypes()) {
+            entityTyesList.add( toDBObject( typeDetails ) );
+        }
+        builder.add(ENTITY_TYPES_KEY, entityTyesList.toArray());
+
+        return builder.get();
+    }
+
+    private static DBObject toDBObject(final TypeDetails typeDetails) {
+        requireNonNull(typeDetails);
+
+        final BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+
+        // type Id
+        builder.add(ENTITY_TYPE_ID_KEY, typeDetails.getId().getData());
+
+        // Add the Type properties.
+        final List<String> propertiesList = new ArrayList<>();
+        for(final RyaURI property : typeDetails.getProperties()) {
+            propertiesList.add( property.getData() );
+        }
+        builder.add(ENTITY_TYPE_PROPERTIES_KEY, propertiesList.toArray());
+
+        return builder.get();
     }
 
     private static DBObject toDBObject(final PCJIndexDetails pcjIndexDetails) {
@@ -160,7 +216,7 @@ public class MongoDetailsAdapter {
             return RyaDetails.builder()
                     .setRyaInstanceName(basicObj.getString(INSTANCE_KEY))
                     .setRyaVersion(basicObj.getString(VERSION_KEY))
-                    .setEntityCentricIndexDetails(new EntityCentricIndexDetails(basicObj.getBoolean(ENTITY_DETAILS_KEY)))
+                    .setEntityCentricIndexDetails(getEntityIndexConfiguration(basicObj))
                     //RYA-215            .setGeoIndexDetails(new GeoIndexDetails(basicObj.getBoolean(GEO_DETAILS_KEY)))
                     .setPCJIndexDetails(getPCJIndexDetails(basicObj))
                     .setTemporalIndexDetails(new TemporalIndexDetails(basicObj.getBoolean(TEMPORAL_DETAILS_KEY)))
@@ -210,6 +266,41 @@ public class MongoDetailsAdapter {
         }
 
         return builder;
+    }
+
+    private static EntityCentricIndexDetails getEntityIndexConfiguration(final BasicDBObject basicObj) {
+        final BasicDBObject entityIndexDBO = (BasicDBObject) basicObj.get(ENTITY_DETAILS_KEY);
+
+        final EntityCentricIndexDetails.Builder entityBuilder = EntityCentricIndexDetails.builder();
+        if (!entityIndexDBO.getBoolean(ENTITY_ENABLED_KEY)) {
+            entityBuilder.setEnabled(false);
+        } else {
+            entityBuilder.setEnabled(true);
+            final BasicDBList types = (BasicDBList) entityIndexDBO.get(ENTITY_TYPES_KEY);
+            if (types != null) {
+                for (int ii = 0; ii < types.size(); ii++) {
+                    final BasicDBObject type = (BasicDBObject) types.get(ii);
+                    entityBuilder.addTypeDetails(toTypeDetails(type));
+                }
+            }
+        }
+        return entityBuilder.build();
+    }
+
+    static TypeDetails toTypeDetails(final BasicDBObject dbo) {
+        requireNonNull(dbo);
+
+        // Type ID.
+        final TypeDetails.Builder builder = TypeDetails.builder()
+                .setId( new RyaURI(dbo.getString(ENTITY_TYPE_ID_KEY)) );
+
+        // Type properties.
+        final List<String> dbProps = (List<String>)dbo.get(ENTITY_TYPE_PROPERTIES_KEY);
+        for(final String property : dbProps) {
+            builder.addProperty( new RyaURI(property) );
+        }
+
+        return builder.build();
     }
 
     /**

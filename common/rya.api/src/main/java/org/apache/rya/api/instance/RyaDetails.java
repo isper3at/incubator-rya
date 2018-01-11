@@ -24,22 +24,25 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import net.jcip.annotations.Immutable;
-
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
-import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails.PCJDetails;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
+import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import net.jcip.annotations.Immutable;
 
 /**
  * Details about how a Rya instance's state.
@@ -491,13 +494,18 @@ public class RyaDetails implements Serializable {
 
         private final boolean enabled;
 
+        private final Set<TypeDetails> types;
+
         /**
-         * Constructs an instance of {@link EntityCentricIndexDetails}.
+         * Private to prevent initialization through the constructor. To build
+         * instances of this class, use the {@link Builder}.
          *
          * @param enabled - Whether or not a Entity Centric Index will be maintained by the Rya instance.
+         * @param types - the Types to use in the Entity Indexer.
          */
-        public EntityCentricIndexDetails(final boolean enabled) {
+        private EntityCentricIndexDetails(final boolean enabled, final Set<TypeDetails> types) {
             this.enabled = enabled;
+            this.types = types;
         }
 
         /**
@@ -507,9 +515,16 @@ public class RyaDetails implements Serializable {
             return enabled;
         }
 
+        /**
+         * @return The defined Types to be used by the Entity Indexer.
+         */
+        public Set<TypeDetails> getTypes() {
+            return types;
+        }
+
         @Override
         public int hashCode() {
-            return Objects.hash( enabled );
+            return Objects.hash( enabled, types );
         }
 
         @Override
@@ -519,9 +534,185 @@ public class RyaDetails implements Serializable {
             }
             if(obj instanceof EntityCentricIndexDetails) {
                 final EntityCentricIndexDetails details = (EntityCentricIndexDetails) obj;
-                return enabled == details.enabled;
+                return enabled == details.enabled &&
+                        Objects.equals(types, details.types);
             }
             return false;
+        }
+
+        /**
+         * @return a Builder to build {@link EntityCentricIndexDetails}.
+         */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /**
+         * Builds instance of {@link EntityCentricIndexDetails).
+         */
+        @DefaultAnnotation(NonNull.class)
+        public static class Builder {
+            private Boolean enabled = null;
+            private final Set<TypeDetails> types;
+
+            /**
+             * Constructs an empty instance of {@link Builder}.
+             */
+            public Builder() {
+                types = new HashSet<>();
+            }
+
+            /**
+             * Constructs an instance of {@link Builder} that is initialized with
+             * the values of a {@link EntityCentricIndexDetails}.
+             *
+             * @param entityIndexDetails - This objects values will be used to initialize
+             *   the builder. (not null)
+             */
+            public Builder(final EntityCentricIndexDetails entityIndexDetails) {
+                requireNonNull(entityIndexDetails);
+                enabled = entityIndexDetails.enabled;
+                types = entityIndexDetails.types;
+            }
+
+            /**
+             * @param enabled - Whether or not an Entity Centric Indexer will be maintained by the Rya instance.
+             * @return This {@link Builder} so that method invocations may be chained.
+             */
+            public Builder setEnabled(final Boolean enabled) {
+                this.enabled = enabled;
+                return this;
+            }
+
+            /**
+             * @param typeDetails - Details about the Type that has been created for this Rya instance.
+             * @return This {@link Builder} so that method invocations may be chained.
+             */
+            public Builder addTypeDetails(@Nullable final TypeDetails typeDetails) {
+                if(typeDetails != null) {
+                    types.add(typeDetails);
+                }
+                return this;
+            }
+
+            /**
+             * @param typeId - The Type ID of the {@link TypeDetails.Builder} to remove. (not null)
+             * @return This {@link Builder} so that method invocations may be chained.
+             */
+            public Builder removeTypeDetails(@Nullable final RyaURI typeId) {
+                requireNonNull(typeId);
+                TypeDetails detailToRemove = null;
+                for(final TypeDetails detail : types) {
+                    if(detail.getId().equals(typeId)) {
+                        detailToRemove = detail;
+                        break;
+                    }
+                }
+                types.remove(detailToRemove);
+                return this;
+            }
+
+            /**
+             * @return Builds an instance of {@link EntityCentricIndexDetails} using this builder's values.
+             */
+            public EntityCentricIndexDetails build() {
+                return new EntityCentricIndexDetails(enabled, types);
+            }
+        }
+
+        /**
+         * Details about an Entity Indexer's type.
+         */
+        @Immutable
+        @DefaultAnnotation(NonNull.class)
+        public static class TypeDetails {
+            private final RyaURI id;
+            private final ImmutableSet<RyaURI> properties;
+
+            /**
+             * Private to prevent initialization through the constructor. To build
+             * instances of this class, use the {@link Builder}.
+             *
+             * @param id - The id of the type to use. (not null)
+             * @param properties - Set of {@link RyaURI}s to define the type. (not null)
+             */
+            private TypeDetails(final RyaURI id, final ImmutableSet<RyaURI> properties) {
+                this.id = requireNonNull(id);
+                this.properties = requireNonNull(properties);
+            }
+
+            /**
+             * @return The Id of the Type.
+             */
+            public RyaURI getId() {
+                return id;
+            }
+
+            /**
+             * @return The properties that define the Type.
+             */
+            public ImmutableSet<RyaURI> getProperties() {
+                return properties;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash( id, properties );
+            }
+
+            @Override
+            public boolean equals(final Object obj) {
+                if(this == obj) {
+                    return true;
+                }
+                if(obj instanceof TypeDetails) {
+                    final TypeDetails details = (TypeDetails) obj;
+                    return Objects.equals(id, details.id) &&
+                            Objects.equals(properties, details.properties);
+                }
+                return false;
+            }
+
+            /**
+             * @return a Builder to build {@link TypeDetails}.
+             */
+            public static Builder builder() {
+                return new Builder();
+            }
+
+            /**
+             * Builds {@link TypeDetails}.
+             */
+            @DefaultAnnotation(NonNull.class)
+            public static class Builder {
+                private RyaURI id;
+                private final ImmutableSet.Builder<RyaURI> propertiesBuilder = new ImmutableSet.Builder<>();
+
+                /**
+                 * @param id - The Id of the Type to build.
+                 * @return This {@link Builder} so that method invocations may be chained.
+                 */
+                public Builder setId(final RyaURI id) {
+                    this.id = id;
+                    return this;
+                }
+
+                /**
+                 * @param property - The property to add to help define the Type. (not null)
+                 * @return This {@link Builder} so that method invocations may be chained.
+                 */
+                public Builder addProperty(final RyaURI property) {
+                    propertiesBuilder.add(property);
+                    return this;
+                }
+
+                /**
+                 * @return Builds a {@link TypeDetails}.
+                 */
+                public TypeDetails build() {
+                    return new TypeDetails(id, propertiesBuilder.build());
+                }
+            }
         }
     }
 

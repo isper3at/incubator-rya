@@ -86,7 +86,9 @@ public class AccumuloGetInstanceDetailsIT extends AccumuloITBase {
               //RYA-215                .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails(new TemporalIndexDetails(true) )
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails( EntityCentricIndexDetails.builder()
+                        .setEnabled(true)
+                        .build() )
                 .setPCJIndexDetails(
                         PCJIndexDetails.builder()
                             .setEnabled(true))

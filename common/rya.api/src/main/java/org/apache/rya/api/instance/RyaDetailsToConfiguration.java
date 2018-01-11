@@ -54,7 +54,7 @@ public class RyaDetailsToConfiguration {
         //RYA-215        checkAndSet(conf, ConfigurationFields.USE_GEO, details.getGeoIndexDetails().isEnabled());
         checkAndSet(conf, ConfigurationFields.USE_TEMPORAL, details.getTemporalIndexDetails().isEnabled());
         final PCJIndexDetails pcjDetails = details.getPCJIndexDetails();
-        
+
         if(conf.getBoolean(ConfigurationFields.USE_MONGO, false) ) {
         	if(pcjDetails.isEnabled()) {
         		conf.set(ConfigurationFields.PCJ_STORAGE_TYPE, "MONGO");
@@ -62,6 +62,7 @@ public class RyaDetailsToConfiguration {
         		checkAndSet(conf, ConfigurationFields.USE_PCJ_UPDATER, false);
         		conf.set(ConfigurationFields.PCJ_UPDATER_TYPE, "NO_UPDATE");
         	}
+
         } else {
         	if (pcjDetails.isEnabled() ) {
         		conf.set(ConfigurationFields.PCJ_STORAGE_TYPE, "ACCUMULO");

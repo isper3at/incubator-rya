@@ -29,7 +29,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.Date;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails.TypeDetails;
 import org.apache.rya.api.instance.RyaDetails.FreeTextIndexDetails;
 import org.apache.rya.api.instance.RyaDetails.JoinSelectivityDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
@@ -49,7 +51,15 @@ public class RyaDetailsToConfigurationTest {
 
         builder.setRyaInstanceName("test_instance")
             .setRyaVersion("1.2.3.4")
-            .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+            .setEntityCentricIndexDetails(
+                    EntityCentricIndexDetails.builder()
+                        .setEnabled(true)
+                        .addTypeDetails(TypeDetails.builder()
+                                .setId(new RyaURI("urn:person"))
+                                .addProperty(new RyaURI("urn:name"))
+                                .build())
+                        .build()
+            )
           //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
             .setTemporalIndexDetails( new TemporalIndexDetails(true) )
             .setFreeTextDetails( new FreeTextIndexDetails(false) )
@@ -72,7 +82,7 @@ public class RyaDetailsToConfigurationTest {
         RyaDetailsToConfiguration.addRyaDetailsToConfiguration(builder.build(), conf);
 
         //defaults are set to cause the assert to fail
-        assertTrue(conf.getBoolean(USE_ENTITY, false));
+        assertTrue(conf.getBoolean(USE_ENTITY, true));
         assertFalse(conf.getBoolean(USE_FREETEXT, true));
       //RYA-215assertTrue(conf.getBoolean(USE_GEO, false));
         assertTrue(conf.getBoolean(USE_TEMPORAL, false));

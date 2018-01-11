@@ -76,6 +76,7 @@ public class RyaDetailsSerializer {
             vois.accept(RyaDetails.class,
                             com.google.common.base.Optional.class, //
                             java.util.Date.class, //
+                            java.util.HashSet.class,
                             java.lang.Enum.class);
             vois.accept("com.google.common.base.Present", //
                         "com.google.common.base.Absent", //

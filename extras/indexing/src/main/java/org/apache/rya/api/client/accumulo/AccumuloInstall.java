@@ -159,7 +159,9 @@ public class AccumuloInstall extends AccumuloCommand implements Install {
                 .setFreeTextDetails(
                         new FreeTextIndexDetails(installConfig.isFreeTextIndexEnabled()))
                 .setEntityCentricIndexDetails(
-                        new EntityCentricIndexDetails(installConfig.isEntityCentrixIndexEnabled()))
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(installConfig.isEntityCentrixIndexEnabled())
+                            .build())
                 .setPCJIndexDetails(  pcjDetailsBuilder )
 
                 // Statistics values.

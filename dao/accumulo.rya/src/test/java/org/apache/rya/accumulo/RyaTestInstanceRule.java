@@ -42,7 +42,7 @@ public class RyaTestInstanceRule extends ExternalResource {
     private final boolean install;
     private String ryaInstanceName;
 
-    public RyaTestInstanceRule(boolean install) {
+    public RyaTestInstanceRule(final boolean install) {
         this.install = install;
     }
 
@@ -54,7 +54,7 @@ public class RyaTestInstanceRule extends ExternalResource {
     }
 
     public String createUniqueUser() {
-        int id = userId.getAndIncrement();
+        final int id = userId.getAndIncrement();
         return "user_" + id;
     }
 
@@ -72,7 +72,11 @@ public class RyaTestInstanceRule extends ExternalResource {
                     .setRyaInstanceName(ryaInstanceName)
                     .setRyaVersion("0.0.0.0")
                     .setFreeTextDetails(new FreeTextIndexDetails(true))
-                    .setEntityCentricIndexDetails(new EntityCentricIndexDetails(true))
+                    .setEntityCentricIndexDetails(
+                            EntityCentricIndexDetails.builder()
+                                .setEnabled(true)
+                                .build()
+                    )
                     //RYA-215                .setGeoIndexDetails( new GeoIndexDetails(true) )
                     .setTemporalIndexDetails(new TemporalIndexDetails(true))
                     .setPCJIndexDetails(PCJIndexDetails.builder().setEnabled(true))

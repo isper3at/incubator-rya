@@ -53,7 +53,9 @@ public class RyaDetailsFormatterTest {
             .addUser("alice")
             .addUser("bob")
             .addUser("charlie")
-            .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+            .setEntityCentricIndexDetails( EntityCentricIndexDetails.builder()
+                    .setEnabled(true)
+                    .build() )
           //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
             .setTemporalIndexDetails( new TemporalIndexDetails(true) )
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -117,7 +119,9 @@ public class RyaDetailsFormatterTest {
         // Create the object that will be formatted.
         final RyaDetails details = RyaDetails.builder().setRyaInstanceName("test_instance")
             .setRyaVersion("1.2.3.4")
-            .setEntityCentricIndexDetails(new EntityCentricIndexDetails(false))
+            .setEntityCentricIndexDetails( EntityCentricIndexDetails.builder()
+                    .setEnabled(false)
+                    .build() )
           //RYA-215            .setGeoIndexDetails( new GeoIndexDetails(true) )
             .setTemporalIndexDetails( new TemporalIndexDetails(true) )
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
@@ -140,6 +144,10 @@ public class RyaDetailsFormatterTest {
                 "    Enabled: true\n" +
                 "  Temporal Index:\n" +
                 "    Enabled: true\n" +
+                "  Entity Index:\n" +
+                "    Enabled: true\n" +
+                "    Types:\n" +
+                "      No Types have been added yet.\n" +
                 "  PCJ Index:\n" +
                 "    Enabled: true\n" +
                 "    PCJs:\n" +

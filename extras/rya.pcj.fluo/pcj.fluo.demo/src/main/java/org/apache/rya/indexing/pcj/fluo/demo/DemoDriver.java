@@ -271,7 +271,9 @@ public class DemoDriver {
                 .setRyaInstanceName(ryaInstanceName)
                 .setRyaVersion("0.0.0.0")
                 .setFreeTextDetails( new FreeTextIndexDetails(true) )
-                .setEntityCentricIndexDetails( new EntityCentricIndexDetails(true) )
+                .setEntityCentricIndexDetails( EntityCentricIndexDetails.builder()
+                        .setEnabled(true)
+                        .build() )
               //RYA-215                .setGeoIndexDetails( new GeoIndexDetails(true) )
                 .setTemporalIndexDetails( new TemporalIndexDetails(true) )
                 .setPCJIndexDetails(

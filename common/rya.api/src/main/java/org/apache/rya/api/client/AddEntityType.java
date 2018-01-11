@@ -113,7 +113,7 @@ public interface AddEntityType {
         @DefaultAnnotation(NonNull.class)
         public static class Builder {
             private RyaURI typeID = null;
-            private ImmutableSet.Builder<RyaURI> propertyBuilder = null;
+            private final ImmutableSet.Builder<RyaURI> propertyBuilder = new ImmutableSet.Builder<>();
 
             /**
              * @param typeId - The {@link RyaURI} to use as an Id for this Type.
@@ -129,9 +129,6 @@ public interface AddEntityType {
              * @return This {@link Builder} so that method invocations may be chained.
              */
             public Builder addProperty(final RyaURI property) {
-                if(propertyBuilder == null) {
-                    propertyBuilder = new ImmutableSet.Builder<>();
-                }
                 propertyBuilder.add(property);
                 return this;
             }

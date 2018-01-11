@@ -23,8 +23,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Date;
 
+import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.instance.RyaDetails;
 import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails;
+import org.apache.rya.api.instance.RyaDetails.EntityCentricIndexDetails.TypeDetails;
 import org.apache.rya.api.instance.RyaDetails.FreeTextIndexDetails;
 import org.apache.rya.api.instance.RyaDetails.JoinSelectivityDetails;
 import org.apache.rya.api.instance.RyaDetails.PCJIndexDetails;
@@ -52,7 +54,15 @@ public class MongoDetailsAdapterTest {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName("test")
                 .setRyaVersion("1")
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(true))
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:name"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails(new GeoIndexDetails(true))
                 .setPCJIndexDetails(
                         PCJIndexDetails.builder()
@@ -81,7 +91,15 @@ public class MongoDetailsAdapterTest {
                 "{ "
                         + "instanceName : \"test\","
                         + "version : \"1\","
-                        + "entityCentricDetails : true,"
+                        + "entityCentricDetails : {"
+                        +    "enabled : true,"
+                        +    "types: [{"
+                        +      "id: \"urn:person\","
+                        +      "properties:["
+                        +        "\"urn:name\""
+                        +      "]"
+                        +    "}]"
+                        + "},"
                         //RYA-215            + "geoDetails : true,"
                         + "pcjDetails : {"
                         +    "enabled : true ,"
@@ -114,7 +132,18 @@ public class MongoDetailsAdapterTest {
                 "{ "
                         + "instanceName : \"test\","
                         + "version : \"1\","
-                        + "entityCentricDetails : true,"
+                        + "entityCentricDetails : {"
+                        +    "enabled : true,"
+                        +    "types: [{"
+                        +      "id: \"urn:person\","
+                        +      "properties:["
+                        +        "\"urn:eyeColor\","
+                        +        "\"urn:hairColor\","
+                        +        "\"urn:gender\","
+                        +        "\"urn:age\""
+                        +      "]"
+                        +    "}]"
+                        + "},"
                         //RYA-215            + "geoDetails : true,"
                         + "pcjDetails : {"
                         +    "enabled : true ,"
@@ -144,7 +173,18 @@ public class MongoDetailsAdapterTest {
         final RyaDetails expected = RyaDetails.builder()
                 .setRyaInstanceName("test")
                 .setRyaVersion("1")
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(true))
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails(new GeoIndexDetails(true))
                 .setPCJIndexDetails(
                         PCJIndexDetails.builder()
@@ -175,7 +215,18 @@ public class MongoDetailsAdapterTest {
                 "{ "
                         + "instanceName : \"test\","
                         + "version : \"1\","
-                        + "entityCentricDetails : true,"
+                        + "entityCentricDetails : {"
+                        +    "enabled : true,"
+                        +    "types: [{"
+                        +      "id: \"urn:person\","
+                        +      "properties:["
+                        +        "\"urn:eyeColor\","
+                        +        "\"urn:hairColor\","
+                        +        "\"urn:gender\","
+                        +        "\"urn:age\""
+                        +      "]"
+                        +    "}]"
+                        + "},"
                         //RYA-215                + "geoDetails : false,"
                         + "pcjDetails : {"
                         +    "enabled : false,"
@@ -197,7 +248,18 @@ public class MongoDetailsAdapterTest {
         final RyaDetails expected = RyaDetails.builder()
                 .setRyaInstanceName("test")
                 .setRyaVersion("1")
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(true))
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(true)
+                            .addTypeDetails(TypeDetails.builder()
+                                    .setId(new RyaURI("urn:person"))
+                                    .addProperty(new RyaURI("urn:eyeColor"))
+                                    .addProperty(new RyaURI("urn:hairColor"))
+                                    .addProperty(new RyaURI("urn:gender"))
+                                    .addProperty(new RyaURI("urn:age"))
+                                    .build())
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails(new GeoIndexDetails(false))
                 .setPCJIndexDetails(
                         PCJIndexDetails.builder()
@@ -217,7 +279,11 @@ public class MongoDetailsAdapterTest {
         final RyaDetails details = RyaDetails.builder()
                 .setRyaInstanceName("test")
                 .setRyaVersion("1")
-                .setEntityCentricIndexDetails(new EntityCentricIndexDetails(true))
+                .setEntityCentricIndexDetails(
+                        EntityCentricIndexDetails.builder()
+                            .setEnabled(false)
+                            .build()
+                )
                 //RYA-215            .setGeoIndexDetails(new GeoIndexDetails(false))
                 .setPCJIndexDetails(
                         PCJIndexDetails.builder()
@@ -236,7 +302,10 @@ public class MongoDetailsAdapterTest {
                 "{ "
                         + "instanceName : \"test\","
                         + "version : \"1\","
-                        + "entityCentricDetails : true,"
+                        + "entityCentricDetails : {"
+                        +    "enabled : false,"
+                        +    "types : [ ]"
+                        + "},"
                         //RYA-215                + "geoDetails : false,"
                         + "pcjDetails : {"
                         +    "enabled : true,"
