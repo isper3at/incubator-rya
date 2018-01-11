@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.rya.api.utils.CloseableIterator;
@@ -132,7 +131,7 @@ public class MongoPcjQueryNode extends ExternalTupleSet implements ExternalBatch
         if (bindingset.isEmpty()) {
             return new IteratorWrapper<BindingSet, QueryEvaluationException>(new HashSet<BindingSet>().iterator());
         }
-        final CloseableIterator<BindingSet> iter = pcjDocs.getResults(pcjId, new Authorizations(), bindingset);
+        final CloseableIterator<BindingSet> iter = pcjDocs.getResults(pcjId, bindingset);
         return new CloseableIteration<BindingSet, QueryEvaluationException>() {
             @Override
             public boolean hasNext() throws QueryEvaluationException {

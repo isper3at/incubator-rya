@@ -173,7 +173,7 @@ public class MongoPcjDocuments {
      * @param ryaConn - Connects to the Rya that will be scanned. (not null)
      * @param pcjId - Uniquely identifies a PCJ within Rya. (not null)
      * @param sparql - The SPARQL query whose results will be loaded into the PCJ results document. (not null)
-     * @throws PCJStorageException The PCJ documents could not be created or the
+     * @throws PCJStorageException The PCJ documents could not be create or the
      *     values from Rya were not able to be loaded into it.
      */
     public void createAndPopulatePcj(
@@ -355,15 +355,11 @@ public class MongoPcjDocuments {
     /**
      * Retrieves the stored {@link BindingSet} results for the provided pcjId.
      *
-     * @param pcjId
-     *            - The pcj to retrieve results for.
-     * @param authorizations
-     *            - The authorizations of the user to restrict results.
-     * @param restrictionBindings
-     *            - The collection of {@link BindingSet}s to restrict results.
-     *            <p>
-     *            Note: the result restrictions from {@link BindingSet}s are an OR
-     *            over ANDS in that: <code>
+     * @param pcjId - The Id of the PCJ to retrieve results from.
+     * @param restrictionBindings - The collection of {@link BindingSet}s to restrict results.
+     * <p>
+     * Note: the result restrictions from {@link BindingSet}s are an OR
+     * over ANDS in that: <code>
      *  [
      *     bindingset: binding AND binding AND binding,
      *     OR
@@ -377,8 +373,7 @@ public class MongoPcjDocuments {
      * </code>
      * @return
      */
-    public CloseableIterator<BindingSet> getResults(final String pcjId, final Authorizations authorizations,
-            final Collection<BindingSet> restrictionBindings) {
+    public CloseableIterator<BindingSet> getResults(final String pcjId, final Collection<BindingSet> restrictionBindings) {
         // empty bindings return all results.
         if (restrictionBindings.size() == 1 && restrictionBindings.iterator().next().size() == 0) {
             return listResults(pcjId);
