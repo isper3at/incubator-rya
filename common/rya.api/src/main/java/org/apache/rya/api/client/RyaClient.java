@@ -49,6 +49,7 @@ public class RyaClient {
     private final LoadStatements loadStatements;
     private final LoadStatementsFile loadStatementsFile;
     private final ExecuteSparqlQuery executeSparqlQuery;
+    private final Optional<AddEntityType> addEntityType;
 
     /**
      * Constructs an instance of {@link RyaClient}.
@@ -68,7 +69,8 @@ public class RyaClient {
             final Uninstall uninstall,
             final LoadStatements loadStatements,
             final LoadStatementsFile loadStatementsFile,
-            final ExecuteSparqlQuery executeSparqlQuery) {
+            final ExecuteSparqlQuery executeSparqlQuery,
+            final Optional<AddEntityType> addEntityType) {
         this.install = requireNonNull(install);
         this.createPcj = requireNonNull(createPcj);
         this.deletePcj = requireNonNull(deletePcj);
@@ -85,6 +87,7 @@ public class RyaClient {
         this.loadStatements = requireNonNull(loadStatements);
         this.loadStatementsFile = requireNonNull(loadStatementsFile);
         this.executeSparqlQuery = requireNonNull(executeSparqlQuery);
+        this.addEntityType = requireNonNull(addEntityType);
     }
 
     /**
@@ -201,5 +204,12 @@ public class RyaClient {
      */
     public ExecuteSparqlQuery getExecuteSparqlQuery() {
         return executeSparqlQuery;
+    }
+    
+    /**
+     * @return An instance of {@link AddEntityType} that is connected to a Rya storage.
+     */
+    public Optional<AddEntityType> getAddEntityType() {
+    	return addEntityType;
     }
 }

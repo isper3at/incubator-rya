@@ -69,6 +69,7 @@ public class MongoRyaClientFactory {
                 new MongoUninstall(adminClient, instanceExists),
                 new MongoLoadStatements(connectionDetails, instanceExists),
                 new MongoLoadStatementsFile(connectionDetails, instanceExists),
-                new MongoExecuteSparqlQuery(connectionDetails, instanceExists));
+                new MongoExecuteSparqlQuery(connectionDetails, instanceExists),
+                Optional.empty());
     }
 }

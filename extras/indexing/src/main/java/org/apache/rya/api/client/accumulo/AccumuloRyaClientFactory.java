@@ -66,6 +66,7 @@ public class AccumuloRyaClientFactory {
                 new AccumuloUninstall(connectionDetails, connector),
                 new AccumuloLoadStatements(connectionDetails, connector),
                 new AccumuloLoadStatementsFile(connectionDetails, connector),
-                new AccumuloExecuteSparqlQuery(connectionDetails, connector));
+                new AccumuloExecuteSparqlQuery(connectionDetails, connector),
+                Optional.empty());
     }
 }
