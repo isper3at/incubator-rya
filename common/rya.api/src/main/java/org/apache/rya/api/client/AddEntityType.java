@@ -18,22 +18,133 @@
  */
 package org.apache.rya.api.client;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+
+import org.apache.rya.api.domain.RyaURI;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import net.jcip.annotations.Immutable;
 
 /**
- * Grants a user access to an instance of Rya.
+ * Adds a Type for the Entity Indexer to use.
  */
 @DefaultAnnotation(NonNull.class)
 public interface AddEntityType {
 
     /**
-     * Grants access to a specific Rya instance to a user of the storage system.
+     * Adds an Entity Type for the Entity Indexer to use.
      *
-     * @param instanceName - Indicates which Rya instance will be granted to the user. (not null)
-     * @param username - The user whose access will be granted. (not null)
+     * @param instanceName - Indicates which Rya instance the type will be added to. (not null)
      * @throws InstanceDoesNotExistException No instance of Rya exists for the provided name.
      * @throws RyaClientException Something caused the command to fail.
      */
-    public void addUser(String instanceName, String username) throws InstanceDoesNotExistException, RyaClientException;
+    public void addEntityType(final String ryaInstanceName, final EntityTypeConfiguration typeConfiguration) throws InstanceDoesNotExistException, RyaClientException;
+
+    /**
+     * Configures how an Entity Indexer Type will be configured.
+     */
+    @Immutable
+    @DefaultAnnotation(NonNull.class)
+    public static class EntityTypeConfiguration {
+
+        private final RyaURI typeID;
+        private final ImmutableSet<RyaURI> typeProperties;
+
+        /**
+         * Use a {@link Builder} to create instances of this class.
+         */
+        private EntityTypeConfiguration(
+                final RyaURI typeID,
+                final ImmutableSet<RyaURI> typeProperties) {
+            this.typeID = requireNonNull(typeID);
+            this.typeProperties = requireNonNull(typeProperties);
+        }
+
+        /**
+         * @return The {@link RyaURI} to be the ID for this Type.
+         */
+        public RyaURI getId() {
+            return typeID;
+        }
+
+        /**
+         * @return The {@link RyaURI} properties that define this Type.
+         */
+        public ImmutableSet<RyaURI> getProperties() {
+            return typeProperties;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    typeID,
+                    typeProperties);
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if(this == obj) {
+                return true;
+            }
+            if(obj instanceof EntityTypeConfiguration) {
+                final EntityTypeConfiguration config = (EntityTypeConfiguration) obj;
+                return Objects.equals(typeID, config.typeID) &&
+                       Objects.equals(typeProperties, config.typeProperties);
+            }
+            return false;
+        }
+
+        /**
+         * @return An empty instance of {@link Builder}.
+         */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /**
+         * Builds instances of {@link EntityTypeConfiguration}.
+         */
+        @DefaultAnnotation(NonNull.class)
+        public static class Builder {
+            private RyaURI typeID = null;
+            private ImmutableSet.Builder<RyaURI> propertyBuilder = null;
+
+            /**
+             * @param typeId - The {@link RyaURI} to use as an Id for this Type.
+             * @return This {@link Builder} so that method invocations may be chained.
+             */
+            public Builder setTypeId(final RyaURI typeId) {
+                typeID = requireNonNull(typeId);
+                return this;
+            }
+
+            /**
+             * @param property - A {@link RyaURI} to use as a property to define this Type.
+             * @return This {@link Builder} so that method invocations may be chained.
+             */
+            public Builder addProperty(final RyaURI property) {
+                if(propertyBuilder == null) {
+                    propertyBuilder = new ImmutableSet.Builder<>();
+                }
+                propertyBuilder.add(property);
+                return this;
+            }
+
+            /**
+             * @return Builds an instance of {@link EntityTypeConfiguration} using this builder's values.
+             */
+            public EntityTypeConfiguration build() {
+                Preconditions.checkState(propertyBuilder != null, "No properties have been defined for this Type.");
+                return new EntityTypeConfiguration(
+                        typeID,
+                        propertyBuilder.build());
+            }
+        }
+    }
 }
