@@ -42,7 +42,7 @@ public interface QueryExecutor extends Service {
      * @param query - The query to run. (not null)
      * @throws QueryExecutorException When the query fails to start.
      */
-    public void startQuery(final String ryaInstanceName, final StreamsQuery query);
+    public void startQuery(final String ryaInstanceName, final StreamsQuery query) throws QueryExecutorException;
 
     /**
      * Stops a {@link StreamsQuery}.
