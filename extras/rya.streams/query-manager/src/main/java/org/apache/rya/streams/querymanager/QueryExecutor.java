@@ -45,10 +45,9 @@ public interface QueryExecutor extends Service {
     /**
      * Stops a {@link StreamsQuery}.
      *
-     * @param ryaInstanceName - The rya instance the query is running on. (not null)
-     * @param query - The ID of the query to stop. (not null)
+     * @param queryID - The ID of the query to stop. (not null)
      */
-    public void stopQuery(final String ryaInstanceName, final StreamsQuery query);
+    public void stopQuery(final UUID queryID);
 
     /**
      * @return - A set of {@link UUID}s representing the current active queries.
