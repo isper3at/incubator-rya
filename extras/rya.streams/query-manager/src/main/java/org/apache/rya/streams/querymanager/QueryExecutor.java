@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.rya.streams.api.entity.StreamsQuery;
+import org.openrdf.model.Statement;
 
 import com.google.common.util.concurrent.Service;
 
@@ -37,7 +38,7 @@ public interface QueryExecutor extends Service {
     /**
      * Starts running a {@link StreamsQuery}.
      *
-     * @param ryaInstanceName - The rya instance to run the query on. (not null)
+     * @param ryaInstanceName - The rya instance whose {@link Statement}s will be processed by the query. (not null)
      * @param query - The query to run. (not null)
      */
     public void startQuery(final String ryaInstanceName, final StreamsQuery query);
