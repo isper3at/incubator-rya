@@ -60,7 +60,7 @@ public interface QueryExecutor extends Service {
     /**
      * Exception to be used by {@link QueryExecutor} when queries fail to start or stop.
      */
-    public class QueryExecutorException extends RuntimeException {
+    public class QueryExecutorException extends Exception {
         private static final long serialVersionUID = 1L;
     }
 }
