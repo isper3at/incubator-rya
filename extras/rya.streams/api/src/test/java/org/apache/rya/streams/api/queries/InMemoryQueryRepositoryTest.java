@@ -27,20 +27,26 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.rya.streams.api.entity.StreamsQuery;
 import org.apache.rya.streams.api.queries.QueryChangeLog.QueryChangeLogException;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.AbstractScheduledService.Scheduler;
+
 /**
  * Unit tests the methods of {@link InMemoryQueryRepository}.
  */
 public class InMemoryQueryRepositoryTest {
+    private static final Scheduler SCHEDULE = Scheduler.newFixedRateSchedule(0L, 5, TimeUnit.SECONDS);
 
     @Test
     public void canReadAddedQueries() throws Exception {
         // Setup a totally in memory QueryRepository.
-        try(final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog() )) {
+        final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog(), SCHEDULE );
+        try{
             // Add some queries to it.
             final Set<StreamsQuery> expected = new HashSet<>();
             expected.add( queries.add("query 1", true) );
@@ -50,13 +56,16 @@ public class InMemoryQueryRepositoryTest {
             // Show they are in the list of all queries.
             final Set<StreamsQuery> stored = queries.list();
             assertEquals(expected, stored);
+        } finally {
+            queries.stop();
         }
     }
 
     @Test
     public void deletedQueriesDisappear() throws Exception {
         // Setup a totally in memory QueryRepository.
-        try(final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog() )) {
+        final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog(), SCHEDULE );
+        try {
             // Add some queries to it. The second one we will delete.
             final Set<StreamsQuery> expected = new HashSet<>();
             expected.add( queries.add("query 1", true) );
@@ -69,6 +78,8 @@ public class InMemoryQueryRepositoryTest {
             // Show only queries 1 and 3 are in the list.
             final Set<StreamsQuery> stored = queries.list();
             assertEquals(expected, stored);
+        } finally {
+            queries.stop();
         }
     }
 
@@ -76,7 +87,8 @@ public class InMemoryQueryRepositoryTest {
     public void initializedWithPopulatedChangeLog() throws Exception {
         // Setup a totally in memory QueryRepository. Hold onto the change log so that we can use it again later.
         final QueryChangeLog changeLog = new InMemoryQueryChangeLog();
-        try(final QueryRepository queries = new InMemoryQueryRepository( changeLog )) {
+        final QueryRepository queries = new InMemoryQueryRepository( changeLog, SCHEDULE );
+        try {
             // Add some queries and deletes to it.
             final Set<StreamsQuery> expected = new HashSet<>();
             expected.add( queries.add("query 1", true) );
@@ -85,11 +97,16 @@ public class InMemoryQueryRepositoryTest {
             queries.delete( deletedMeId );
 
             // Create a new totally in memory QueryRepository.
-            try(final QueryRepository initializedQueries = new InMemoryQueryRepository( changeLog )) {
+            final QueryRepository initializedQueries = new InMemoryQueryRepository( changeLog, SCHEDULE );
+            try {
                 // Listing the queries should work using an initialized change log.
                 final Set<StreamsQuery> stored = initializedQueries.list();
                 assertEquals(expected, stored);
+            } finally {
+                queries.stop();
             }
+        } finally {
+            queries.stop();
         }
     }
 
@@ -100,40 +117,50 @@ public class InMemoryQueryRepositoryTest {
         when(changeLog.readFromStart()).thenThrow(new QueryChangeLogException("Mocked exception."));
 
         // Create the QueryRepository and invoke one of the methods.
-        try(final QueryRepository queries = new InMemoryQueryRepository( changeLog )) {
+        final QueryRepository queries = new InMemoryQueryRepository( changeLog, SCHEDULE );
+        try {
             queries.list();
+        } finally {
+            queries.stop();
         }
     }
 
     @Test
     public void get_present() throws Exception {
         // Setup a totally in memory QueryRepository.
-        try(final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog() )) {
+        final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog(), SCHEDULE );
+        try {
             // Add a query to it.
             final StreamsQuery query = queries.add("query 1", true);
 
             // Show the fetched query matches the expected ones.
             final Optional<StreamsQuery> fetched = queries.get(query.getQueryId());
             assertEquals(query, fetched.get());
+        } finally {
+            queries.stop();
         }
     }
 
     @Test
     public void get_notPresent() throws Exception {
         // Setup a totally in memory QueryRepository.
-        try(final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog() )) {
+        final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog(), SCHEDULE );
+        try {
             // Fetch a query that was never added to the repository.
             final Optional<StreamsQuery> query = queries.get(UUID.randomUUID());
 
             // Show it could not be found.
             assertFalse(query.isPresent());
+        } finally {
+            queries.stop();
         }
     }
 
     @Test
     public void update() throws Exception {
         // Setup a totally in memory QueryRepository.
-        try(final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog() )) {
+        final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog(), SCHEDULE );
+        try {
             // Add a query to it.
             final StreamsQuery query = queries.add("query 1", true);
 
@@ -144,6 +171,33 @@ public class InMemoryQueryRepositoryTest {
             final Optional<StreamsQuery> fetched = queries.get(query.getQueryId());
             final StreamsQuery expected = new StreamsQuery(query.getQueryId(), query.getSparql(), false);
             assertEquals(expected, fetched.get());
+        } finally {
+            queries.stop();
+        }
+    }
+
+    @Test
+    public void updateListenerNotify() throws Exception {
+        // Setup a totally in memory QueryRepository.
+        final QueryRepository queries = new InMemoryQueryRepository( new InMemoryQueryChangeLog(), SCHEDULE );
+        try {
+            // Add a query to it.
+            final StreamsQuery query = queries.add("query 1", true);
+
+            final Set<StreamsQuery> existing = queries.subscribe(new QueryChangeLogListener() {
+                @Override
+                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {
+                    final ChangeLogEntry<QueryChange> expected = new ChangeLogEntry<QueryChange>(1L,
+                            QueryChange.create(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
+                    assertEquals(expected, queryChangeEvent);
+                }
+            });
+
+            assertEquals(Sets.newHashSet(query), existing);
+
+            queries.add("query 2", true);
+        } finally {
+            queries.stop();
         }
     }
 }

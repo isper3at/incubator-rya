@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
@@ -77,12 +76,19 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     private final List<QueryChangeLogListener> listeners = new ArrayList<>();
 
     /**
+     * The {@link Scheduler} the repository uses to periodically poll for query updates.
+     */
+    private final Scheduler scheduler;
+
+    /**
      * Constructs an instance of {@link InMemoryQueryRepository}.
      *
      * @param changeLog - The change log that this repository will maintain and be based on. (not null)
+     * @param scheduler - The {@link Scheduler} this service uses to periodically check for query updates. (not null)
      */
-    public InMemoryQueryRepository(final QueryChangeLog changeLog) {
+    public InMemoryQueryRepository(final QueryChangeLog changeLog, final Scheduler scheduler) {
         this.changeLog = requireNonNull(changeLog);
+        this.scheduler = requireNonNull(scheduler);
     }
 
     @Override
@@ -184,7 +190,8 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     }
 
     @Override
-    public void close() throws Exception {
+    protected void shutDown() throws Exception {
+        super.shutDown();
         lock.lock();
         try {
             changeLog.close();
@@ -272,7 +279,7 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
 
     @Override
     protected Scheduler scheduler() {
-        return Scheduler.newFixedRateSchedule(0L, 1, TimeUnit.MINUTES);
+        return scheduler;
     }
 
     @Override
@@ -281,7 +288,8 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
         lock.lock();
         try {
             listeners.add(listener);
-            // Our internal cache is already up to date, so just return its values.
+
+            //return the current state of the query repository
             return queriesCache.values()
                     .stream()
                     .collect(Collectors.toSet());
@@ -292,6 +300,11 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
 
     @Override
     public void unsubscribe(final QueryChangeLogListener listener) {
-        listeners.remove(listener);
+        lock.lock();
+        try {
+            listeners.remove(listener);
+        } finally {
+            lock.unlock();
+        }
     }
 }

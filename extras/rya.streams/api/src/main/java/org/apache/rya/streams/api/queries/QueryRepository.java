@@ -34,7 +34,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * Repository for adding, deleting, and listing active queries in Rya Streams.
  */
 @DefaultAnnotation(NonNull.class)
-public interface QueryRepository extends AutoCloseable, Service {
+public interface QueryRepository extends Service {
 
     /**
      * Adds a new query to Rya Streams.
