@@ -40,6 +40,7 @@ public interface QueryExecutor extends Service {
      *
      * @param ryaInstanceName - The rya instance whose {@link Statement}s will be processed by the query. (not null)
      * @param query - The query to run. (not null)
+     * @throws QueryExecutorException When the query fails to start.
      */
     public void startQuery(final String ryaInstanceName, final StreamsQuery query);
 
@@ -47,11 +48,19 @@ public interface QueryExecutor extends Service {
      * Stops a {@link StreamsQuery}.
      *
      * @param queryID - The ID of the query to stop. (not null)
+     * @throws QueryExecutorException When the query fails to stop.
      */
-    public void stopQuery(final UUID queryID);
+    public void stopQuery(final UUID queryID) throws QueryExecutorException;
 
     /**
      * @return - A set of {@link UUID}s representing the current active queries.
      */
     public Set<UUID> getRunningQueryIds();
+
+    /**
+     * Exception to be used by {@link QueryExecutor} when queries fail to start or stop.
+     */
+    public class QueryExecutorException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+    }
 }
