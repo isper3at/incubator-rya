@@ -18,6 +18,9 @@
  */
 package org.apache.rya.streams.querymanager;
 
+import java.util.Set;
+import java.util.UUID;
+
 import org.apache.rya.streams.api.entity.StreamsQuery;
 
 import com.google.common.util.concurrent.Service;
@@ -46,4 +49,9 @@ public interface QueryExecutor extends Service {
      * @param query - The ID of the query to stop. (not null)
      */
     public void stopQuery(final String ryaInstanceName, final StreamsQuery query);
+
+    /**
+     * @return - A set of {@link UUID}s representing the current active queries.
+     */
+    public Set<UUID> getRunningQueryIds();
 }
