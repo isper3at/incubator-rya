@@ -20,14 +20,17 @@ package org.apache.rya.streams.querymanager;
 
 import org.apache.rya.streams.api.entity.StreamsQuery;
 
+import com.google.common.util.concurrent.Service;
+
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
- * Create and executes a query.
+ * Represents the system that is responsible for ensuring active {@link StreamsQuery}s are
+ * being processed.
  */
 @DefaultAnnotation(NonNull.class)
-public interface QueryExecutor extends Runnable {
+public interface QueryExecutor extends Service {
     /**
      * Starts running a {@link StreamsQuery}.
      *
@@ -35,4 +38,12 @@ public interface QueryExecutor extends Runnable {
      * @param query - The query to run. (not null)
      */
     public void startQuery(final String ryaInstanceName, final StreamsQuery query);
+
+    /**
+     * Stops a {@link StreamsQuery}.
+     *
+     * @param ryaInstanceName - The rya instance the query is running on. (not null)
+     * @param query - The ID of the query to stop. (not null)
+     */
+    public void stopQuery(final String ryaInstanceName, final StreamsQuery query);
 }
