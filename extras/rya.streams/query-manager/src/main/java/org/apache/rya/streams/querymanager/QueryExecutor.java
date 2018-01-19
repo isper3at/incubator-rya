@@ -62,5 +62,33 @@ public interface QueryExecutor extends Service {
      */
     public class QueryExecutorException extends Exception {
         private static final long serialVersionUID = 1L;
+
+        /**
+         * Creates a new {@link QueryExecutorException}.
+         *
+         * @param message - The exception message.
+         * @param cause - The cause of this exception.
+         */
+        public QueryExecutorException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
+
+        /**
+         * Creates a new {@link QueryExecutorException}.
+         *
+         * @param message - The exception message.
+         */
+        public QueryExecutorException(final String message) {
+            super(message);
+        }
+
+        /**
+         * Creates a new {@link QueryExecutorException}.
+         *
+         * @param cause - The cause of this exception.
+         */
+        public QueryExecutorException(final Throwable cause) {
+            super(cause);
+        }
     }
 }
