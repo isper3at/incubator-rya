@@ -20,11 +20,14 @@ package org.apache.rya.streams.api.queries;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
@@ -32,6 +35,8 @@ import org.apache.rya.streams.api.entity.StreamsQuery;
 import org.apache.rya.streams.api.queries.QueryChangeLog.QueryChangeLogException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.AbstractScheduledService;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -46,7 +51,7 @@ import info.aduna.iteration.CloseableIteration;
  * Thread safe.
  */
 @DefaultAnnotation(NonNull.class)
-public class InMemoryQueryRepository implements QueryRepository {
+public class InMemoryQueryRepository extends AbstractScheduledService implements QueryRepository {
     private static final Logger LOG = LoggerFactory.getLogger(InMemoryQueryRepository.class);
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -65,6 +70,11 @@ public class InMemoryQueryRepository implements QueryRepository {
      * The most recently cached view of the queries within this repository.
      */
     private final Map<UUID, StreamsQuery> queriesCache = new HashMap<>();
+
+    /**
+     * The listeners to be notified when new QueryChangeLogs come in.
+     */
+    private final List<QueryChangeLogListener> listeners = new ArrayList<>();
 
     /**
      * Constructs an instance of {@link InMemoryQueryRepository}.
@@ -229,6 +239,8 @@ public class InMemoryQueryRepository implements QueryRepository {
                         break;
                 }
 
+                listeners.forEach(listener -> listener.notify(entry));
+
                 cachePosition = Optional.of( entry.getPosition() );
             }
 
@@ -246,5 +258,40 @@ public class InMemoryQueryRepository implements QueryRepository {
                 LOG.error("Could not close the " + CloseableIteration.class.getName(), e);
             }
         }
+    }
+
+    @Override
+    protected void runOneIteration() throws Exception {
+        lock.lock();
+        try {
+            updateCache();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    protected Scheduler scheduler() {
+        return Scheduler.newFixedRateSchedule(0L, 1, TimeUnit.MINUTES);
+    }
+
+    @Override
+    public Set<StreamsQuery> subscribe(final QueryChangeLogListener listener) {
+        //locks to prevent the current state from changing while subscribing.
+        lock.lock();
+        try {
+            listeners.add(listener);
+            // Our internal cache is already up to date, so just return its values.
+            return queriesCache.values()
+                    .stream()
+                    .collect(Collectors.toSet());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void unsubscribe(final QueryChangeLogListener listener) {
+        listeners.remove(listener);
     }
 }

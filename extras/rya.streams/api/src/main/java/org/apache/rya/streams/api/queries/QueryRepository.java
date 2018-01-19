@@ -25,6 +25,8 @@ import java.util.UUID;
 import org.apache.rya.streams.api.entity.StreamsQuery;
 import org.apache.rya.streams.api.exception.RyaStreamsException;
 
+import com.google.common.util.concurrent.Service;
+
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -32,7 +34,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * Repository for adding, deleting, and listing active queries in Rya Streams.
  */
 @DefaultAnnotation(NonNull.class)
-public interface QueryRepository extends AutoCloseable {
+public interface QueryRepository extends AutoCloseable, Service {
 
     /**
      * Adds a new query to Rya Streams.
@@ -80,6 +82,21 @@ public interface QueryRepository extends AutoCloseable {
      * @throws QueryRepositoryException The {@link StreamsQuery}s could not be listed.
      */
     public Set<StreamsQuery> list() throws QueryRepositoryException;
+
+    /**
+     * Subscribes a {@link QueryChangeLogListener} to the {@link QueryRepository}.
+     *
+     * @param listener - The {@link QueryChangeLogListener} to subscribe to this {@link QueryRepository}. (not null)
+     * @return The current state of the repository in the form of {@link StreamsQuery}s.
+     */
+    public Set<StreamsQuery> subscribe(final QueryChangeLogListener listener);
+
+    /**
+     * Unsubscribe a {@link QueryChangeLogListener} from the {@link QueryRepository}.
+     *
+     * @param listener - The {@link QueryChangeLogListener} to unsubscribe from this {@link QueryRepository}. (not null)
+     */
+    public void unsubscribe(final QueryChangeLogListener listener);
 
     /**
      * A function of {@link QueryRepository} was unable to perform a function.
