@@ -54,8 +54,9 @@ public interface QueryExecutor extends Service {
 
     /**
      * @return - A set of {@link UUID}s representing the current active queries.
+     * @throws QueryExecutorException Can't discover which queries are currently running.
      */
-    public Set<UUID> getRunningQueryIds();
+    public Set<UUID> getRunningQueryIds() throws QueryExecutorException;
 
     /**
      * Exception to be used by {@link QueryExecutor} when queries fail to start or stop.
