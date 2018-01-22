@@ -148,8 +148,6 @@ public class StreamResultsCommand implements RyaStreamsCommand {
             sparql = sQuery.get().getSparql();
         } catch (final Exception e) {
             throw new ExecutionException("Problem encountered while closing the QueryRepository.", e);
-        } finally {
-            queryRepo.stop();
         }
 
         // This command executes until the application is killed, so create a kill boolean.

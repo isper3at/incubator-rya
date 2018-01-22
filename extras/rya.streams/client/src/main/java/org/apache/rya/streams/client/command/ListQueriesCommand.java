@@ -103,8 +103,6 @@ public class ListQueriesCommand implements RyaStreamsCommand {
             System.err.println("Problem encountered while closing the QueryRepository.");
             e.printStackTrace();
             System.exit(1);
-        } finally {
-            queryRepo.stop();
         }
     }
 

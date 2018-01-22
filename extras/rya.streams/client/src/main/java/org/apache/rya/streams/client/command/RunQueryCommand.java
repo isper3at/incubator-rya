@@ -155,8 +155,6 @@ public class RunQueryCommand implements RyaStreamsCommand {
             throw e;
         } catch (final Exception e) {
             throw new ExecutionException("Problem encountered while closing the QueryRepository.", e);
-        } finally {
-            queryRepo.stop();
         }
     }
 }

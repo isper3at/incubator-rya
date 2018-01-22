@@ -94,7 +94,6 @@ public class RunQueryCommandIT {
     public void cleanup() throws Exception{
         stmtProducer.close();
         resultConsumer.close();
-        queryRepo.stop();
     }
 
     @Test(expected = ExecutionException.class)
