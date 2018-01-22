@@ -33,9 +33,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 /**
  * Repository for adding, deleting, and listing active queries in Rya Streams.
  *
- * This service only needs to be started if it is being subscribed to.
- * An {@link IllegalStateException} will be thrown if the service is subscribed to
- *
+ * This service only needs to be started if it is being subscribed to. An
+ * {@link IllegalStateException} will be thrown if the service is subscribed to
+ * and used without being started.
  */
 @DefaultAnnotation(NonNull.class)
 public interface QueryRepository extends Service {

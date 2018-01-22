@@ -92,8 +92,10 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     }
 
     @Override
-    public StreamsQuery add(final String query, final boolean isActive) throws QueryRepositoryException {
+    public StreamsQuery add(final String query, final boolean isActive)
+            throws QueryRepositoryException, IllegalStateException {
         requireNonNull(query);
+        checkState();
 
         lock.lock();
         try {
@@ -116,8 +118,9 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     }
 
     @Override
-    public Optional<StreamsQuery> get(final UUID queryId) throws QueryRepositoryException {
+    public Optional<StreamsQuery> get(final UUID queryId) throws QueryRepositoryException, IllegalStateException {
         requireNonNull(queryId);
+        checkState();
 
         lock.lock();
         try {
@@ -131,8 +134,10 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     }
 
     @Override
-    public void updateIsActive(final UUID queryId, final boolean isActive) throws QueryRepositoryException {
+    public void updateIsActive(final UUID queryId, final boolean isActive)
+            throws QueryRepositoryException, IllegalStateException {
         requireNonNull(queryId);
+        checkState();
 
         lock.lock();
         try {
@@ -156,8 +161,9 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     }
 
     @Override
-    public void delete(final UUID queryId) throws QueryRepositoryException {
+    public void delete(final UUID queryId) throws QueryRepositoryException, IllegalStateException {
         requireNonNull(queryId);
+        checkState();
 
         lock.lock();
         try {
@@ -173,7 +179,8 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
     }
 
     @Override
-    public Set<StreamsQuery> list() throws QueryRepositoryException {
+    public Set<StreamsQuery> list() throws QueryRepositoryException, IllegalStateException {
+        checkState();
         lock.lock();
         try {
             // Update the cache to represent what is currently in the log.
@@ -269,6 +276,7 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
 
     @Override
     protected void runOneIteration() throws Exception {
+        checkState();
         lock.lock();
         try {
             updateCache();
@@ -305,6 +313,13 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
             listeners.remove(listener);
         } finally {
             lock.unlock();
+        }
+    }
+
+    private void checkState() {
+        if (!super.isRunning() && !listeners.isEmpty()) {
+            throw new IllegalStateException(
+                    "The Query Repository is subscribed to, but the service has not been started.");
         }
     }
 }

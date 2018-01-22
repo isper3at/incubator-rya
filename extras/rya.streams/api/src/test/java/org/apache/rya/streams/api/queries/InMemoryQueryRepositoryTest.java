@@ -228,4 +228,16 @@ public class InMemoryQueryRepositoryTest {
             queries2.stop();
         }
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void subscribe_notStarted() throws Exception {
+        // Setup a totally in memory QueryRepository.
+        final QueryRepository queries = new InMemoryQueryRepository(new InMemoryQueryChangeLog(), SCHEDULE);
+        queries.subscribe(new QueryChangeLogListener() {
+            @Override
+            public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {}
+        });
+
+        queries.add("query 2", true);
+    }
 }
