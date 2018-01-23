@@ -20,8 +20,6 @@ package org.apache.rya.streams.querymanager;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,7 +49,7 @@ public class QueryManager extends AbstractIdleService {
     private final Set<QueryChangeLogSource> sources;
     private final Set<QueryRepository> queryRepos;
 
-    private final Map<UUID, StreamsQuery> queries;
+    private final Set<StreamsQuery> queries;
 
     /**
      * Creates a new {@link QueryManager}.
@@ -72,7 +70,7 @@ public class QueryManager extends AbstractIdleService {
         queryRepos.forEach(repo -> repo.subscribe(new QueryManagerQueryChange()));
         sources.forEach(source -> source.subscribe(new QueryManagerSourceListener()));
 
-        queries = new HashMap<>();
+        queries = new HashSet<>();
     }
 
     /**
@@ -134,12 +132,21 @@ public class QueryManager extends AbstractIdleService {
             final QueryChange entry = queryChangeEvent.getEntry();
             switch(entry.getChangeType()) {
                 case CREATE:
-                    final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(), entry.getIsActive().or(false));
-                    runQuery(newQuery);
+                    if (entry.getIsActive().or(false)) {
+                        final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(), entry.getIsActive().or(false));
+                        runQuery(newQuery);
+                    }
                     break;
                 case DELETE:
+                    //if was active, delete
                     break;
                 case UPDATE:
+                    if (entry.getIsActive().or(false)) {
+                        final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(), entry.getIsActive().or(false));
+                        runQuery(newQuery);
+                    } else {
+                        //remove
+                    }
                     break;
                 default:
                     break;
