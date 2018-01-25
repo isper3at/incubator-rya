@@ -1,18 +1,20 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.rya.streams.api.entity;
 
@@ -37,12 +39,9 @@ public class StreamsQuery {
     /**
      * Constructs an instance of {@link StreamsQuery}.
      *
-     * @param queryId - Uniquely identifies the query within Rya Streams. (not
-     *        null)
-     * @param sparql - The SPARQL query that defines how statements will be
-     *        processed. (not null)
-     * @param isActive - {@code true} if Rya Streams should process this query;
-     *        otherwise {@code false}.
+     * @param queryId - Uniquely identifies the query within Rya Streams. (not null)
+     * @param sparql - The SPARQL query that defines how statements will be processed. (not null)
+     * @param isActive - {@code true} if Rya Streams should process this query; otherwise {@code false}.
      */
     public StreamsQuery(final UUID queryId, final String sparql, final boolean isActive) {
         this.queryId = requireNonNull(queryId);
@@ -65,8 +64,7 @@ public class StreamsQuery {
     }
 
     /**
-     * @return {@code true} if Rya Streams should process this query; otherwise
-     *         {@code false}.
+     * @return {@code true} if Rya Streams should process this query; otherwise {@code false}.
      */
     public boolean isActive() {
         return isActive;
@@ -79,14 +77,15 @@ public class StreamsQuery {
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof StreamsQuery) {
+        if(o instanceof StreamsQuery) {
             final StreamsQuery other = (StreamsQuery) o;
-            return Objects.equals(queryId, other.queryId) && Objects.equals(sparql, other.sparql)
-                    && isActive == other.isActive;
+            return Objects.equals(queryId, other.queryId) &&
+                    Objects.equals(sparql, other.sparql) &&
+                    isActive == other.isActive;
         }
         return false;
     }
-
+    
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();

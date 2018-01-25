@@ -2,7 +2,7 @@ package org.apache.rya.streams.querymanager;
 
 import org.junit.Before;
 
-public class QueryManagerIT {
+public class QueryManagerTest {
     @Before
     public void setup() {
         //

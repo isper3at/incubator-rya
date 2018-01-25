@@ -19,6 +19,7 @@ package org.apache.rya.streams.querymanager;
 import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -52,7 +53,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 public class QueryManager extends AbstractIdleService {
     private static final Logger LOG = LoggerFactory.getLogger(QueryManager.class);
 
-    private final String ryaInstanceName;
     private final QueryExecutor queryExecutor;
     private final Scheduler scheduler;
     private final Set<QueryRepository> queryRepos;
@@ -69,25 +69,21 @@ public class QueryManager extends AbstractIdleService {
      *        {@link QueryChangeLog}. (not null)
      * @param sources - The {@link QueryChangeLogSource}s the sources of
      *        QueryChangeLogs. (not null)
-     * @param queryRepos - The set of {@link QueryRepository}s that will notify
-     *        this manager when {@link ChangeLogEntry}s occur. (not null)
      * @param scheduler - The {@link Scheduler} to use throughout
      */
     public QueryManager(final String ryaInstanceName, final QueryExecutor queryExecutor,
-            final Map<String, QueryChangeLogSource> sources, final Set<QueryRepository> queryRepos,
-            final Scheduler scheduler) {
-        this.ryaInstanceName = requireNonNull(ryaInstanceName);
+            final Map<String, QueryChangeLogSource> sources, final Scheduler scheduler) {
         this.sources = requireNonNull(sources);
         this.queryExecutor = requireNonNull(queryExecutor);
-        this.queryRepos = requireNonNull(queryRepos);
         this.scheduler = requireNonNull(scheduler);
 
         // subscribe to the repos and sources to be notified of changes.
-        queryRepos.forEach(repo -> repo.subscribe(new QueryManagerQueryChange()));
         sources.forEach((ryaInstance, source) -> source.subscribe(new QueryManagerSourceListener()));
 
         // create query cache.
         queriesCache = new HashMap<>();
+
+        queryRepos = new HashSet<>();
     }
 
     /**
@@ -98,11 +94,6 @@ public class QueryManager extends AbstractIdleService {
     private void runQuery(final StreamsQuery query) {
         requireNonNull(query);
         LOG.trace("Starting Query: " + query.getSparql());
-        if (!queryExecutor.isRunning()) {
-            LOG.debug("Query Executor wasn't running, starting now.");
-            queryExecutor.startAndWait();
-        }
-
         try {
             queryExecutor.startQuery(ryaInstanceName, query);
         } catch (final QueryExecutorException e) {
@@ -133,15 +124,14 @@ public class QueryManager extends AbstractIdleService {
     @Override
     protected void startUp() throws Exception {
         LOG.trace("Starting Query Manager.");
-        queryRepos.forEach(repo -> repo.startAndWait());
         sources.forEach((ryaInstance, source) -> source.startAndWait());
     }
 
     @Override
     protected void shutDown() throws Exception {
         LOG.trace("Stopping Query Manager.");
-        queryRepos.forEach(repo -> repo.stop());
-        sources.forEach((ryaInstance, source) -> source.stop());
+        queryRepos.forEach(repo -> repo.stopAndWait());
+        sources.forEach((ryaInstance, source) -> source.stopAndWait());
     }
 
     /**
@@ -220,10 +210,10 @@ public class QueryManager extends AbstractIdleService {
     private class QueryManagerSourceListener implements SourceListener {
         @Override
         public void notifyCreate(final String ryaInstanceName, final QueryChangeLog log) {
-            LOG.debug("Notified of new QueryChangeLog, creating new repository");
+            LOG.debug("Discovered new Query Change Log for Rya Instance " + ryaInstanceName + " within source " + log.toString());
             final QueryRepository repo = new InMemoryQueryRepository(log, scheduler);
-            repo.subscribe(new QueryManagerQueryChange());
             repo.startAndWait();
+            repo.subscribe(new QueryManagerQueryChange());
             LOG.debug("New query repository started");
             queryRepos.add(repo);
         }
