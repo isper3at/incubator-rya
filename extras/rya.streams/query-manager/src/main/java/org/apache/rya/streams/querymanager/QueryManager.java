@@ -124,23 +124,33 @@ public class QueryManager extends AbstractIdleService {
 
     @Override
     protected void startUp() throws Exception {
-        LOG.trace("Starting Query Manager.");
-        source.startAndWait();
+        lock.lock();
+        try {
+            LOG.trace("Starting Query Manager.");
+            source.startAndWait();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     protected void shutDown() throws Exception {
-        LOG.trace("Stopping Query Manager.");
-        queryRepos.forEach((instance, repo) -> {
-            try {
-                queryExecutor.stopAll(instance);
-            } catch (final QueryExecutorException e) {
-                e.printStackTrace();
-            }
-            repo.stopAndWait();
-        });
-        queryExecutor.stopAndWait();
-        source.stopAndWait();
+        lock.lock();
+        try {
+            LOG.trace("Stopping Query Manager.");
+            queryRepos.forEach((instance, repo) -> {
+                try {
+                    queryExecutor.stopAll(instance);
+                } catch (final QueryExecutorException e) {
+                    e.printStackTrace();
+                }
+                repo.stopAndWait();
+            });
+            queryExecutor.stopAndWait();
+            source.stopAndWait();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -162,47 +172,53 @@ public class QueryManager extends AbstractIdleService {
             LOG.debug("New query change event.");
             final QueryChange entry = queryChangeEvent.getEntry();
 
-            switch (entry.getChangeType()) {
-                case CREATE:
-                    LOG.debug("Creating query event.");
-                    if (newQueryState.isPresent()) {
-                        runQuery(newQueryState.get());
-                        LOG.trace("Created new query: " + newQueryState.get().toString());
-                    }
-                    break;
-                case DELETE:
-                    LOG.debug("delete query event.");
-                    if (newQueryState.isPresent()) {
-                        stopQuery(newQueryState.get().getQueryId());
-                        LOG.trace("Deleted query: " + newQueryState.get().toString());
-                    } else {
-                        LOG.debug("Delete requested a query that does not exist yet.");
-                    }
-                    break;
-                case UPDATE:
-                    LOG.debug("update query event.");
-                    if (!newQueryState.isPresent()) {
-                        LOG.debug("Query: " + entry.getQueryId() + " does not exist yet, cannot perform update.");
-                    } else {
-                        final StreamsQuery updateQuery = newQueryState.get();
-                        // if the query is currently inactive, and is updated to
-                        // be active, turn on.
-                        if (!updateQuery.isActive() && entry.getIsActive().or(false)) {
-                            final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(),
-                                    entry.getIsActive().or(false));
-                            runQuery(newQuery);
-                            LOG.trace("Starting query: " + newQuery.toString());
-                        } else if (!updateQuery.isActive() && !entry.getIsActive().or(true)) {
-                            // if the query is running and the update turns it
-                            // off, turn off.
-                            stopQuery(updateQuery.getQueryId());
-                            LOG.trace("Stopping query: " + updateQuery.toString());
-                        } else {
-                            LOG.debug("The query is either already running and "
-                                    + "updated to turn on, or is already stopped and is updated to stop running.");
+            lock.lock();
+            try {
+
+                switch (entry.getChangeType()) {
+                    case CREATE:
+                        LOG.debug("Creating query event.");
+                        if (newQueryState.isPresent()) {
+                            runQuery(newQueryState.get());
+                            LOG.trace("Created new query: " + newQueryState.get().toString());
                         }
-                    }
-                    break;
+                        break;
+                    case DELETE:
+                        LOG.debug("delete query event.");
+                        if (newQueryState.isPresent()) {
+                            stopQuery(newQueryState.get().getQueryId());
+                            LOG.trace("Deleted query: " + newQueryState.get().toString());
+                        } else {
+                            LOG.debug("Delete requested a query that does not exist yet.");
+                        }
+                        break;
+                    case UPDATE:
+                        LOG.debug("update query event.");
+                        if (!newQueryState.isPresent()) {
+                            LOG.debug("Query: " + entry.getQueryId() + " does not exist yet, cannot perform update.");
+                        } else {
+                            final StreamsQuery updateQuery = newQueryState.get();
+                            // if the query is currently inactive, and is updated to
+                            // be active, turn on.
+                            if (!updateQuery.isActive() && entry.getIsActive().or(false)) {
+                                final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(),
+                                        entry.getIsActive().or(false));
+                                runQuery(newQuery);
+                                LOG.trace("Starting query: " + newQuery.toString());
+                            } else if (!updateQuery.isActive() && !entry.getIsActive().or(true)) {
+                                // if the query is running and the update turns it
+                                // off, turn off.
+                                stopQuery(updateQuery.getQueryId());
+                                LOG.trace("Stopping query: " + updateQuery.toString());
+                            } else {
+                                LOG.debug("The query is either already running and "
+                                        + "updated to turn on, or is already stopped and is updated to stop running.");
+                            }
+                        }
+                        break;
+                }
+            } finally {
+                lock.unlock();
             }
         }
     }
@@ -214,21 +230,29 @@ public class QueryManager extends AbstractIdleService {
     private class QueryManagerSourceListener implements SourceListener {
         @Override
         public void notifyCreate(final String ryaInstanceName, final QueryChangeLog log) {
-            LOG.debug("Discovered new Query Change Log for Rya Instance " + ryaInstanceName + " within source " + log.toString());
-            final QueryRepository repo = new InMemoryQueryRepository(log, scheduler);
-            repo.startAndWait();
-            repo.subscribe(new QueryManagerQueryChange());
-            LOG.debug("New query repository started");
-            queryRepos.put(ryaInstanceName, repo);
+            lock.lock();
+            try {
+                LOG.debug("Discovered new Query Change Log for Rya Instance " + ryaInstanceName + " within source " + log.toString());
+                final QueryRepository repo = new InMemoryQueryRepository(log, scheduler);
+                repo.startAndWait();
+                repo.subscribe(new QueryManagerQueryChange());
+                LOG.debug("New query repository started");
+                queryRepos.put(ryaInstanceName, repo);
+            } finally {
+                lock.unlock();
+            }
         }
 
         @Override
         public void notifyDelete(final String ryaInstanceName) {
+            lock.lock();
             try {
                 LOG.debug("Notified of deleting QueryChangeLog, stopping all queries belonging to the change log.");
                 queryExecutor.stopAll(ryaInstanceName);
             } catch (final QueryExecutorException e) {
                 LOG.error("Failed to stop all queries belonging to: " + ryaInstanceName, e);
+            } finally {
+                lock.unlock();
             }
         }
     }
