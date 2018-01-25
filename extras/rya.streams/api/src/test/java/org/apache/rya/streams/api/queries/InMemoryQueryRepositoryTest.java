@@ -167,7 +167,7 @@ public class InMemoryQueryRepositoryTest {
 
             final Set<StreamsQuery> existing = queries.subscribe(new QueryChangeLogListener() {
                 @Override
-                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {
+                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState) {
                     final ChangeLogEntry<QueryChange> expected = new ChangeLogEntry<QueryChange>(1L,
                             QueryChange.create(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
                     assertEquals(expected, queryChangeEvent);
@@ -197,7 +197,7 @@ public class InMemoryQueryRepositoryTest {
             final CountDownLatch repo1Latch = new CountDownLatch(1);
             queries.subscribe(new QueryChangeLogListener() {
                 @Override
-                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {
+                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState) {
                     final ChangeLogEntry<QueryChange> expected = new ChangeLogEntry<QueryChange>(0L,
                             QueryChange.create(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
                     assertEquals(expected, queryChangeEvent);
@@ -209,7 +209,7 @@ public class InMemoryQueryRepositoryTest {
             final CountDownLatch repo2Latch = new CountDownLatch(1);
             queries2.subscribe(new QueryChangeLogListener() {
                 @Override
-                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {
+                public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState) {
                     final ChangeLogEntry<QueryChange> expected = new ChangeLogEntry<QueryChange>(0L,
                             QueryChange.create(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
                     assertEquals(expected, queryChangeEvent);
@@ -235,7 +235,7 @@ public class InMemoryQueryRepositoryTest {
         final QueryRepository queries = new InMemoryQueryRepository(new InMemoryQueryChangeLog(), SCHEDULE);
         queries.subscribe(new QueryChangeLogListener() {
             @Override
-            public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {}
+            public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState) {}
         });
 
         queries.add("query 2", true);

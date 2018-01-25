@@ -19,10 +19,10 @@ package org.apache.rya.streams.querymanager;
 import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.rya.streams.api.entity.StreamsQuery;
 import org.apache.rya.streams.api.queries.ChangeLogEntry;
@@ -55,35 +55,36 @@ public class QueryManager extends AbstractIdleService {
 
     private final QueryExecutor queryExecutor;
     private final Scheduler scheduler;
-    private final Set<QueryRepository> queryRepos;
 
-    private final Map<String, QueryChangeLogSource> sources;
-    private final Map<UUID, StreamsQuery> queriesCache;
+    /**
+     * Map of Rya Instance name to {@link QueryRepository}.
+     */
+    private final Map<String, QueryRepository> queryRepos;
+
+    private final QueryChangeLogSource source;
+
+    private final ReentrantLock lock;
 
     /**
      * Creates a new {@link QueryManager}.
      *
-     * @param ryaInstanceName - The Rya Instance to connect to. (not null)
      * @param queryExecutor - The {@link QueryExecutor} that starts/creates
      *        queries when a CREATED query is found in the
      *        {@link QueryChangeLog}. (not null)
-     * @param sources - The {@link QueryChangeLogSource}s the sources of
-     *        QueryChangeLogs. (not null)
+     * @param source - The {@link QueryChangeLogSource} of QueryChangeLogs. (not null)
      * @param scheduler - The {@link Scheduler} to use throughout
      */
-    public QueryManager(final String ryaInstanceName, final QueryExecutor queryExecutor,
-            final Map<String, QueryChangeLogSource> sources, final Scheduler scheduler) {
-        this.sources = requireNonNull(sources);
+    public QueryManager(final QueryExecutor queryExecutor, final QueryChangeLogSource source, final Scheduler scheduler) {
+        this.source = requireNonNull(source);
         this.queryExecutor = requireNonNull(queryExecutor);
         this.scheduler = requireNonNull(scheduler);
 
         // subscribe to the repos and sources to be notified of changes.
-        sources.forEach((ryaInstance, source) -> source.subscribe(new QueryManagerSourceListener()));
+        this.source.subscribe(new QueryManagerSourceListener());
 
-        // create query cache.
-        queriesCache = new HashMap<>();
+        queryRepos = new HashMap<>();
 
-        queryRepos = new HashSet<>();
+        lock = new ReentrantLock();
     }
 
     /**
@@ -95,7 +96,7 @@ public class QueryManager extends AbstractIdleService {
         requireNonNull(query);
         LOG.trace("Starting Query: " + query.getSparql());
         try {
-            queryExecutor.startQuery(ryaInstanceName, query);
+            queryExecutor.startQuery("some name", query);
         } catch (final QueryExecutorException e) {
             LOG.error("Failed to start query.", e);
         }
@@ -124,14 +125,22 @@ public class QueryManager extends AbstractIdleService {
     @Override
     protected void startUp() throws Exception {
         LOG.trace("Starting Query Manager.");
-        sources.forEach((ryaInstance, source) -> source.startAndWait());
+        source.startAndWait();
     }
 
     @Override
     protected void shutDown() throws Exception {
         LOG.trace("Stopping Query Manager.");
-        queryRepos.forEach(repo -> repo.stopAndWait());
-        sources.forEach((ryaInstance, source) -> source.stopAndWait());
+        queryRepos.forEach((instance, repo) -> {
+            try {
+                queryExecutor.stopAll(instance);
+            } catch (final QueryExecutorException e) {
+                e.printStackTrace();
+            }
+            repo.stopAndWait();
+        });
+        queryExecutor.stopAndWait();
+        source.stopAndWait();
     }
 
     /**
@@ -149,38 +158,33 @@ public class QueryManager extends AbstractIdleService {
      */
     private class QueryManagerQueryChange implements QueryChangeLogListener {
         @Override
-        public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent) {
+        public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState) {
             LOG.debug("New query change event.");
             final QueryChange entry = queryChangeEvent.getEntry();
 
             switch (entry.getChangeType()) {
                 case CREATE:
                     LOG.debug("Creating query event.");
-                    if (entry.getIsActive().or(false)) {
-                        final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(),
-                                entry.getIsActive().or(false));
-                        runQuery(newQuery);
-                        queriesCache.put(entry.getQueryId(), newQuery);
-                        LOG.trace("Created new query: " + newQuery.toString());
+                    if (newQueryState.isPresent()) {
+                        runQuery(newQueryState.get());
+                        LOG.trace("Created new query: " + newQueryState.get().toString());
                     }
                     break;
                 case DELETE:
                     LOG.debug("delete query event.");
-                    final StreamsQuery query = queriesCache.get(entry.getQueryId());
-                    if (query != null) {
-                        stopQuery(query.getQueryId());
-                        queriesCache.remove(query.getQueryId());
-                        LOG.trace("Deleted query: " + query.toString());
+                    if (newQueryState.isPresent()) {
+                        stopQuery(newQueryState.get().getQueryId());
+                        LOG.trace("Deleted query: " + newQueryState.get().toString());
                     } else {
                         LOG.debug("Delete requested a query that does not exist yet.");
                     }
                     break;
                 case UPDATE:
                     LOG.debug("update query event.");
-                    final StreamsQuery updateQuery = queriesCache.get(entry.getQueryId());
-                    if (updateQuery == null) {
+                    if (!newQueryState.isPresent()) {
                         LOG.debug("Query: " + entry.getQueryId() + " does not exist yet, cannot perform update.");
                     } else {
+                        final StreamsQuery updateQuery = newQueryState.get();
                         // if the query is currently inactive, and is updated to
                         // be active, turn on.
                         if (!updateQuery.isActive() && entry.getIsActive().or(false)) {
@@ -215,7 +219,7 @@ public class QueryManager extends AbstractIdleService {
             repo.startAndWait();
             repo.subscribe(new QueryManagerQueryChange());
             LOG.debug("New query repository started");
-            queryRepos.add(repo);
+            queryRepos.put(ryaInstanceName, repo);
         }
 
         @Override

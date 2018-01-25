@@ -228,6 +228,8 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
                 final QueryChange change = entry.getEntry();
                 final UUID queryId = change.getQueryId();
 
+                StreamsQuery newQueryState = null;
+
                 switch(change.getChangeType()) {
                     case CREATE:
                         final StreamsQuery query = new StreamsQuery(
@@ -235,6 +237,7 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
                                 change.getSparql().get(),
                                 change.getIsActive().get());
                         queriesCache.put(queryId, query);
+                        newQueryState = query;
                         break;
 
                     case UPDATE:
@@ -245,15 +248,18 @@ public class InMemoryQueryRepository extends AbstractScheduledService implements
                                     old.getSparql(),
                                     change.getIsActive().get());
                             queriesCache.put(queryId, updated);
+                            newQueryState = updated;
                         }
                         break;
 
                     case DELETE:
-                        queriesCache.remove(queryId);
+                        newQueryState = queriesCache.remove(queryId);
                         break;
                 }
 
-                listeners.forEach(listener -> listener.notify(entry));
+                for(final QueryChangeLogListener listener : listeners) {
+                    listener.notify(entry, Optional.ofNullable(newQueryState));
+                }
 
                 cachePosition = Optional.of( entry.getPosition() );
             }
