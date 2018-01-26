@@ -79,9 +79,6 @@ public class QueryManager extends AbstractIdleService {
         this.queryExecutor = requireNonNull(queryExecutor);
         this.scheduler = requireNonNull(scheduler);
 
-        // subscribe to the repos and sources to be notified of changes.
-        this.source.subscribe(new QueryManagerSourceListener());
-
         queryRepos = new HashMap<>();
 
         lock = new ReentrantLock();
@@ -90,13 +87,14 @@ public class QueryManager extends AbstractIdleService {
     /**
      * Starts running a query.
      *
+     * @param ryaInstanceName - The Rya instance the query belongs to.
      * @param query - The query to run.(not null)
      */
-    private void runQuery(final StreamsQuery query) {
+    private void runQuery(final String ryaInstanceName, final StreamsQuery query) {
         requireNonNull(query);
-        LOG.trace("Starting Query: " + query.getSparql());
+        LOG.info("Starting Query: " + query.getSparql());
         try {
-            queryExecutor.startQuery("some name", query);
+            queryExecutor.startQuery(ryaInstanceName, query);
         } catch (final QueryExecutorException e) {
             LOG.error("Failed to start query.", e);
         }
@@ -110,7 +108,7 @@ public class QueryManager extends AbstractIdleService {
     private void stopQuery(final UUID queryId) {
         requireNonNull(queryId);
 
-        LOG.trace("Stopping query: " + queryId.toString());
+        LOG.info("Stopping query: " + queryId.toString());
         if (!queryExecutor.isRunning()) {
             throw new IllegalStateException("Query Executor must be started before queries can be managed.");
         }
@@ -126,8 +124,12 @@ public class QueryManager extends AbstractIdleService {
     protected void startUp() throws Exception {
         lock.lock();
         try {
-            LOG.trace("Starting Query Manager.");
+            LOG.info("Starting Query Manager.");
+            queryExecutor.startAndWait();
             source.startAndWait();
+
+            // subscribe to the sources to be notified of changes.
+            source.subscribe(new QueryManagerSourceListener());
         } finally {
             lock.unlock();
         }
@@ -137,17 +139,9 @@ public class QueryManager extends AbstractIdleService {
     protected void shutDown() throws Exception {
         lock.lock();
         try {
-            LOG.trace("Stopping Query Manager.");
-            queryRepos.forEach((instance, repo) -> {
-                try {
-                    queryExecutor.stopAll(instance);
-                } catch (final QueryExecutorException e) {
-                    e.printStackTrace();
-                }
-                repo.stopAndWait();
-            });
-            queryExecutor.stopAndWait();
+            LOG.info("Stopping Query Manager.");
             source.stopAndWait();
+            queryExecutor.stopAndWait();
         } finally {
             lock.unlock();
         }
@@ -167,6 +161,12 @@ public class QueryManager extends AbstractIdleService {
      * running, it is removed.</li>
      */
     private class QueryManagerQueryChange implements QueryChangeLogListener {
+        private final String ryaInstanceName;
+
+        public QueryManagerQueryChange(final String ryaInstanceName) {
+            this.ryaInstanceName = requireNonNull(ryaInstanceName);
+        }
+
         @Override
         public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState) {
             LOG.debug("New query change event.");
@@ -179,15 +179,15 @@ public class QueryManager extends AbstractIdleService {
                     case CREATE:
                         LOG.debug("Creating query event.");
                         if (newQueryState.isPresent()) {
-                            runQuery(newQueryState.get());
-                            LOG.trace("Created new query: " + newQueryState.get().toString());
+                            runQuery(ryaInstanceName, newQueryState.get());
+                            LOG.info("Created new query: " + newQueryState.get().toString());
                         }
                         break;
                     case DELETE:
                         LOG.debug("delete query event.");
                         if (newQueryState.isPresent()) {
                             stopQuery(newQueryState.get().getQueryId());
-                            LOG.trace("Deleted query: " + newQueryState.get().toString());
+                            LOG.info("Deleted query: " + newQueryState.get().toString());
                         } else {
                             LOG.debug("Delete requested a query that does not exist yet.");
                         }
@@ -203,13 +203,13 @@ public class QueryManager extends AbstractIdleService {
                             if (!updateQuery.isActive() && entry.getIsActive().or(false)) {
                                 final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(),
                                         entry.getIsActive().or(false));
-                                runQuery(newQuery);
-                                LOG.trace("Starting query: " + newQuery.toString());
+                                runQuery(ryaInstanceName, newQuery);
+                                LOG.info("Starting query: " + newQuery.toString());
                             } else if (!updateQuery.isActive() && !entry.getIsActive().or(true)) {
                                 // if the query is running and the update turns it
                                 // off, turn off.
                                 stopQuery(updateQuery.getQueryId());
-                                LOG.trace("Stopping query: " + updateQuery.toString());
+                                LOG.info("Stopping query: " + updateQuery.toString());
                             } else {
                                 LOG.debug("The query is either already running and "
                                         + "updated to turn on, or is already stopped and is updated to stop running.");
@@ -232,11 +232,11 @@ public class QueryManager extends AbstractIdleService {
         public void notifyCreate(final String ryaInstanceName, final QueryChangeLog log) {
             lock.lock();
             try {
-                LOG.debug("Discovered new Query Change Log for Rya Instance " + ryaInstanceName + " within source " + log.toString());
+                LOG.info("Discovered new Query Change Log for Rya Instance " + ryaInstanceName + " within source " + log.toString());
                 final QueryRepository repo = new InMemoryQueryRepository(log, scheduler);
                 repo.startAndWait();
-                repo.subscribe(new QueryManagerQueryChange());
-                LOG.debug("New query repository started");
+                repo.subscribe(new QueryManagerQueryChange(ryaInstanceName));
+                LOG.info("New query repository started");
                 queryRepos.put(ryaInstanceName, repo);
             } finally {
                 lock.unlock();
@@ -247,7 +247,7 @@ public class QueryManager extends AbstractIdleService {
         public void notifyDelete(final String ryaInstanceName) {
             lock.lock();
             try {
-                LOG.debug("Notified of deleting QueryChangeLog, stopping all queries belonging to the change log.");
+                LOG.info("Notified of deleting QueryChangeLog, stopping all queries belonging to the change log.");
                 queryExecutor.stopAll(ryaInstanceName);
             } catch (final QueryExecutorException e) {
                 LOG.error("Failed to stop all queries belonging to: " + ryaInstanceName, e);
