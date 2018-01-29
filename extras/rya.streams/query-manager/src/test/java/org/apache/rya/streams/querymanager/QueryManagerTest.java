@@ -6,36 +6,48 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.ConsoleAppender;
 import org.apache.rya.streams.api.entity.StreamsQuery;
 import org.apache.rya.streams.api.queries.InMemoryQueryChangeLog;
 import org.apache.rya.streams.api.queries.QueryChange;
 import org.apache.rya.streams.api.queries.QueryChangeLog;
-import org.apache.rya.streams.api.queries.QueryChangeLog.QueryChangeLogException;
 import org.apache.rya.streams.querymanager.QueryChangeLogSource.SourceListener;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractScheduledService.Scheduler;
 
 public class QueryManagerTest {
     private static final Scheduler TEST_SCHEDULER = Scheduler.newFixedRateSchedule(0, 100, TimeUnit.MILLISECONDS);
+    private static Logger LOG;
 
     @BeforeClass
     public static void setupLogger() {
+        org.apache.log4j.Logger.getRootLogger().addAppender(new ConsoleAppender());
+        LOG = LoggerFactory.getLogger(QueryManagerTest.class);
+        LOG.info("test");
     }
 
-    //Test no query change logs, add query change log.
+    /**
+     * Tests when the query manager is notified to create a new query, the query
+     * is created and started.
+     */
     @Test
-    public void testAddQueryChangeLog() throws Exception {
+    public void testCreateQuery() throws Exception {
         //The new QueryChangeLog
         final QueryChangeLog newChangeLog = new InMemoryQueryChangeLog();
         final String ryaInstance = "ryaTestInstance";
         final StreamsQuery query = new StreamsQuery(UUID.randomUUID(), "some query", true);
 
-        //mocks
+        // when the query executor is told to start the test query on the test
+        // rya instance, count down on the countdown latch
         final QueryExecutor qe = mock(QueryExecutor.class);
+        Mockito.when(qe.isRunning()).thenReturn(true);
+
         final CountDownLatch queryStarted = new CountDownLatch(1);
         Mockito.doAnswer(invocation -> {
             queryStarted.countDown();
@@ -47,7 +59,7 @@ public class QueryManagerTest {
         Mockito.doAnswer(invocation -> {
             //The listener created by the Query Manager
             final SourceListener listener = (SourceListener) invocation.getArguments()[0];
-            listener.notifyCreate("ryaTestInstance", newChangeLog);
+            listener.notifyCreate(ryaInstance, newChangeLog);
             newChangeLog.write(QueryChange.create(query.getQueryId(), query.getSparql(), query.isActive()));
             return null;
         }).when(source).subscribe(Matchers.any(SourceListener.class));
@@ -56,154 +68,118 @@ public class QueryManagerTest {
         try {
             qm.startAndWait();
             queryStarted.await(5, TimeUnit.SECONDS);
-            Mockito.verify(qe).startQuery("ryaTestInstance", query);
+            Mockito.verify(qe).startQuery(ryaInstance, query);
         } finally {
             qm.stopAndWait();
         }
     }
 
-    // Test No query change logs, add a new one
-
-    // Test existing query change log, add a new one with same rya instance
+    /**
+     * Tests when the query manager is notified to delete a new query, the query
+     * is stopped and deleted.
+     */
     @Test
-    public void testAddQueryChangeLog_existing() {
+    public void testDeleteQuery() throws Exception {
         //The new QueryChangeLog
         final QueryChangeLog newChangeLog = new InMemoryQueryChangeLog();
+        final StreamsQuery query = new StreamsQuery(UUID.randomUUID(), "some query", true);
+        final String ryaInstance = "ryaTestInstance";
 
-        //mocks
+        // when the query executor is told to start the test query on the test
+        // rya instance, count down on the countdown latch
         final QueryExecutor qe = mock(QueryExecutor.class);
+        Mockito.when(qe.isRunning()).thenReturn(true);
+
+        final CountDownLatch queryStarted = new CountDownLatch(1);
+        final CountDownLatch queryDeleted = new CountDownLatch(1);
+        Mockito.doAnswer(invocation -> {
+            queryDeleted.countDown();
+            return null;
+        }).when(qe).stopQuery(query.getQueryId());
         final QueryChangeLogSource source = mock(QueryChangeLogSource.class);
 
+        // when the query executor is told to start the test query on the test
+        // rya instance, count down on the countdown latch
+        Mockito.doAnswer(invocation -> {
+            queryStarted.countDown();
+            return null;
+        }).when(qe).startQuery(Matchers.eq(ryaInstance), Matchers.eq(query));
+
         //When the QueryChangeLogSource is subscribed to in the QueryManager, mock notify of a new QueryChangeLog
+        // add the query, so it can be removed
         Mockito.doAnswer(invocation -> {
             //The listener created by the Query Manager
             final SourceListener listener = (SourceListener) invocation.getArguments()[0];
-            listener.notifyCreate("ryaTestInstance", newChangeLog);
-            //this should not work?
-            listener.notifyCreate("ryaTestInstance", newChangeLog);
+            listener.notifyCreate(ryaInstance, newChangeLog);
+            Thread.sleep(1000);
+            newChangeLog.write(QueryChange.create(query.getQueryId(), query.getSparql(), query.isActive()));
+            queryStarted.await(5, TimeUnit.SECONDS);
+            newChangeLog.write(QueryChange.delete(query.getQueryId()));
             return null;
         }).when(source).subscribe(Matchers.any(SourceListener.class));
 
         final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
         try {
             qm.startAndWait();
+            queryDeleted.await(5, TimeUnit.SECONDS);
+            Mockito.verify(qe).stopQuery(query.getQueryId());
         } finally {
             qm.stopAndWait();
         }
-        //assert log outputs "Discovered new Query Change Log for Rya Instance ryaTestInstance within source " + log.toString()
     }
 
-    // Test No query change log, remove one
+    /**
+     * Tests when the query manager is notified to update an existing query, the
+     * query is stopped.
+     */
     @Test
-    public void testRemoveQueryChangeLog_noneExist() {
-        //The new QueryChangeLog
+    public void testUpdateQuery() throws Exception {
+        // The new QueryChangeLog
         final QueryChangeLog newChangeLog = new InMemoryQueryChangeLog();
+        final StreamsQuery query = new StreamsQuery(UUID.randomUUID(), "some query", true);
+        final String ryaInstance = "ryaTestInstance";
 
-        //mocks
+        // when the query executor is told to start the test query on the test
+        // rya instance, count down on the countdown latch
         final QueryExecutor qe = mock(QueryExecutor.class);
+        Mockito.when(qe.isRunning()).thenReturn(true);
+
+        final CountDownLatch queryStarted = new CountDownLatch(1);
+        final CountDownLatch queryDeleted = new CountDownLatch(1);
+        Mockito.doAnswer(invocation -> {
+            queryDeleted.countDown();
+            return null;
+        }).when(qe).stopQuery(query.getQueryId());
         final QueryChangeLogSource source = mock(QueryChangeLogSource.class);
 
-        //When the QueryChangeLogSource is subscribed to in the QueryManager, mock notify of a new QueryChangeLog
+        // when the query executor is told to start the test query on the test
+        // rya instance, count down on the countdown latch
         Mockito.doAnswer(invocation -> {
-            //The listener created by the Query Manager
+            queryStarted.countDown();
+            return null;
+        }).when(qe).startQuery(Matchers.eq(ryaInstance), Matchers.eq(query));
+
+        // When the QueryChangeLogSource is subscribed to in the QueryManager,
+        // mock notify of a new QueryChangeLog
+        // add the query, so it can be removed
+        Mockito.doAnswer(invocation -> {
+            // The listener created by the Query Manager
             final SourceListener listener = (SourceListener) invocation.getArguments()[0];
-            listener.notifyDelete("ryaTestInstance");
+            listener.notifyCreate(ryaInstance, newChangeLog);
+            Thread.sleep(1000);
+            newChangeLog.write(QueryChange.create(query.getQueryId(), query.getSparql(), query.isActive()));
+            queryStarted.await(5, TimeUnit.SECONDS);
+            newChangeLog.write(QueryChange.update(query.getQueryId(), false));
             return null;
         }).when(source).subscribe(Matchers.any(SourceListener.class));
 
         final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
         try {
             qm.startAndWait();
+            queryDeleted.await(10, TimeUnit.SECONDS);
+            Mockito.verify(qe).stopQuery(query.getQueryId());
         } finally {
             qm.stopAndWait();
         }
-        //assert log outputs "Discovered new Query Change Log for Rya Instance ryaTestInstance within source " + log.toString()
     }
-
-    // Test one existing query change log, remove one
-
-    // Test existing query change log sources, remove one
-
-
-
-
-    // Test no existing query delete query
-    @Test
-    public void testRemoveQuery_noneExist() {
-        //The new QueryChangeLog
-        final QueryChangeLog newChangeLog = new InMemoryQueryChangeLog();
-
-        //mocks
-        final QueryExecutor qe = mock(QueryExecutor.class);
-        final QueryChangeLogSource source = mock(QueryChangeLogSource.class);
-
-        //When the QueryChangeLogSource is subscribed to in the QueryManager, mock notify of a new QueryChangeLog
-        Mockito.doAnswer(invocation -> {
-            //The listener created by the Query Manager
-            final SourceListener listener = (SourceListener) invocation.getArguments()[0];
-            listener.notifyCreate("ryaTestInstance", newChangeLog);
-            //this should not work?
-            listener.notifyCreate("ryaTestInstance", newChangeLog);
-            return null;
-        }).when(source).subscribe(Matchers.any(SourceListener.class));
-
-        final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
-        try {
-            qm.startAndWait();
-        } finally {
-            qm.stopAndWait();
-        }
-        //assert log outputs "Discovered new Query Change Log for Rya Instance ryaTestInstance within source " + log.toString()
-    }
-
-    // Test no existing query update query
-
-    // Test no existing query add query
-    @Test
-    public void testAddQuery() {
-        //The new QueryChangeLog
-        final QueryChangeLog newChangeLog = new InMemoryQueryChangeLog();
-
-        //mocks
-        final QueryExecutor qe = mock(QueryExecutor.class);
-        final QueryChangeLogSource source = mock(QueryChangeLogSource.class);
-
-        //When the QueryChangeLogSource is subscribed to in the QueryManager, mock notify of a new QueryChangeLog
-        Mockito.doAnswer(invocation -> {
-            //The listener created by the Query Manager
-            final SourceListener listener = (SourceListener) invocation.getArguments()[0];
-            listener.notifyCreate("ryaTestInstance", newChangeLog);
-            return null;
-        }).when(source).subscribe(Matchers.any(SourceListener.class));
-
-        final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
-        try {
-            qm.startAndWait();
-            qe.startAndWait();
-
-            //at this point, a query repository exists that is watching the in memory query change log.
-            //  have the query change log register a create query.
-
-            newChangeLog.write(QueryChange.create(UUID.randomUUID(), "SELECT * WHERE { ?a ?b ?c. }", true));
-
-        } catch (final QueryChangeLogException e) {
-            e.printStackTrace();
-        } finally {
-            qm.stopAndWait();
-            qe.stopAndWait();
-        }
-        //assert log outputs "Discovered new Query Change Log for Rya Instance ryaTestInstance within source " + log.toString()
-    }
-
-    // Test existing query add query
-
-    // Test existing stopped query update to start
-
-    // Test existing stopped query update to stop
-
-    // Test existing started query update to start
-
-    // Test existing started query update to stop
-
-    // Test existing query delete
 }

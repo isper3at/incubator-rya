@@ -93,6 +93,10 @@ public class QueryManager extends AbstractIdleService {
     private void runQuery(final String ryaInstanceName, final StreamsQuery query) {
         requireNonNull(query);
         LOG.info("Starting Query: " + query.getSparql());
+        if (!queryExecutor.isRunning()) {
+            throw new IllegalStateException("Query Executor must be started before queries can be managed.");
+        }
+
         try {
             queryExecutor.startQuery(ryaInstanceName, query);
         } catch (final QueryExecutorException e) {
