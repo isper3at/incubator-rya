@@ -178,14 +178,18 @@ public class QueryManager extends AbstractIdleService {
 
                 switch (entry.getChangeType()) {
                     case CREATE:
-                        runQuery(ryaInstanceName, newQueryState.get());
+                        if(newQueryState.isPresent()) {
+                            runQuery(ryaInstanceName, newQueryState.get());
+                        } else {
+                            LOG.error("The query with ID: " + entry.getQueryId() + " must be present with the change to be created.");
+                        }
                         break;
                     case DELETE:
-                        stopQuery(newQueryState.get().getQueryId());
+                        stopQuery(entry.getQueryId());
                         break;
                     case UPDATE:
                         if (!newQueryState.isPresent()) {
-                            LOG.debug("Query: " + entry.getQueryId() + " does not exist yet, cannot perform update.");
+                            LOG.debug("The query with ID: " + entry.getQueryId() + " must be provided with the update, cannot perform update.");
                         } else {
                             final StreamsQuery updateQuery = newQueryState.get();
                             // if the query is currently inactive, and is updated to
