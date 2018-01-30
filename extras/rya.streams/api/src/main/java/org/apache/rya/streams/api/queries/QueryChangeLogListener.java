@@ -40,7 +40,8 @@ public interface QueryChangeLogListener {
      * on the repository.
      *
      * @param queryChangeEvent - The event that occurred. (not null)
-     * @param newQueryState - The new state of the query after the query change event. (not null)
+     * @param newQueryState - The new state of the query after the query change event, this will be
+     *     absent if the change type is DELETE. (not null)
      */
     public void notify(final ChangeLogEntry<QueryChange> queryChangeEvent, final Optional<StreamsQuery> newQueryState);
 }
