@@ -199,7 +199,11 @@ public class InMemoryQueryRepositoryTest {
             queries.subscribe((queryChangeEvent, newQueryState) -> {
                 final ChangeLogEntry<QueryChange> expected = new ChangeLogEntry<QueryChange>(0L,
                         QueryChange.create(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
+                final Optional<StreamsQuery> expectedQueryState = Optional.of(
+                        new StreamsQuery(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
+
                 assertEquals(expected, queryChangeEvent);
+                assertEquals(expectedQueryState, newQueryState);
                 repo1Latch.countDown();
             });
 
@@ -208,7 +212,11 @@ public class InMemoryQueryRepositoryTest {
             queries2.subscribe((queryChangeEvent, newQueryState) -> {
                 final ChangeLogEntry<QueryChange> expected = new ChangeLogEntry<QueryChange>(0L,
                         QueryChange.create(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
+                final Optional<StreamsQuery> expectedQueryState = Optional.of(
+                        new StreamsQuery(queryChangeEvent.getEntry().getQueryId(), "query 2", true));
+
                 assertEquals(expected, queryChangeEvent);
+                assertEquals(expectedQueryState, newQueryState);
                 repo2Latch.countDown();
             });
 
@@ -217,7 +225,6 @@ public class InMemoryQueryRepositoryTest {
             assertTrue(repo1Latch.await(5, TimeUnit.SECONDS));
             assertTrue(repo2Latch.await(5, TimeUnit.SECONDS));
         } catch(final InterruptedException e ) {
-            System.out.println("PING");
         } finally {
             queries.stop();
             queries2.stop();
