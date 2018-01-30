@@ -89,7 +89,7 @@ public class QueryManager extends AbstractIdleService {
     private void runQuery(final String ryaInstanceName, final StreamsQuery query) {
         requireNonNull(ryaInstanceName);
         requireNonNull(query);
-        LOG.info("Starting Query: " + query.toString());
+        LOG.info("Starting Query: " + query.toString() + " on the rya instance: " + ryaInstanceName);
 
         try {
             queryExecutor.startQuery(ryaInstanceName, query);
@@ -155,16 +155,16 @@ public class QueryManager extends AbstractIdleService {
      * to stop the query, stops the query. Otherwise, if the query is not
      * running, it is removed.</li>
      */
-    private class QueryManagerQueryChange implements QueryChangeLogListener {
+    private class QueryExecutionForwardingListener implements QueryChangeLogListener {
         private final String ryaInstanceName;
 
         /**
-         * Creates a new {@link QueryManagerQueryChange}.
+         * Creates a new {@link QueryExecutionForwardingListener}.
          *
          * @param ryaInstanceName - The rya instance the query change is
          *        performed on. (not null)
          */
-        public QueryManagerQueryChange(final String ryaInstanceName) {
+        public QueryExecutionForwardingListener(final String ryaInstanceName) {
             this.ryaInstanceName = requireNonNull(ryaInstanceName);
         }
 
@@ -178,10 +178,11 @@ public class QueryManager extends AbstractIdleService {
 
                 switch (entry.getChangeType()) {
                     case CREATE:
-                        if(newQueryState.isPresent()) {
-                            runQuery(ryaInstanceName, newQueryState.get());
-                        } else {
+                        if(!newQueryState.isPresent()) {
                             LOG.error("The query with ID: " + entry.getQueryId() + " must be present with the change to be created.");
+                            LOG.debug("newQueryState is not allowed to be absent with a CREATE QueryChange, there might be a bug in the QueryRepository.");
+                        } else {
+                            runQuery(ryaInstanceName, newQueryState.get());
                         }
                         break;
                     case DELETE:
@@ -189,24 +190,16 @@ public class QueryManager extends AbstractIdleService {
                         break;
                     case UPDATE:
                         if (!newQueryState.isPresent()) {
-                            LOG.debug("The query with ID: " + entry.getQueryId() + " must be provided with the update, cannot perform update.");
+                            LOG.error("The query with ID: " + entry.getQueryId() + " must be provided with the update, cannot perform update.");
+                            LOG.debug("newQueryState is not allowed to be absent with a UPDATE QueryChange, there might be a bug in the QueryRepository.");
                         } else {
-                            final StreamsQuery updateQuery = newQueryState.get();
-                            // if the query is currently inactive, and is updated to
-                            // be active, turn on.
-                            if (!updateQuery.isActive() && entry.getIsActive().or(false)) {
-                                final StreamsQuery newQuery = new StreamsQuery(entry.getQueryId(), entry.getSparql().get(),
-                                        entry.getIsActive().or(false));
-                                runQuery(ryaInstanceName, newQuery);
-                                LOG.info("Starting query: " + newQuery.toString());
-                            } else if (!updateQuery.isActive() && !entry.getIsActive().or(true)) {
-                                // if the query is running and the update turns it
-                                // off, turn off.
-                                stopQuery(updateQuery.getQueryId());
-                                LOG.info("Stopping query: " + updateQuery.toString());
+                            final StreamsQuery updatedQuery = newQueryState.get();
+                            if (updatedQuery.isActive()) {
+                                runQuery(ryaInstanceName, updatedQuery);
+                                LOG.info("Starting query: " + updatedQuery.toString());
                             } else {
-                                LOG.debug("The query is either already running and "
-                                        + "updated to turn on, or is already stopped and is updated to stop running.");
+                                stopQuery(updatedQuery.getQueryId());
+                                LOG.info("Stopping query: " + updatedQuery.toString());
                             }
                         }
                         break;
@@ -229,7 +222,7 @@ public class QueryManager extends AbstractIdleService {
                 LOG.info("Discovered new Query Change Log for Rya Instance " + ryaInstanceName + ".");
                 final QueryRepository repo = new InMemoryQueryRepository(log, scheduler);
                 repo.startAndWait();
-                final Set<StreamsQuery> queries = repo.subscribe(new QueryManagerQueryChange(ryaInstanceName));
+                final Set<StreamsQuery> queries = repo.subscribe(new QueryExecutionForwardingListener(ryaInstanceName));
                 queries.forEach(query -> {
                     if (query.isActive()) {
                         try {

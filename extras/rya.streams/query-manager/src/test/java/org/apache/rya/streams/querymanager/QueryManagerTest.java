@@ -16,24 +16,23 @@
  */
 package org.apache.rya.streams.querymanager;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.ConsoleAppender;
 import org.apache.rya.streams.api.entity.StreamsQuery;
 import org.apache.rya.streams.api.queries.InMemoryQueryChangeLog;
 import org.apache.rya.streams.api.queries.QueryChange;
 import org.apache.rya.streams.api.queries.QueryChangeLog;
 import org.apache.rya.streams.querymanager.QueryChangeLogSource.SourceListener;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.AbstractScheduledService.Scheduler;
 
@@ -42,14 +41,6 @@ import com.google.common.util.concurrent.AbstractScheduledService.Scheduler;
  */
 public class QueryManagerTest {
     private static final Scheduler TEST_SCHEDULER = Scheduler.newFixedRateSchedule(0, 100, TimeUnit.MILLISECONDS);
-    private static Logger LOG;
-
-    @BeforeClass
-    public static void setupLogger() {
-        org.apache.log4j.Logger.getRootLogger().addAppender(new ConsoleAppender());
-        LOG = LoggerFactory.getLogger(QueryManagerTest.class);
-        LOG.info("test");
-    }
 
     /**
      * Tests when the query manager is notified to create a new query, the query
@@ -65,29 +56,29 @@ public class QueryManagerTest {
         // when the query executor is told to start the test query on the test
         // rya instance, count down on the countdown latch
         final QueryExecutor qe = mock(QueryExecutor.class);
-        Mockito.when(qe.isRunning()).thenReturn(true);
+        when(qe.isRunning()).thenReturn(true);
 
         final CountDownLatch queryStarted = new CountDownLatch(1);
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             queryStarted.countDown();
             return null;
-        }).when(qe).startQuery(Matchers.eq(ryaInstance), Matchers.eq(query));
+        }).when(qe).startQuery(eq(ryaInstance), eq(query));
         final QueryChangeLogSource source = mock(QueryChangeLogSource.class);
 
         //When the QueryChangeLogSource is subscribed to in the QueryManager, mock notify of a new QueryChangeLog
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             //The listener created by the Query Manager
             final SourceListener listener = (SourceListener) invocation.getArguments()[0];
             listener.notifyCreate(ryaInstance, newChangeLog);
             newChangeLog.write(QueryChange.create(query.getQueryId(), query.getSparql(), query.isActive()));
             return null;
-        }).when(source).subscribe(Matchers.any(SourceListener.class));
+        }).when(source).subscribe(any(SourceListener.class));
 
         final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
         try {
             qm.startAndWait();
             queryStarted.await(5, TimeUnit.SECONDS);
-            Mockito.verify(qe).startQuery(ryaInstance, query);
+            verify(qe).startQuery(ryaInstance, query);
         } finally {
             qm.stopAndWait();
         }
@@ -107,11 +98,11 @@ public class QueryManagerTest {
         // when the query executor is told to start the test query on the test
         // rya instance, count down on the countdown latch
         final QueryExecutor qe = mock(QueryExecutor.class);
-        Mockito.when(qe.isRunning()).thenReturn(true);
+        when(qe.isRunning()).thenReturn(true);
 
         final CountDownLatch queryStarted = new CountDownLatch(1);
         final CountDownLatch queryDeleted = new CountDownLatch(1);
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             queryDeleted.countDown();
             return null;
         }).when(qe).stopQuery(query.getQueryId());
@@ -119,14 +110,14 @@ public class QueryManagerTest {
 
         // when the query executor is told to start the test query on the test
         // rya instance, count down on the countdown latch
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             queryStarted.countDown();
             return null;
-        }).when(qe).startQuery(Matchers.eq(ryaInstance), Matchers.eq(query));
+        }).when(qe).startQuery(eq(ryaInstance), eq(query));
 
         //When the QueryChangeLogSource is subscribed to in the QueryManager, mock notify of a new QueryChangeLog
         // add the query, so it can be removed
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             //The listener created by the Query Manager
             final SourceListener listener = (SourceListener) invocation.getArguments()[0];
             listener.notifyCreate(ryaInstance, newChangeLog);
@@ -135,13 +126,13 @@ public class QueryManagerTest {
             queryStarted.await(5, TimeUnit.SECONDS);
             newChangeLog.write(QueryChange.delete(query.getQueryId()));
             return null;
-        }).when(source).subscribe(Matchers.any(SourceListener.class));
+        }).when(source).subscribe(any(SourceListener.class));
 
         final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
         try {
             qm.startAndWait();
             queryDeleted.await(5, TimeUnit.SECONDS);
-            Mockito.verify(qe).stopQuery(query.getQueryId());
+            verify(qe).stopQuery(query.getQueryId());
         } finally {
             qm.stopAndWait();
         }
@@ -161,11 +152,11 @@ public class QueryManagerTest {
         // when the query executor is told to start the test query on the test
         // rya instance, count down on the countdown latch
         final QueryExecutor qe = mock(QueryExecutor.class);
-        Mockito.when(qe.isRunning()).thenReturn(true);
+        when(qe.isRunning()).thenReturn(true);
 
         final CountDownLatch queryStarted = new CountDownLatch(1);
         final CountDownLatch queryDeleted = new CountDownLatch(1);
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             queryDeleted.countDown();
             return null;
         }).when(qe).stopQuery(query.getQueryId());
@@ -173,15 +164,15 @@ public class QueryManagerTest {
 
         // when the query executor is told to start the test query on the test
         // rya instance, count down on the countdown latch
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             queryStarted.countDown();
             return null;
-        }).when(qe).startQuery(Matchers.eq(ryaInstance), Matchers.eq(query));
+        }).when(qe).startQuery(eq(ryaInstance), eq(query));
 
         // When the QueryChangeLogSource is subscribed to in the QueryManager,
         // mock notify of a new QueryChangeLog
         // add the query, so it can be removed
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             // The listener created by the Query Manager
             final SourceListener listener = (SourceListener) invocation.getArguments()[0];
             listener.notifyCreate(ryaInstance, newChangeLog);
@@ -190,13 +181,13 @@ public class QueryManagerTest {
             queryStarted.await(5, TimeUnit.SECONDS);
             newChangeLog.write(QueryChange.update(query.getQueryId(), false));
             return null;
-        }).when(source).subscribe(Matchers.any(SourceListener.class));
+        }).when(source).subscribe(any(SourceListener.class));
 
         final QueryManager qm = new QueryManager(qe, source, TEST_SCHEDULER);
         try {
             qm.startAndWait();
             queryDeleted.await(10, TimeUnit.SECONDS);
-            Mockito.verify(qe).stopQuery(query.getQueryId());
+            verify(qe).stopQuery(query.getQueryId());
         } finally {
             qm.stopAndWait();
         }
