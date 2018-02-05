@@ -40,6 +40,10 @@ under the License.
             <artifactId>rya.streams.kafka</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.rya</groupId>
+            <artifactId>mongodb.rya</artifactId>
+        </dependency>
         <!-- Kafka dependencies -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
