@@ -33,26 +33,27 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * and STOP query commands on Rya Streams Kafka.
  */
 @DefaultAnnotation(NonNull.class)
-public class MongoKafkaOpLogCollection {
+public class StatementOpLogCollection {
     private static final String COLLECTION_NAME = "kafka-history";
 
     private final MongoClient client;
     private final String ryaInstance;
 
     /**
-     * Creates a new {@link MongoKafkaOpLogCollection}.
+     * Creates a new {@link StatementOpLogCollection}.
      *
      * @param client - The {@link MongoClient} to use to connect to MongoDB. (not null)
      * @param ryaInstance - The Rya instance to connect to. (not null)
      * @param maxDocuments - The maximum number of documents to allow in this collection. (not null)
      */
-    public MongoKafkaOpLogCollection(final MongoClient client, final String ryaInstance,
+    public StatementOpLogCollection(final MongoClient client, final String ryaInstance,
             final int maxDocuments) {
         this.client = requireNonNull(client);
         this.ryaInstance = requireNonNull(ryaInstance);
 
         // check to see if the collection exists or not, the collection needs to be capped.
-        if (client.getDatabase(ryaInstance).listCollectionNames().into(new ArrayList<>()).contains(COLLECTION_NAME)) {
+        if (client.getDatabase(ryaInstance).listCollectionNames()
+                .into(new ArrayList<>()).contains(COLLECTION_NAME)) {
             client.getDatabase(ryaInstance).createCollection(COLLECTION_NAME,
                     new CreateCollectionOptions()
                         .capped(true)

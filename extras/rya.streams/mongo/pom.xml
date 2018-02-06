@@ -44,11 +44,13 @@ under the License.
             <groupId>org.apache.rya</groupId>
             <artifactId>mongodb.rya</artifactId>
         </dependency>
+
         <!-- Kafka dependencies -->
+
         <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-api</artifactId>
-            <version>1.0.0</version>
+        	<groupId>org.apache.kafka</groupId>
+        	<artifactId>connect-api</artifactId>
+        	<version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>
