@@ -20,9 +20,10 @@ package org.apache.rya.api.utils;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.regex.Pattern;
-
 import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.parser.ParsedGraphQuery;
+import org.openrdf.query.parser.ParsedQuery;
+import org.openrdf.query.parser.QueryParserUtil;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
@@ -50,10 +51,10 @@ public class QueryInvestigator {
 
         try {
             // Constructs are queries, so try to create a ParsedQuery.
-            PARSER.parseQuery(sparql, null);
+            final ParsedQuery parsedQuery = PARSER.parseQuery(sparql, null);
 
             // Check to see if the SPARQL looks like a CONSTRUCT query.
-            return Pattern.matches(".*?construct.*?where.*", sparql.toLowerCase());
+            return parsedQuery instanceof ParsedGraphQuery;
 
         } catch(final MalformedQueryException queryE) {
             try {
@@ -83,10 +84,8 @@ public class QueryInvestigator {
         try {
             // Inserts are updated, so try to create a ParsedUpdate.
             PARSER.parseUpdate(sparql, null);
-
-            // Check to see if the SPARQL looks like an INSERT query.
-            return Pattern.matches(".*?insert.*?where.*", sparql.toLowerCase());
-
+            final String strippedOperation = QueryParserUtil.removeSPARQLQueryProlog(sparql.toLowerCase());
+            return strippedOperation.startsWith("insert");
         } catch(final MalformedQueryException updateE) {
             try {
                 // Maybe it's a query.

@@ -187,7 +187,7 @@ public class StreamResultsCommand implements RyaStreamsCommand {
             final TupleExpr tupleExpr = new SPARQLParser().parseQuery(sparql, null).getTupleExpr();
             if(params.outputPath != null) {
                 final Path file = Paths.get(params.outputPath);
-                try(OutputStream out = Files.newOutputStream(file)) {
+                try (final OutputStream out = Files.newOutputStream(file)) {
                     if(isStatementResults) {
                         final QueryResultStream<VisibilityStatement> stmtStream = (QueryResultStream<VisibilityStatement>) resultsStream;
                         QueryResultsOutputUtil.toNtriplesFile(out, stmtStream, finished);
@@ -206,7 +206,7 @@ public class StreamResultsCommand implements RyaStreamsCommand {
         }
     }
 
-    private void streamToSystemOut(final QueryResultStream<?> stream, final AtomicBoolean shutdownSignal) throws Exception {
+    private static void streamToSystemOut(final QueryResultStream<?> stream, final AtomicBoolean shutdownSignal) throws Exception {
         requireNonNull(stream);
         requireNonNull(shutdownSignal);
 

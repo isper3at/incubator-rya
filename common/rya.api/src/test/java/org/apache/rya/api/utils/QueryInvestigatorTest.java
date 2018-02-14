@@ -25,7 +25,7 @@ import org.junit.Test;
 import org.openrdf.query.MalformedQueryException;
 
 /**
- * Unit tests the methods of {@link }.
+ * Unit tests the methods of {@link QueryInvestigator}.
  */
 public class QueryInvestigatorTest {
 
@@ -52,6 +52,16 @@ public class QueryInvestigatorTest {
     @Test
     public void isConstruct_false_notAConstruct() throws Exception {
         final String sparql = "SELECT * WHERE { ?a ?b ?c . }";
+        assertFalse( QueryInvestigator.isConstruct(sparql) );
+    }
+
+    @Test
+    public void isConstruct_false_notAConstructWithKeywords() throws Exception {
+        final String sparql =
+                "SELECT ?construct " +
+                "WHERE {" +
+                "   ?construct <urn:built> <urn:skyscraper> ." +
+                "}";
         assertFalse( QueryInvestigator.isConstruct(sparql) );
     }
 
@@ -105,6 +115,23 @@ public class QueryInvestigatorTest {
                     "?book dc:date ?date . " +
                     "FILTER ( ?date < \"2000-01-01T00:00:00\"^^xsd:dateTime ) " +
                     "?book ?p ?v " +
+                "}";
+
+        assertFalse( QueryInvestigator.isInsertWhere(sparql) );
+    }
+
+    @Test
+    public void isInsert_false_notAnInsertWithKeywords() throws Exception {
+        final String sparql =
+                "DELETE" +
+                "{ " +
+                "    ?bookInsert ?p ?o" +
+                "}" +
+                "WHERE" +
+                "{ " +
+                "    ?bookInsert <urn:datePrinted> ?datePrinted  ." +
+                "    FILTER ( ?datePrinted < \"2018-01-01T00:00:00\"^^xsd:dateTime )" +
+                "    ?bookInsert ?p ?o" +
                 "}";
 
         assertFalse( QueryInvestigator.isInsertWhere(sparql) );
