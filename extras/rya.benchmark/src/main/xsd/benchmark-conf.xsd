@@ -24,13 +24,24 @@
     <xsd:element name="QueriesBenchmarkConf">
         <xsd:complexType>
             <xsd:sequence>
-                <xsd:element name="Rya" type="Rya"/>
-                <xsd:element name="Parameters" type="Parameters"/>
+                <xsd:element name="AccumuloRya" type="AccumuloRya" minOccurs="0"/>
+                <xsd:element name="MongoRya" type="MongoRya" minOccurs="0"/>
+                <xsd:element name="QueryParameters" type="QueryParameters"/>
             </xsd:sequence>
         </xsd:complexType>
     </xsd:element>
 
-    <xsd:complexType name="Rya">
+    <xsd:element name="InsertBenchmarkConf">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="AccumuloRya" type="AccumuloRya" minOccurs="0"/>
+                <xsd:element name="MongoRya" type="MongoRya" minOccurs="0"/>
+                <xsd:element name="InsertParameters" type="InsertParameters"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:complexType name="AccumuloRya">
         <xsd:sequence>
             <xsd:element name="ryaInstanceName" type="xsd:string" />
             <xsd:element name="accumulo">
@@ -43,7 +54,7 @@
                     </xsd:sequence>
                 </xsd:complexType>
             </xsd:element>
-            <xsd:element name="secondaryIndexing">
+            <xsd:element name="secondaryIndexing" minOccurs="0">
                 <xsd:complexType>
                     <xsd:sequence>
                         <xsd:element name="usePCJ" type="xsd:boolean"/>
@@ -52,8 +63,24 @@
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
+    
+    <xsd:complexType name="MongoRya">
+        <xsd:sequence>
+            <xsd:element name="ryaInstanceName" type="xsd:string" />
+            <xsd:element name="mongo">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="username" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="password" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="hostname" type="xsd:string"/>
+                        <xsd:element name="port" type="xsd:short"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
 
-    <xsd:complexType name="Parameters">
+    <xsd:complexType name="QueryParameters">
         <xsd:sequence>
             <xsd:element name="NumReadsRuns">
                 <xsd:complexType>
@@ -69,6 +96,12 @@
                     </xsd:sequence>
                 </xsd:complexType>
             </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="InsertParameters">
+        <xsd:sequence>
+            <xsd:element name="statementFiles" type="xsd:string"/><!-- number of files is the number of writers -->
         </xsd:sequence>
     </xsd:complexType>
 </xsd:schema>

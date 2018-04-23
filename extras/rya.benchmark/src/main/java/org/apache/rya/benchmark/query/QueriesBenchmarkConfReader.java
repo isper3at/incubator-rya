@@ -50,7 +50,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 public final class QueriesBenchmarkConfReader {
 
     // It is assumed the schema file is held within the root directory of the packaged jar.
-    private static final String SCHEMA_LOCATION = "queries-benchmark-conf.xsd";
+    private static final String SCHEMA_LOCATION = "benchmark-conf.xsd";
 
     // Only load the Schema once.
     private static final Supplier<Schema> SCHEMA_SUPPLIER = Suppliers.memoize(

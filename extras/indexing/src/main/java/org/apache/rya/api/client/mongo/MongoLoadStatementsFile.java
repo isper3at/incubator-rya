@@ -92,7 +92,6 @@ public class MongoLoadStatementsFile implements LoadStatementsFile {
 
             // Load the file.
             sailRepoConn.add(statementsFile.toFile(), null, format);
-
         } catch (SailException | RyaDAOException | InferenceEngineException | AccumuloException | AccumuloSecurityException e) {
             throw new RyaClientException("Could not load statements into Rya because of a problem while creating the Sail object.", e);
         } catch (RDFParseException | RepositoryException | IOException e) {

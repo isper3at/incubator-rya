@@ -29,10 +29,10 @@ import java.util.List;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.rya.benchmark.query.Parameters.NumReadsRuns;
-import org.apache.rya.benchmark.query.Parameters.Queries;
-import org.apache.rya.benchmark.query.Rya.Accumulo;
-import org.apache.rya.benchmark.query.Rya.SecondaryIndexing;
+import org.apache.rya.benchmark.query.AccumuloRya.Accumulo;
+import org.apache.rya.benchmark.query.AccumuloRya.SecondaryIndexing;
+import org.apache.rya.benchmark.query.QueryParameters.NumReadsRuns;
+import org.apache.rya.benchmark.query.QueryParameters.Queries;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -50,7 +50,7 @@ public class QueriesBenchmarkConfReaderIT {
         final String xml =
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<QueriesBenchmarkConf>\n" +
-                "    <Rya>\n" +
+                "    <AccumuloRya>\n" +
                 "        <ryaInstanceName>test_</ryaInstanceName>\n" +
                 "        <accumulo>\n" +
                 "            <username>test</username>\n" +
@@ -61,8 +61,8 @@ public class QueriesBenchmarkConfReaderIT {
                 "        <secondaryIndexing>\n" +
                 "            <usePCJ>true</usePCJ>\n" +
                 "        </secondaryIndexing>\n" +
-                "    </Rya>\n" +
-                "    <Parameters>" +
+                "    </AccumuloRya>\n" +
+                "    <QueryParameters>" +
                 "        <NumReadsRuns>" +
                 "            <NumReads>1</NumReads>" +
                 "            <NumReads>10</NumReads>" +
@@ -73,14 +73,14 @@ public class QueriesBenchmarkConfReaderIT {
                 "            <SPARQL><![CDATA[SELECT ?a WHERE { ?a <http://likes> <urn:icecream> . }]]></SPARQL>\n" +
                 "            <SPARQL><![CDATA[SELECT ?a ?b WHERE { ?a <http://knows> ?b . }]]></SPARQL>\n" +
                 "        </Queries>\n" +
-                "    </Parameters>" +
+                "    </QueryParameters>" +
                 "</QueriesBenchmarkConf>";
 
         final InputStream xmlStream = new ByteArrayInputStream( xml.getBytes(Charsets.UTF_8) );
         final QueriesBenchmarkConf benchmarkConf = new QueriesBenchmarkConfReader().load( xmlStream );
 
         // Ensure it was unmarshalled correctly.
-        final Rya rya = benchmarkConf.getRya();
+        final AccumuloRya rya = benchmarkConf.getAccumuloRya();
         assertEquals("test_", rya.getRyaInstanceName());
 
         final Accumulo accumulo = rya.getAccumulo();
@@ -93,7 +93,7 @@ public class QueriesBenchmarkConfReaderIT {
         assertTrue(secondaryIndexing.isUsePCJ());
 
 
-        final Parameters parameters = benchmarkConf.getParameters();
+        final QueryParameters parameters = benchmarkConf.getQueryParameters();
         final List<String> expectedNumReads = Lists.newArrayList("1", "10", "100", "ALL");
         final NumReadsRuns NumReads = parameters.getNumReadsRuns();
         assertEquals(expectedNumReads, NumReads.getNumReads());

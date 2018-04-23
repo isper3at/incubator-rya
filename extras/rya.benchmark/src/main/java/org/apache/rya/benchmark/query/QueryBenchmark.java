@@ -28,17 +28,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.rya.benchmark.query.Parameters.NumReadsRuns;
+import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.benchmark.query.AccumuloRya.Accumulo;
+import org.apache.rya.benchmark.query.AccumuloRya.SecondaryIndexing;
 import org.apache.rya.benchmark.query.QueryBenchmark.QueryBenchmarkRun.NotEnoughResultsException;
-import org.apache.rya.benchmark.query.Rya.Accumulo;
-import org.apache.rya.benchmark.query.Rya.SecondaryIndexing;
+import org.apache.rya.benchmark.query.QueryParameters.NumReadsRuns;
+import org.apache.rya.indexing.accumulo.ConfigUtils;
+import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType;
+import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig.PrecomputedJoinUpdaterType;
+import org.apache.rya.sail.config.RyaSailFactory;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -61,11 +63,6 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
 import info.aduna.iteration.CloseableIteration;
-import org.apache.rya.accumulo.AccumuloRdfConfiguration;
-import org.apache.rya.indexing.accumulo.ConfigUtils;
-import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType;
-import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig.PrecomputedJoinUpdaterType;
-import org.apache.rya.sail.config.RyaSailFactory;
 
 /**
  * A benchmark that may be used to evaluate the performance of SPARQL queries
@@ -75,7 +72,7 @@ import org.apache.rya.sail.config.RyaSailFactory;
  *     <li>How many of the query's results to read</li>
  * </ul>
  * </p>
- * These parameters are configured by placing a file named "queries-benchmark-conf.xml"
+ * These parameters are configured by placing a file named "benchmark-conf.xml"
  * within the directory the benchmark is being executed from. The schema that defines
  * this XML file is named "queries-benchmark-conf.xsd" and may be found embedded within
  * the benchmark's jar file.
@@ -96,7 +93,7 @@ public class QueryBenchmark {
     /**
      * The path to the configuration file that this benchmark uses to connect to Rya.
      */
-    public static final Path QUERY_BENCHMARK_CONFIGURATION_FILE = Paths.get("queries-benchmark-conf.xml");
+    public static final Path QUERY_BENCHMARK_CONFIGURATION_FILE = Paths.get("benchmark-conf.xml");
 
     /**
      * Indicates all query results will be read during the benchmark.
@@ -128,7 +125,7 @@ public class QueryBenchmark {
         // Create the Rya Configuration object using the benchmark's configuration.
         final AccumuloRdfConfiguration ryaConf = new AccumuloRdfConfiguration();
 
-        final Rya rya = benchmarkConf.getRya();
+        final AccumuloRya rya = benchmarkConf.getAccumuloRya();
         ryaConf.setTablePrefix(rya.getRyaInstanceName());
 
         final Accumulo accumulo = rya.getAccumulo();
@@ -196,7 +193,7 @@ public class QueryBenchmark {
         // Read the queries that will be benchmarked from the provided path.
         final InputStream queriesStream = Files.newInputStream( QUERY_BENCHMARK_CONFIGURATION_FILE );
         final QueriesBenchmarkConf benchmarkConf = new QueriesBenchmarkConfReader().load(queriesStream);
-        final Parameters parameters = benchmarkConf.getParameters();
+        final QueryParameters parameters = benchmarkConf.getQueryParameters();
 
         // Setup the options that will be used to run the benchmark.
         final OptionsBuilder options = new OptionsBuilder();
@@ -249,7 +246,6 @@ public class QueryBenchmark {
     /**
      * Executes an iteration of the benchmarked logic.
      */
-    @DefaultAnnotation(NonNull.class)
     public static final class QueryBenchmarkRun {
 
         private final SailConnection sailConn;
@@ -265,7 +261,7 @@ public class QueryBenchmark {
         public QueryBenchmarkRun(final SailConnection sailConn, final String sparql) {
             this.sailConn = requireNonNull(sailConn);
             this.sparql = requireNonNull(sparql);
-            this.numReads = Optional.empty();
+            numReads = Optional.empty();
         }
 
         /**

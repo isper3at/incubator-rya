@@ -82,8 +82,8 @@ public final class MongoDBRyaDAO implements RyaDAO<StatefulMongoDBRdfConfigurati
         auths = conf.getAuthorizations();
         flushEachUpdate.set(conf.flushEachUpdate());
     }
-  
-    
+
+
     public void setDB(final DB db) {
         this.db = db;
     }
