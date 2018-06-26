@@ -30,8 +30,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
+<<<<<<< HEAD
 import org.apache.rya.api.domain.RyaStatement;
+import org.apache.rya.api.domain.RyaURI;
+=======
 import org.apache.rya.api.domain.RyaIRI;
+import org.apache.rya.api.domain.RyaStatement;
+>>>>>>> 8c45fbc... Get demo working
 import org.apache.rya.api.persist.RyaDAO;
 import org.apache.rya.api.persist.RyaDAOException;
 import org.apache.rya.api.persist.RyaNamespaceManager;
@@ -83,6 +88,7 @@ public final class MongoDBRyaDAO implements RyaDAO<StatefulMongoDBRdfConfigurati
         flushEachUpdate.set(conf.flushEachUpdate());
     }
 
+
     public void setDB(final DB db) {
         this.db = db;
     }
@@ -106,8 +112,13 @@ public final class MongoDBRyaDAO implements RyaDAO<StatefulMongoDBRdfConfigurati
             index.setConf(conf);
         }
 
+<<<<<<< HEAD
         db = mongoClient.getDB(conf.getRyaInstanceName());
         coll = db.getCollection(conf.getTriplesCollectionName());
+=======
+        db = mongoClient.getDB(conf.get(MongoDBRdfConfiguration.MONGO_DB_NAME));
+        coll = db.getCollection("rya_triples");//conf.getTriplesCollectionName());
+>>>>>>> 8c45fbc... Get demo working
         nameSpaceManager = new SimpleMongoDBNamespaceManager(db.getCollection(conf.getNameSpacesCollectionName()));
         queryEngine = new MongoDBQueryEngine();
         queryEngine.setConf(conf);
@@ -236,7 +247,7 @@ public final class MongoDBRyaDAO implements RyaDAO<StatefulMongoDBRdfConfigurati
     }
 
     @Override
-    public void dropGraph(final StatefulMongoDBRdfConfiguration conf, final RyaIRI... graphs)
+    public void dropGraph(final StatefulMongoDBRdfConfiguration conf, final RyaURI... graphs)
             throws RyaDAOException {
 
     }

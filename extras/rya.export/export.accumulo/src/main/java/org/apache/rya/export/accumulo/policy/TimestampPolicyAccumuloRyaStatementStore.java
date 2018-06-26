@@ -18,14 +18,13 @@
  */
 package org.apache.rya.export.accumulo.policy;
 
-import java.util.Date;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.TimestampFilter;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.export.accumulo.AccumuloRyaStatementStore;
-import org.apache.rya.export.api.conf.policy.TimestampPolicyStatementStore;
+import org.apache.rya.export.api.policy.TimestampPolicyStatementStore;
 import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
 
@@ -34,15 +33,15 @@ import org.apache.rya.export.api.store.RyaStatementStore;
  * filter statements based on a timestamp.
  */
 public class TimestampPolicyAccumuloRyaStatementStore extends TimestampPolicyStatementStore {
+    private final AccumuloRyaStatementStore store;
 
     /**
      * Creates a new {@link TimestampPolicyAccumuloRyaStatementStore}
      * @param store
-     * @param timestamp
      */
-    public TimestampPolicyAccumuloRyaStatementStore(final AccumuloRyaStatementStore store, final Date timestamp) {
-        super(store, timestamp);
-        store.addIterator(getStartTimeSetting(timestamp));
+    public TimestampPolicyAccumuloRyaStatementStore(final AccumuloRyaStatementStore store) {
+        super(store);
+        this.store = store;
     }
 
     /**
@@ -50,9 +49,9 @@ public class TimestampPolicyAccumuloRyaStatementStore extends TimestampPolicySta
      * @param time the start time of the filter.
      * @return the {@link IteratorSetting}.
      */
-    private static IteratorSetting getStartTimeSetting(final Date time) {
+    private static IteratorSetting getStartTimeSetting(final long time) {
         final IteratorSetting setting = new IteratorSetting(1, "startTimeIterator", TimestampFilter.class);
-        TimestampFilter.setStart(setting, time.getTime(), true);
+        TimestampFilter.setStart(setting, time, true);
         TimestampFilter.setEnd(setting, Long.MAX_VALUE, true);
         return setting;
     }
@@ -60,5 +59,15 @@ public class TimestampPolicyAccumuloRyaStatementStore extends TimestampPolicySta
     @Override
     public Iterator<RyaStatement> fetchStatements() throws FetchStatementException {
         return store.fetchStatements();
+    }
+
+    @Override
+    public Iterator<RyaStatement> fetchStatements(final long timestamp) throws FetchStatementException {
+        store.addIterator(getStartTimeSetting(timestamp));
+        return store.fetchStatements();
+    }
+    @Override
+    public String getRyaInstanceName() {
+        return store.getRyaInstanceName();
     }
 }

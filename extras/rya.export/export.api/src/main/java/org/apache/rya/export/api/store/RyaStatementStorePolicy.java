@@ -54,6 +54,11 @@ public abstract class RyaStatementStorePolicy implements RyaStatementStore {
     }
 
     @Override
+    public void addStatements(final Iterator<RyaStatement> statements) throws AddStatementException {
+        store.addStatements(statements);
+    }
+
+    @Override
     public void removeStatement(final RyaStatement statement) throws RemoveStatementException {
         store.removeStatement(statement);
     }
