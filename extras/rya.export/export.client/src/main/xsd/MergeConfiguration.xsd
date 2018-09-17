@@ -47,6 +47,7 @@ under the License.
     
     <xsd:complexType name="Connection">
         <xsd:sequence>
+            <xsd:element name="ryaInstanceName" type="xsd:string"/>
             <xsd:element name="mongo" type="mc:Mongo" minOccurs="0"/>
             <xsd:element name="accumulo" type="mc:Accumulo" minOccurs="0"/>
         </xsd:sequence>
@@ -68,7 +69,6 @@ under the License.
     <!-- Mongo configurations -->
     <xsd:complexType name="Mongo">
         <xsd:sequence>
-            <xsd:element name="ryaInstanceName" type="xsd:string"/>
             <xsd:element name="hostname" type="xsd:string"/>
             <xsd:element name="username" type="xsd:string" minOccurs="0"/>
             <xsd:element name="password" type="xsd:string" minOccurs="0"/>
@@ -80,7 +80,6 @@ under the License.
     <!-- Accumulo configurations -->
     <xsd:complexType name="Accumulo">
         <xsd:sequence>
-            <xsd:element name="ryaInstanceName" type="xsd:string"/>
             <xsd:element name="hostname" type="xsd:string"/>
             <xsd:element name="username" type="xsd:string" minOccurs="0"/>
             <xsd:element name="password" type="xsd:string" minOccurs="0"/>

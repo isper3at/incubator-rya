@@ -70,8 +70,9 @@ public class StoreToStoreIT extends ITBase {
         final MongoDBRyaDAO dao = new MongoDBRyaDAO();
         dao.setConf(new StatefulMongoDBRdfConfiguration(ITBase.getConf(mongo), mongo));
         dao.init();
+
         final MongoRyaStatementStore store = new MongoRyaStatementStore(mongo, RYA_INSTANCE, dao);
-        final TimestampPolicyMongoRyaStatementStore timeStore = new TimestampPolicyMongoRyaStatementStore(store, RYA_INSTANCE);
+        final TimestampPolicyMongoRyaStatementStore timeStore = new TimestampPolicyMongoRyaStatementStore(store, currentDate);
         clients.add(mongo);
         return timeStore;
     }
@@ -81,6 +82,7 @@ public class StoreToStoreIT extends ITBase {
         final MongoDBRyaDAO dao = new MongoDBRyaDAO();
         dao.setConf(new StatefulMongoDBRdfConfiguration(ITBase.getConf(mongo), mongo));
         dao.init();
+
         final MongoRyaStatementStore store = new MongoRyaStatementStore(mongo, RYA_INSTANCE, dao);
         clients.add(mongo);
         return store;
@@ -91,7 +93,7 @@ public class StoreToStoreIT extends ITBase {
         driver.setUp();
         final AccumuloRyaStatementStore store = new AccumuloRyaStatementStore(driver.getDao(), tablePrefix, RYA_INSTANCE);
         drivers.add(driver);
-        return new TimestampPolicyAccumuloRyaStatementStore(store);
+        return new TimestampPolicyAccumuloRyaStatementStore(store, currentDate);
     }
 
     private static AccumuloRyaStatementStore getChildAccumulo() throws Exception {
@@ -153,7 +155,7 @@ public class StoreToStoreIT extends ITBase {
         loadMockStatements(parentStore, 50, new Date(currentDate + 10000L));
 
         final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
-            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         merger.runJob();
         assertEquals(50, count(childStore));
     }
@@ -164,7 +166,7 @@ public class StoreToStoreIT extends ITBase {
 
         assertEquals(0, count(childStore));
         final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
-                new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+                new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         merger.runJob();
         assertEquals(0, count(childStore));
     }
@@ -175,7 +177,7 @@ public class StoreToStoreIT extends ITBase {
 
         //setup child
         final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
-            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         merger.runJob();
 
         //add a few statements to child
@@ -185,7 +187,7 @@ public class StoreToStoreIT extends ITBase {
         childStore.addStatement(stmnt2);
 
         final MemoryMerger otherMerger = new MemoryMerger(childStore, parentStore,
-             new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+             new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         otherMerger.runJob();
         assertEquals(52, count(parentStore));
     }
@@ -196,7 +198,7 @@ public class StoreToStoreIT extends ITBase {
 
         //setup child
         final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
-            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         merger.runJob();
 
         //remove a statement from the parent
@@ -207,7 +209,7 @@ public class StoreToStoreIT extends ITBase {
         assertFalse(parentStore.containsStatement(stmnt1));
 
         final MemoryMerger otherMerger = new MemoryMerger(childStore, parentStore,
-            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         otherMerger.runJob();
 
         //merging will have added the statement back
@@ -220,7 +222,7 @@ public class StoreToStoreIT extends ITBase {
 
         assertEquals(0, count(childStore));
         final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
-            new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+            new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         merger.runJob();
 
 
@@ -236,7 +238,7 @@ public class StoreToStoreIT extends ITBase {
         childStore.addStatement(stmnt2);
 
         final MemoryMerger otherMerger = new MemoryMerger(childStore, parentStore,
-                new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+                new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
         otherMerger.runJob();
         //both should still be there
         assertEquals(52, count(parentStore));
@@ -244,26 +246,26 @@ public class StoreToStoreIT extends ITBase {
 
     @Test
     public void ParentToChildSynch_childDeleted() throws Exception {
-        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+        loadMockStatements(parentStore, 50, new Date(currentDate + 10000L));
 
         final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
-                new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+                new VisibilityStatementMerger(), RYA_INSTANCE, 0L);
             merger.runJob();
     }
 
     @Test
     public void ParentToChildSynch_parentDeleted() throws Exception {
-        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+        loadMockStatements(parentStore, 50, new Date(currentDate + 10000L));
     }
 
     @Test
     public void ParentToChildSynch_childAdded() throws Exception {
-        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+        loadMockStatements(parentStore, 50, new Date(currentDate + 10000L));
     }
 
     @Test
     public void ParentToChildSynch_parentAdded() throws Exception {
-        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+        loadMockStatements(parentStore, 50, new Date(currentDate + 10000L));
     }
 
     private void loadMockStatements(final RyaStatementStore store, final int count, final Date timestamp) throws AddStatementException {

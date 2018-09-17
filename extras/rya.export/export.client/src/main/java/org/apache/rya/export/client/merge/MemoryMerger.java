@@ -59,7 +59,7 @@ public class MemoryMerger implements Merger {
      * @param childStore - The destination store, where the statements are going. (not null)
      * @param statementMerger - The {@link Merger} to use when performing the merge. (not null)
      * @param ryaInstanceName - The Rya instance to merge. (not null)
-     * @param timeOffset
+     * @param timeOffset - The offset from a potential NTP server. (not null)
      */
     public MemoryMerger(final RyaStatementStore parentStore, final RyaStatementStore childStore,
             final StatementMerger statementMerger, final String ryaInstanceName,

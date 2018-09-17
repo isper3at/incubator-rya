@@ -40,15 +40,12 @@ import org.apache.rya.mongodb.MongoDBRyaDAO;
 import org.apache.rya.rdftriplestore.RdfCloudTripleStore;
 import org.apache.rya.sail.config.RyaSailFactory;
 import org.bson.Document;
-import org.eclipse.rdf4j.repository.RepositoryException;
-import org.eclipse.rdf4j.repository.sail.SailRepository;
-import org.eclipse.rdf4j.repository.sail.SailRepositoryConnection;
-import org.eclipse.rdf4j.sail.Sail;
-import org.slf4j.LoggerFactory;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.repository.sail.SailRepository;
+import org.openrdf.repository.sail.SailRepositoryConnection;
+import org.openrdf.sail.Sail;
 
 import com.mongodb.MongoClient;
-
-import ch.qos.logback.classic.LoggerContext;
 
 public class ExportExample {
     private static final File DEMO_DATA_FILE = new File("src/main/resources/military_obs.trig");
@@ -59,7 +56,6 @@ public class ExportExample {
         conf.setTablePrefix("rya_");
         conf.setMongoPort("27017");
         conf.setMongoHostname("localhost");
-        conf.setMongoDBName("rya_host");
         conf.setRyaInstanceName("rya_host");
         conf.setBoolean(ConfigUtils.USE_MONGO, true);
         conf.setAuths("A");
@@ -71,7 +67,6 @@ public class ExportExample {
         conf.setTablePrefix("rya_");
         conf.setMongoPort("27017");
         conf.setMongoHostname("localhost");
-        conf.setMongoDBName("rya_child");
         conf.setRyaInstanceName("rya_child");
         conf.setBoolean(ConfigUtils.USE_MONGO, true);
         conf.setAuths("B");
@@ -84,7 +79,6 @@ public class ExportExample {
     }
 
     public static void main(final String[] args) throws Exception {
-        ((LoggerContext)LoggerFactory.getILoggerFactory()).getLoggerList().forEach(logger->logger.setLevel(ch.qos.logback.classic.Level.OFF));
         final MongoDBRdfConfiguration hostConf = (MongoDBRdfConfiguration) getHostConf();
         final MongoDBRdfConfiguration childConf = (MongoDBRdfConfiguration) getChildConf();
 
@@ -102,20 +96,19 @@ public class ExportExample {
             s.nextLine();
 
             final MongoRyaStatementStore baseHostStore = new MongoRyaStatementStore(client, hostConf.getRyaInstanceName(), (MongoDBRyaDAO) hostDAO);
-            final TimestampPolicyMongoRyaStatementStore hostStore = new TimestampPolicyMongoRyaStatementStore(baseHostStore, hostConf.getRyaInstanceName());
+            final TimestampPolicyMongoRyaStatementStore hostStore = new TimestampPolicyMongoRyaStatementStore(baseHostStore, TIMESTAMP);
             System.out.println("Host Store");
             printDB(hostStore);
 
             final MongoRyaStatementStore baseChildStore = new MongoRyaStatementStore(client, childConf.getRyaInstanceName(), (MongoDBRyaDAO) childDAO);
-            final TimestampPolicyMongoRyaStatementStore childStore = new TimestampPolicyMongoRyaStatementStore(baseChildStore, childConf.getRyaInstanceName());
             System.out.println("\n\nChild Store");
-            printDB(childStore);
+            printDB(baseChildStore);
 
             System.out.println("Creating Exporter");
             // export only half-ish
             final MemoryMerger exporter = new MemoryMerger(
-                    hostStore, childStore, new VisibilityStatementMerger(),
-                    TIMESTAMP, hostConf.getRyaInstanceName(),
+                    hostStore, baseChildStore, new VisibilityStatementMerger(),
+                    hostConf.getRyaInstanceName(),
                     0L);
             s.nextLine();
 
@@ -126,7 +119,7 @@ public class ExportExample {
             printDB(hostStore);
 
             System.out.println("\n\nChild Store");
-            printDB(childStore);
+            printDB(baseChildStore);
 
             System.out.println("Removing an observation from the child database.");
             final String subjToRemove = "https://urldefense.proofpoint.com/v2/observed/obs-b07d5af7-dccd-4d73-ad52-eb2c7308a044";
@@ -148,14 +141,13 @@ public class ExportExample {
             printDB(hostStore);
 
             System.out.println("\n\nChild Store");
-            printDB(childStore);
+            printDB(baseChildStore);
 
             s.nextLine();
             System.out.println("Merging data from child database.");
             final MemoryMerger merger = new MemoryMerger(
-                    childStore, hostStore, new VisibilityStatementMerger(),
-                    TIMESTAMP, hostConf.getRyaInstanceName(),
-                    0L);
+                    baseChildStore, hostStore, new VisibilityStatementMerger(),
+                    hostConf.getRyaInstanceName(), 0L);
             merger.runJob();
             s.nextLine();
 
@@ -164,7 +156,7 @@ public class ExportExample {
             printDB(hostStore);
 
             System.out.println("\n\nChild Store");
-            printDB(childStore);
+            printDB(baseChildStore);
             s.nextLine();
         } finally {
             System.out.println("Shutting down");

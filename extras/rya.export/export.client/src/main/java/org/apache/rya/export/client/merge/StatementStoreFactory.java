@@ -57,40 +57,42 @@ public class StatementStoreFactory {
      */
     public RyaStatementStore getStatementStore(final Connection connection) throws Exception {
         final long timestamp = configuration.getStartTime();
+        final String ryaInstanceName = connection.getRyaInstanceName();
+
         if(connection.getAccumulo() != null) {
             final Accumulo accumulo = connection.getAccumulo();
-            final AccumuloRyaStatementStore store = getAccumuloStore(accumulo);
-            return new TimestampPolicyAccumuloRyaStatementStore(store);
+            final AccumuloRyaStatementStore store = getAccumuloStore(accumulo, ryaInstanceName);
+            return new TimestampPolicyAccumuloRyaStatementStore(store, timestamp);
         } else if(connection.getMongo() != null) {
             final Mongo mongo = connection.getMongo();
-            final MongoRyaStatementStore store = getMongoStore(mongo);
-            return new TimestampPolicyMongoRyaStatementStore(store, mongo.getRyaInstanceName());
+            final MongoRyaStatementStore store = getMongoStore(mongo, connection.getRyaInstanceName());
+            return new TimestampPolicyMongoRyaStatementStore(store, timestamp);
         } else {
             throw new MergeConfigurationException("No parent database was specified.");
         }
     }
 
-    private MongoRyaStatementStore getMongoStore(final Mongo mongo) throws RyaDAOException {
+    private MongoRyaStatementStore getMongoStore(final Mongo mongo, final String ryaInstanceName) throws RyaDAOException {
         final MongoClient client = new MongoClient(mongo.getHostname(), mongo.getPort());
         final MongoDBRyaDAO dao = new MongoDBRyaDAO();
-        dao.setConf(new StatefulMongoDBRdfConfiguration(MergeConfigHadoopAdapter.getMongoConfiguration(mongo), client));
+        dao.setConf(new StatefulMongoDBRdfConfiguration(MergeConfigHadoopAdapter.getMongoConfiguration(mongo, ryaInstanceName), client));
         dao.init();
-        return new MongoRyaStatementStore(client, mongo.getRyaInstanceName(), dao);
+        return new MongoRyaStatementStore(client, ryaInstanceName, dao);
     }
 
-    private AccumuloRyaStatementStore getAccumuloStore(final Accumulo accumulo) throws Exception {
+    private AccumuloRyaStatementStore getAccumuloStore(final Accumulo accumulo, final String ryaInstanceName) throws Exception {
         final AccumuloInstanceDriver aInstance = new AccumuloInstanceDriver(
-                accumulo.getRyaInstanceName()+"_driver",
+                ryaInstanceName+"_driver",
                 InstanceType.valueOf(accumulo.getInstanceType().toString()),
                 true, false, accumulo.equals(configuration.getParent().getAccumulo()),
                 accumulo.getUsername(),
                 accumulo.getPassword(),
-                accumulo.getRyaInstanceName(),
+                ryaInstanceName,
                 accumulo.getTablePrefix(),
                 accumulo.getAuths(),
                 accumulo.getZookeepers());
         aInstance.setUp();
         final AccumuloRyaDAO dao = aInstance.getDao();
-        return new AccumuloRyaStatementStore(dao, accumulo.getTablePrefix(), accumulo.getRyaInstanceName());
+        return new AccumuloRyaStatementStore(dao, accumulo.getTablePrefix(), ryaInstanceName);
     }
 }
