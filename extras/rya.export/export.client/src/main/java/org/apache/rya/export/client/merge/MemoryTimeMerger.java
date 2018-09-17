@@ -55,12 +55,13 @@ public class MemoryTimeMerger implements Merger {
 
     /**
      * Creates a new {@link MemoryTimeMerger} to merge the statements from the parent to a child.
-     * @param parentStore
-     * @param childStore
-     * @param childMetadata
-     * @param parentMetadata
-     * @param statementMerger
-     * @param timestamp - The timestamp from which all parent statements will be merged into the child.
+     *
+     * @param parentStore - The source store, where the statements are coming from. (not null)
+     * @param childStore - The destination store, where the statements are going. (not null)
+     * @param statementMerger - The {@link Merger} to use when performing the merge. (not null)
+     * @param timestamp - The timestamp from which all parent statements will be merged into the child. (not null)
+     * @param ryaInstanceName - The Rya instance to merge. (not null)
+     * @param timeOffset
      */
     public MemoryTimeMerger(final RyaStatementStore parentStore, final RyaStatementStore childStore,
             final StatementMerger statementMerger, final Date timestamp, final String ryaInstanceName,
@@ -147,11 +148,9 @@ public class MemoryTimeMerger implements Merger {
             }
         }
 
-        long curTime = -1L;
         //Add all of the child statements that are not in the parent
         while(parentStatements.hasNext()) {
             final RyaStatement statement = parentStatements.next();
-            curTime = statement.getTimestamp();
             if(!childStore.containsStatement(statement)) {
                 statement.setTimestamp(statement.getTimestamp() - timeOffset);
                 childStore.addStatement(statement);

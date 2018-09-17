@@ -242,6 +242,30 @@ public class StoreToStoreIT extends ITBase {
         assertEquals(52, count(parentStore));
     }
 
+    @Test
+    public void ParentToChildSynch_childDeleted() throws Exception {
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+
+        final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
+                new VisibilityStatementMerger(), currentDate, RYA_INSTANCE, 0L);
+            merger.runJob();
+    }
+
+    @Test
+    public void ParentToChildSynch_parentDeleted() throws Exception {
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+    }
+
+    @Test
+    public void ParentToChildSynch_childAdded() throws Exception {
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+    }
+
+    @Test
+    public void ParentToChildSynch_parentAdded() throws Exception {
+        loadMockStatements(parentStore, 50, new Date(currentDate.getTime() + 10000L));
+    }
+
     private void loadMockStatements(final RyaStatementStore store, final int count, final Date timestamp) throws AddStatementException {
         for(int ii = 0; ii < count; ii++) {
             final RyaStatement statement = makeRyaStatement("http://subject", "http://predicate", "http://"+ii);
