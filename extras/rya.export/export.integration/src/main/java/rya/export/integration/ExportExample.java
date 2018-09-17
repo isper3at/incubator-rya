@@ -30,7 +30,7 @@ import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.persist.RyaDAO;
 import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
-import org.apache.rya.export.client.merge.MemoryTimeMerger;
+import org.apache.rya.export.client.merge.MemoryMerger;
 import org.apache.rya.export.client.merge.VisibilityStatementMerger;
 import org.apache.rya.export.mongo.MongoRyaStatementStore;
 import org.apache.rya.export.mongo.policy.TimestampPolicyMongoRyaStatementStore;
@@ -113,7 +113,7 @@ public class ExportExample {
 
             System.out.println("Creating Exporter");
             // export only half-ish
-            final MemoryTimeMerger exporter = new MemoryTimeMerger(
+            final MemoryMerger exporter = new MemoryMerger(
                     hostStore, childStore, new VisibilityStatementMerger(),
                     TIMESTAMP, hostConf.getRyaInstanceName(),
                     0L);
@@ -152,7 +152,7 @@ public class ExportExample {
 
             s.nextLine();
             System.out.println("Merging data from child database.");
-            final MemoryTimeMerger merger = new MemoryTimeMerger(
+            final MemoryMerger merger = new MemoryMerger(
                     childStore, hostStore, new VisibilityStatementMerger(),
                     TIMESTAMP, hostConf.getRyaInstanceName(),
                     0L);

@@ -18,31 +18,24 @@
  */
 package org.apache.rya.export.api.policy;
 
-import java.util.Iterator;
-
-import org.apache.rya.api.domain.RyaStatement;
-import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RyaStatementStore;
 import org.apache.rya.export.api.store.RyaStatementStorePolicy;
 
 /**
  * Statement Store decorated to fetch statements based on a timestamp.
  */
-public abstract class TimestampPolicyStatementStore extends RyaStatementStorePolicy {
+public class TimestampPolicyStatementStore extends RyaStatementStorePolicy {
+
+    protected final long timestamp;
 
     /**
      * Creates a new {@link TimestampPolicyStatementStore}
      * @param store - The {@link RyaStatementStore} to decorate
+     * @param timestamp - The timestamp from which all parent statements will be merged into the child.
      */
-    public TimestampPolicyStatementStore(final RyaStatementStore store) {
+    public TimestampPolicyStatementStore(final RyaStatementStore store, final long timestamp) {
         super(store);
-    }
 
-    /**
-     * The statements fetched will have been inserted into the statement store after
-     * the specified timestamp.
-     *
-     * @param timestamp - The timestamp to fetch statements based on.
-     */
-    public abstract Iterator<RyaStatement> fetchStatements(final long timestamp) throws FetchStatementException;
+        this.timestamp = timestamp;
+    }
 }

@@ -53,27 +53,14 @@ public class TimestampPolicyMongoRyaStatementStore extends TimestampPolicyStatem
      * @param timestamp - The Date to filter statements on.
      * @param ryaInstanceName - The rya instance to merge statements to/from.
      */
-    public TimestampPolicyMongoRyaStatementStore(final MongoRyaStatementStore store, final String ryaInstanceName) {
-        super(store);
+    public TimestampPolicyMongoRyaStatementStore(final MongoRyaStatementStore store, final long timestamp) {
+        super(store, timestamp);
         adapter = new SimpleMongoDBStorageStrategy();
-        db = store.getClient().getDB(ryaInstanceName);
+        db = store.getClient().getDB(store.getRyaInstanceName());
     }
 
     @Override
     public Iterator<RyaStatement> fetchStatements() throws FetchStatementException {
-        final DBObject timeObj = new BasicDBObjectBuilder()
-            .get();
-        final Cursor cur = db.getCollection(TRIPLES_COLLECTION).find(timeObj).sort(new BasicDBObject(TIMESTAMP, 1));
-        final List<RyaStatement> statements = new ArrayList<>();
-        while(cur.hasNext()) {
-            final RyaStatement statement = adapter.deserializeDBObject(cur.next());
-            statements.add(statement);
-        }
-        return statements.iterator();
-    }
-
-    @Override
-    public Iterator<RyaStatement> fetchStatements(final long timestamp) throws FetchStatementException {
         final DBObject timeObj = new BasicDBObjectBuilder()
             .add(SimpleMongoDBStorageStrategy.TIMESTAMP,
                 new BasicDBObjectBuilder()

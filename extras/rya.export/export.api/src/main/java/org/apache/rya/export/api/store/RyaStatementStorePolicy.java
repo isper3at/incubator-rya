@@ -82,4 +82,9 @@ public abstract class RyaStatementStorePolicy implements RyaStatementStore {
     public void setParentMetadata(final MergeParentMetadata metadata) throws ParentMetadataExistsException {
         store.setParentMetadata(metadata);
     }
+
+    @Override
+    public String getRyaInstanceName() {
+        return store.getRyaInstanceName();
+    }
 }

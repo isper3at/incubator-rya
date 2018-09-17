@@ -30,11 +30,11 @@ import org.apache.rya.export.api.Merger;
 import org.apache.rya.export.api.StatementMerger;
 import org.apache.rya.export.api.metadata.MergeParentMetadata;
 import org.apache.rya.export.api.metadata.ParentMetadataExistsException;
-import org.apache.rya.export.api.policy.TimestampPolicyStatementStore;
 import org.apache.rya.export.api.store.AddStatementException;
 import org.apache.rya.export.api.store.ContainsStatementException;
 import org.apache.rya.export.api.store.FetchStatementException;
 import org.apache.rya.export.api.store.RemoveStatementException;
+import org.apache.rya.export.api.store.RyaStatementStore;
 
 /**
  * An in memory {@link Merger}.  Merges {@link RyaStatement}s from a parent
@@ -43,44 +43,31 @@ import org.apache.rya.export.api.store.RemoveStatementException;
  * {@link StatementMerger} will merge the statements and produce the desired
  * {@link RyaStatement}.
  */
-public class MemoryTimeMerger implements Merger {
-    private static final Logger LOG = Logger.getLogger(MemoryTimeMerger.class);
+public class MemoryMerger implements Merger {
+    private static final Logger LOG = Logger.getLogger(MemoryMerger.class);
 
-    private final TimestampPolicyStatementStore parentStore;
-    private final TimestampPolicyStatementStore childStore;
+    private final RyaStatementStore parentStore;
+    private final RyaStatementStore childStore;
     private final StatementMerger statementMerger;
-    private final long timestamp;
-    private final String parentRyaInstanceName;
+    private final String ryaInstanceName;
     private final Long timeOffset;
 
     /**
-     * Creates a new {@link MemoryTimeMerger} to merge the statements from the parent to a child.
-<<<<<<< HEAD
+     * Creates a new {@link MemoryMerger} to merge the statements from the parent to a child.
      *
      * @param parentStore - The source store, where the statements are coming from. (not null)
      * @param childStore - The destination store, where the statements are going. (not null)
      * @param statementMerger - The {@link Merger} to use when performing the merge. (not null)
-     * @param timestamp - The timestamp from which all parent statements will be merged into the child. (not null)
      * @param ryaInstanceName - The Rya instance to merge. (not null)
      * @param timeOffset
-=======
-     * @param parentStore
-     * @param childStore
-     * @param childMetadata
-     * @param parentMetadata
-     * @param statementMerger
-     * @param timestamp - The timestamp from which all parent statements will be merged into the child.
-     * @param parentRyaInstanceName
->>>>>>> 8c45fbc... Get demo working
      */
-    public MemoryTimeMerger(final TimestampPolicyStatementStore parentStore, final TimestampPolicyStatementStore childStore,
-            final StatementMerger statementMerger, final long timestamp, final String parentRyaInstanceName,
+    public MemoryMerger(final RyaStatementStore parentStore, final RyaStatementStore childStore,
+            final StatementMerger statementMerger, final String ryaInstanceName,
             final Long timeOffset) {
         this.parentStore = checkNotNull(parentStore);
         this.childStore = checkNotNull(childStore);
         this.statementMerger = checkNotNull(statementMerger);
-        this.timestamp = checkNotNull(timestamp);
-        this.parentRyaInstanceName = checkNotNull(parentRyaInstanceName);
+        this.ryaInstanceName = checkNotNull(ryaInstanceName);
         this.timeOffset = checkNotNull(timeOffset);
     }
 
@@ -92,7 +79,7 @@ public class MemoryTimeMerger implements Merger {
         if(metadata.isPresent()) {
             LOG.info("Merging statements...");
             final MergeParentMetadata parentMetadata = metadata.get();
-            if(parentMetadata.getRyaInstanceName().equals(parentRyaInstanceName)) {
+            if(parentMetadata.getRyaInstanceName().equals(ryaInstanceName)) {
                 try {
                     importStatements(parentMetadata);
                 } catch (AddStatementException | ContainsStatementException | RemoveStatementException | FetchStatementException e) {
@@ -118,15 +105,14 @@ public class MemoryTimeMerger implements Merger {
         LOG.info("Creating parent metadata in the child.");
         //setup parent metadata repo in the child
         final MergeParentMetadata metadata = new MergeParentMetadata.Builder()
-            .setRyaInstanceName(parentRyaInstanceName)
+            .setRyaInstanceName(ryaInstanceName)
             .setTimestamp(new Date())
             .setParentTimeOffset(timeOffset)
-            .setFilterTimestmap(timestamp)
             .build();
         childStore.setParentMetadata(metadata);
 
         //fetch all statements after timestamp from the parent
-        final Iterator<RyaStatement> statements = parentStore.fetchStatements(timestamp);
+        final Iterator<RyaStatement> statements = parentStore.fetchStatements();
         LOG.info("Exporting statements.");
         while(statements.hasNext()) {
             System.out.print(".");
@@ -141,8 +127,8 @@ public class MemoryTimeMerger implements Merger {
 
     private void importStatements(final MergeParentMetadata metadata) throws AddStatementException, ContainsStatementException, RemoveStatementException, FetchStatementException {
         LOG.info("Importing statements.");
-        final Iterator<RyaStatement> parentStatements = parentStore.fetchStatements(timestamp);
-        final Iterator<RyaStatement> childStatements = childStore.fetchStatements(timestamp);
+        final Iterator<RyaStatement> parentStatements = parentStore.fetchStatements();
+        final Iterator<RyaStatement> childStatements = childStore.fetchStatements();
         //statements are in order by timestamp.
 
         //Remove statements that were removed in the child.

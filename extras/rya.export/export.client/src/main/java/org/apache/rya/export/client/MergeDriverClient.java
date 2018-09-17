@@ -41,7 +41,7 @@ import org.apache.rya.export.api.conf.policy.TimestampPolicyMergeConfiguration;
 import org.apache.rya.export.api.store.RyaStatementStore;
 import org.apache.rya.export.client.conf.MergeConfigurationCLI;
 import org.apache.rya.export.client.conf.TimeUtils;
-import org.apache.rya.export.client.merge.MemoryTimeMerger;
+import org.apache.rya.export.client.merge.MemoryMerger;
 import org.apache.rya.export.client.merge.StatementStoreFactory;
 import org.apache.rya.export.client.merge.VisibilityStatementMerger;
 import org.apache.rya.rdftriplestore.inference.InferenceEngineException;
@@ -116,7 +116,7 @@ public class MergeDriverClient {
                     } else {
                         timeOffset = 0L;
                     }
-                    final MemoryTimeMerger merger = new MemoryTimeMerger(parentStore, childStore,
+                    final MemoryMerger merger = new MemoryMerger(parentStore, childStore,
                             new VisibilityStatementMerger(), timeConfig.getToolStartTime(),
                             configuration.getParentRyaInstanceName(), timeOffset);
                     merger.runJob();
