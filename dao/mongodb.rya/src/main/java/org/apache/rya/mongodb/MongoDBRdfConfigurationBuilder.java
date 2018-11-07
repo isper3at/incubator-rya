@@ -18,6 +18,8 @@
  */
 package org.apache.rya.mongodb;
 
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.MONGO_AUTH_DB;
+
 import java.util.Properties;
 
 /**
@@ -84,7 +86,8 @@ public class MongoDBRdfConfigurationBuilder
                     .setMongoPort(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_PORT,
                             AbstractMongoDBRdfConfigurationBuilder.DEFAULT_MONGO_PORT))//
                     .setUseMockMongo(getBoolean(
-                            props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_MOCK_MONGO, "false")));
+                            props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_MOCK_MONGO, "false")))
+                    .setMongoAuthDB(props.getProperty(MONGO_AUTH_DB));
 
             return builder.build();
         } catch (final Exception e) {
@@ -101,5 +104,4 @@ public class MongoDBRdfConfigurationBuilder
     protected MongoDBRdfConfiguration createConf() {
         return new MongoDBRdfConfiguration();
     }
-
 }

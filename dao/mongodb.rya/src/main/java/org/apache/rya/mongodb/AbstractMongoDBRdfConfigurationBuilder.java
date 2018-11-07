@@ -43,6 +43,7 @@ public abstract class AbstractMongoDBRdfConfigurationBuilder<B extends AbstractM
     public static final String DEFAULT_MONGO_PORT = "27017";
     private String mongoDBName = "rya";
     private boolean usePipeline = false;
+    private String authDB = "";
 
     public static final String MONGO_USER = "mongo.user";
     public static final String MONGO_PASSWORD = "mongo.password";
@@ -142,6 +143,17 @@ public abstract class AbstractMongoDBRdfConfigurationBuilder<B extends AbstractM
     }
 
     /**
+     * Sets MongoDB authentication database.
+     *
+     * @param authDB - the authDB to use.
+     * @return specified builder for chaining method invocations.
+     */
+    public B setMongoAuthDB(final String authDB) {
+        this.authDB = authDB == null ? "" : authDB;
+        return confBuilder();
+    }
+
+    /**
      * @return extension of {@link MongoDBRdfConfiguration} with specified parameters set
      */
     @Override
@@ -169,7 +181,7 @@ public abstract class AbstractMongoDBRdfConfigurationBuilder<B extends AbstractM
         conf.setRyaInstanceName(mongoDBName);
         conf.setMongoHostname(host);
         conf.setMongoPort(port);
-        conf.setUseAggregationPipeline(usePipeline);
+        conf.setMongoAuthDB(authDB);
 
         return conf;
     }

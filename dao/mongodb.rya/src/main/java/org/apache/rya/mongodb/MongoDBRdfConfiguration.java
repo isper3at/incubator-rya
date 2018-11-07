@@ -45,6 +45,7 @@ public class MongoDBRdfConfiguration extends RdfCloudTripleStoreConfiguration {
     public static final String RYA_INSTANCE_NAME = "mongo.db.name";
     public static final String MONGO_USER = "mongo.db.user";
     public static final String MONGO_USER_PASSWORD = "mongo.db.userpassword";
+    public static final String MONGO_AUTH_DB = "mongo.auth.db";
 
     // Rya Sail configuration values.
     public static final String USE_MOCK_MONGO = ".useMockInstance";
@@ -259,6 +260,20 @@ public class MongoDBRdfConfiguration extends RdfCloudTripleStoreConfiguration {
      */
     public void setUseAggregationPipeline(final boolean value) {
         setBoolean(USE_AGGREGATION_PIPELINE, value);
+    }
+
+    /**
+     * @param authDB - The authentication DB to use in mongo. (not null)
+     */
+    public void setMongoAuthDB(final String authDB) {
+        set(MONGO_AUTH_DB, requireNonNull(authDB));
+    }
+
+    /**
+     * @return - The DB to use when authenticating in mongo, null otherwise.
+     */
+    public String getMongoAuthDB() {
+        return get(MONGO_AUTH_DB);
     }
 
     @Override

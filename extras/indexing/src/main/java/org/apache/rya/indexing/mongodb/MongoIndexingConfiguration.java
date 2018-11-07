@@ -286,6 +286,7 @@ public class MongoIndexingConfiguration extends MongoDBRdfConfiguration {
                                 AbstractMongoDBRdfConfigurationBuilder.DEFAULT_MONGO_PORT))//
                         .setUseMockMongo(getBoolean(
                                 props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_MOCK_MONGO, "false")))//
+                        .setMongoAuthDB(props.getProperty(MONGO_AUTH_DB))
                         .setUseMongoFreetextIndex(getBoolean(props.getProperty(USE_FREETEXT, "false")))//
                         .setUseMongoTemporalIndex(getBoolean(props.getProperty(USE_TEMPORAL, "false")))//
                         .setUseMongoEntityIndex(getBoolean(props.getProperty(USE_ENTITY, "false")))//
