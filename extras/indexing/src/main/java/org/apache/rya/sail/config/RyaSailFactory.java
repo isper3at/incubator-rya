@@ -86,7 +86,7 @@ public class RyaSailFactory {
 
         if(ConfigUtils.getUseMongo(config)) {
             // Get a reference to a Mongo DB configuration object.
-            final MongoDBRdfConfiguration mongoConfig = (config instanceof MongoDBRdfConfiguration) ?
+            final MongoDBRdfConfiguration mongoConfig = config instanceof MongoDBRdfConfiguration ?
                     (MongoDBRdfConfiguration)config : new MongoDBRdfConfiguration(config);
             // Instantiate a Mongo client and Mongo DAO.
             dao = getMongoDAO(mongoConfig);
@@ -171,7 +171,7 @@ public class RyaSailFactory {
         final AccumuloRyaDAO dao = new AccumuloRyaDAO();
         dao.setConnector(connector);
 
-        ConfigUtils.setIndexers(config);
+        setIndexers(config);
 
         dao.setConf(config);
         dao.init();
@@ -221,12 +221,12 @@ public class RyaSailFactory {
      * @return - MongoDBRyaDAO with Indexers configured according to user's specification
      * @throws RyaDAOException if the DAO can't be initialized
      */
-    public static MongoDBRyaDAO getMongoDAO(MongoDBRdfConfiguration mongoConfig) throws RyaDAOException {
+    public static MongoDBRyaDAO getMongoDAO(final MongoDBRdfConfiguration mongoConfig) throws RyaDAOException {
             // Create the MongoClient that will be used by the Sail object's components.
             final MongoClient client = createMongoClient(mongoConfig);
 
             // Add the Indexer and Optimizer names to the configuration object that are configured to be used.
-            ConfigUtils.setIndexers(mongoConfig);
+            setIndexers(mongoConfig);
 
             // Populate the configuration using previously stored Rya Details if this instance uses them.
             try {
@@ -246,5 +246,14 @@ public class RyaSailFactory {
             mongoDao.setConf(statefulConfig);
             mongoDao.init();
             return mongoDao;
+    }
+
+    /**
+     * Sets the secondary indexers to use in the new instance of Rya.
+     * @param config - The config to determine which secondary indexers to use. (not null)
+     */
+    protected static void setIndexers(final RdfCloudTripleStoreConfiguration config) {
+        requireNonNull(config);
+        ConfigUtils.setIndexers(config);
     }
 }
