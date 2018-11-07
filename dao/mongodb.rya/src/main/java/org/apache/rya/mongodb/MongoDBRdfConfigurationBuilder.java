@@ -18,6 +18,15 @@
  */
 package org.apache.rya.mongodb;
 
+import static org.apache.rya.api.RdfCloudTripleStoreConfiguration.CONF_QUERYPLAN_FLAG;
+import static org.apache.rya.api.RdfCloudTripleStoreConfiguration.CONF_QUERY_AUTH;
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.MONGO_HOSTNAME;
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.MONGO_PORT;
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.MONGO_USER;
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.MONGO_USER_PASSWORD;
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.RYA_INSTANCE_NAME;
+import static org.apache.rya.mongodb.MongoDBRdfConfiguration.USE_MOCK_MONGO;
+
 import java.util.Properties;
 
 /**
@@ -69,22 +78,16 @@ public class MongoDBRdfConfigurationBuilder
         try {
 
             final MongoDBRdfConfigurationBuilder builder = new MongoDBRdfConfigurationBuilder() //
-                    .setAuths(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_AUTHS, "")) //
-                    .setRyaPrefix(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_RYA_PREFIX, "rya_"))//
-                    .setVisibilities(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_VISIBILITIES, ""))
-                    .setUseInference(getBoolean(
-                            props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_INFERENCE, "false")))//
-                    .setDisplayQueryPlan(getBoolean(
-                            props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_DISPLAY_QUERY_PLAN, "true")))//
-                    .setMongoUser(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_USER)) //
-                    .setMongoPassword(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_PASSWORD))//
-                    .setMongoDBName(
-                            props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_DB_NAME, "rya_triples"))//
-                    .setMongoHost(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_HOST, "localhost"))//
-                    .setMongoPort(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_PORT,
-                            AbstractMongoDBRdfConfigurationBuilder.DEFAULT_MONGO_PORT))//
-                    .setUseMockMongo(getBoolean(
-                            props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_MOCK_MONGO, "false")));
+                    .setAuths(props.getProperty(CONF_QUERY_AUTH, "")) //
+                    //.setVisibilities(props.getProperty(MongoDBRdfConfiguration.MONGO_VISIBILITIES, ""))
+                    //.setUseInference(getBoolean(props.getProperty(MongoDBRdfConfiguration.USE_INFERENCE, "false")))//
+                    .setDisplayQueryPlan(getBoolean(props.getProperty(CONF_QUERYPLAN_FLAG, "true")))//
+                    .setMongoUser(props.getProperty(MONGO_USER)) //
+                    .setMongoPassword(props.getProperty(MONGO_USER_PASSWORD))//
+                    .setMongoDBName(props.getProperty(RYA_INSTANCE_NAME, "rya_triples"))//
+                    .setMongoHost(props.getProperty(MONGO_HOSTNAME, "localhost"))//
+                    .setMongoPort(props.getProperty(MONGO_PORT, DEFAULT_MONGO_PORT))//
+                    .setUseMockMongo(getBoolean(props.getProperty(USE_MOCK_MONGO, "false")));
 
             return builder.build();
         } catch (final Exception e) {
@@ -101,5 +104,4 @@ public class MongoDBRdfConfigurationBuilder
     protected MongoDBRdfConfiguration createConf() {
         return new MongoDBRdfConfiguration();
     }
-
 }

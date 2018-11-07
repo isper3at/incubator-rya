@@ -44,18 +44,6 @@ public abstract class AbstractMongoDBRdfConfigurationBuilder<B extends AbstractM
     private String mongoDBName = "rya";
     private boolean usePipeline = false;
 
-    public static final String MONGO_USER = "mongo.user";
-    public static final String MONGO_PASSWORD = "mongo.password";
-    public static final String MONGO_DB_NAME = "mongo.db.name";
-    public static final String MONGO_HOST = "mongo.host";
-    public static final String MONGO_PORT = "mongo.port";
-    public static final String MONGO_AUTHS = "mongo.auths";
-    public static final String MONGO_VISIBILITIES = "mongo.visibilities";
-    public static final String MONGO_RYA_PREFIX = "mongo.rya.prefix";
-    public static final String USE_INFERENCE = "use.inference";
-    public static final String USE_DISPLAY_QUERY_PLAN = "use.display.plan";
-    public static final String USE_MOCK_MONGO = "use.mock";
-
     /**
      * Sets Mongo user.
      *

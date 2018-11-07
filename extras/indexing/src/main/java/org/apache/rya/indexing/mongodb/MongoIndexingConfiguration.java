@@ -269,23 +269,16 @@ public class MongoIndexingConfiguration extends MongoDBRdfConfiguration {
         public static MongoIndexingConfiguration fromProperties(final Properties props) {
             try {
                 final MongoDBIndexingConfigBuilder builder = new MongoDBIndexingConfigBuilder() //
-                        .setAuths(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_AUTHS, "")) //
-                        .setRyaPrefix(
-                                props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_RYA_PREFIX, "rya_"))//
-                        .setVisibilities(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_VISIBILITIES, ""))
-                        .setUseInference(getBoolean(
-                                props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_INFERENCE, "false")))//
-                        .setDisplayQueryPlan(getBoolean(props
-                                .getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_DISPLAY_QUERY_PLAN, "true")))//
-                        .setMongoUser(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_USER)) //
-                        .setMongoPassword(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_PASSWORD))//
-                        .setMongoDBName(
-                                props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_DB_NAME, "rya_triples"))//
-                        .setMongoHost(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_HOST, "localhost"))//
-                        .setMongoPort(props.getProperty(AbstractMongoDBRdfConfigurationBuilder.MONGO_PORT,
-                                AbstractMongoDBRdfConfigurationBuilder.DEFAULT_MONGO_PORT))//
-                        .setUseMockMongo(getBoolean(
-                                props.getProperty(AbstractMongoDBRdfConfigurationBuilder.USE_MOCK_MONGO, "false")))//
+                        .setAuths(props.getProperty(CONF_QUERY_AUTH, "")) //
+                        //.setVisibilities(props.getProperty(MongoDBRdfConfiguration.MONGO_VISIBILITIES, ""))
+                        //.setUseInference(getBoolean(props.getProperty(MongoDBRdfConfiguration.USE_INFERENCE, "false")))//
+                        .setDisplayQueryPlan(getBoolean(props.getProperty(CONF_QUERYPLAN_FLAG, "true")))//
+                        .setMongoUser(props.getProperty(MONGO_USER)) //
+                        .setMongoPassword(props.getProperty(MONGO_USER_PASSWORD))//
+                        .setMongoDBName(props.getProperty(RYA_INSTANCE_NAME, "rya_triples"))//
+                        .setMongoHost(props.getProperty(MONGO_HOSTNAME, "localhost"))//
+                        .setMongoPort(props.getProperty(MONGO_PORT, DEFAULT_MONGO_PORT))//
+                        .setUseMockMongo(getBoolean(props.getProperty(USE_MOCK_MONGO, "false")))
                         .setUseMongoFreetextIndex(getBoolean(props.getProperty(USE_FREETEXT, "false")))//
                         .setUseMongoTemporalIndex(getBoolean(props.getProperty(USE_TEMPORAL, "false")))//
                         .setUseMongoEntityIndex(getBoolean(props.getProperty(USE_ENTITY, "false")))//
